@@ -2,24 +2,30 @@ package io.github.vietdsk6.porta.presentation.screens.frontier
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class FrontierViewModel(
     private val actionFrontierEngine: ActionFrontierEngine,
     private val profileRepository: ProfileRepository,
+    planRepository: PlanRepository,
 ) : ViewModel() {
     private var activeProfile = PortaSampleData.profile
     private var isSampleProfile = true
+    private var activePlan: ActivePlanSummaryUiState? = null
     private val _uiState = MutableStateFlow(buildState(horizonDays = 90))
     val uiState: StateFlow<FrontierUiState> = _uiState.asStateFlow()
 
@@ -31,6 +37,22 @@ class FrontierViewModel(
                     isSampleProfile = false
                     _uiState.value = buildState(_uiState.value.horizonDays)
                 }
+            }
+        }
+        viewModelScope.launch {
+            planRepository.observeCurrentPlan().collect { plan ->
+                activePlan = plan?.let {
+                    ActivePlanSummaryUiState(
+                        title = it.title,
+                        statusLabel = when (it.status) {
+                            PlanStatus.PLANNED -> "Planned"
+                            PlanStatus.IN_PROGRESS -> "In progress"
+                            PlanStatus.PAUSED -> "Paused"
+                            PlanStatus.COMPLETED -> "Work marked complete"
+                        },
+                    )
+                }
+                _uiState.value = buildState(_uiState.value.horizonDays)
             }
         }
     }
@@ -59,7 +81,7 @@ class FrontierViewModel(
                 title = if (isSampleProfile) {
                     action.template.title
                 } else {
-                    "Raise ${action.template.targetFactKey.name.readable()} to ${action.template.targetValue.displayValue()}"
+                    "Raise ${action.template.targetFactKey.readable()} to ${action.template.targetValue.displayValue()}"
                 },
                 targetLabel = action.template.targetValue.displayValue(),
                 newlyOpenCount = action.newlyOpenOpportunityIds.size,
@@ -74,9 +96,13 @@ class FrontierViewModel(
         return FrontierUiState(
             isSampleMode = isSampleProfile,
             horizonDays = horizonDays,
+            activePlan = activePlan,
             actions = actions,
         )
     }
 
-    private fun String.readable(): String = lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+    private fun FactKey.readable(): String = when (this) {
+        FactKey.IELTS_SCORE -> "IELTS"
+        else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+    }
 }

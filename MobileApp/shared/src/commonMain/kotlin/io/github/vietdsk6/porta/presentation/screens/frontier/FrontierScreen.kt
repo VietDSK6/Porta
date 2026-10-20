@@ -34,6 +34,7 @@ import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 fun FrontierScreen(
     viewModel: FrontierViewModel,
     onPreviewScenario: (String) -> Unit,
+    onOpenActivePlan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -41,6 +42,7 @@ fun FrontierScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onPreviewScenario = onPreviewScenario,
+        onOpenActivePlan = onOpenActivePlan,
         modifier = modifier.fillMaxSize(),
     )
 }
@@ -50,6 +52,7 @@ fun FrontierScreen(
     uiState: FrontierUiState,
     onUiEvent: (FrontierUiEvent) -> Unit,
     onPreviewScenario: (String) -> Unit,
+    onOpenActivePlan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ScreenWithToolbar(
@@ -81,6 +84,9 @@ fun FrontierScreen(
                     ConstraintCard(uiState.horizonDays, onUiEvent)
                 }
             }
+            uiState.activePlan?.let { plan ->
+                item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
+            }
             if (uiState.actions.isEmpty()) {
                 item { NoFeasibleActionCard() }
             } else {
@@ -89,6 +95,25 @@ fun FrontierScreen(
                 }
             }
             item { Spacer(Modifier.height(8.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun ActivePlanPinnedCard(plan: ActivePlanSummaryUiState, onOpen: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-active-plan"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
+        border = BorderStroke(1.dp, PORTA_TEAL),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("ACTIVE PLAN · ${plan.statusLabel.uppercase()}", color = PORTA_TEAL, fontWeight = FontWeight.Bold)
+            Text(plan.title, color = AppTheme.colors.onAlternative, style = AppTheme.typography.h6)
+            Button(modifier = Modifier.fillMaxWidth(), onClick = onOpen) { Text("Open plan") }
         }
     }
 }
@@ -217,6 +242,7 @@ private fun FrontierScreenPreview() {
             ),
             onUiEvent = {},
             onPreviewScenario = {},
+            onOpenActivePlan = {},
         )
     }
 }

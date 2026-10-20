@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.data.source.local.dao
 
 import androidx.room3.Dao
 import androidx.room3.Query
+import androidx.room3.Transaction
 import androidx.room3.Upsert
 import io.github.vietdsk6.porta.data.source.local.entity.PlanItemEntity
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,12 @@ interface PlanItemDao {
 
     @Upsert
     suspend fun upsert(entity: PlanItemEntity)
+
+    @Transaction
+    suspend fun replaceForProfile(entity: PlanItemEntity) {
+        deleteForProfile(entity.profileId)
+        upsert(entity)
+    }
 
     @Query("UPDATE plan_item SET status = :status, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateStatus(id: String, status: String, updatedAt: Long)

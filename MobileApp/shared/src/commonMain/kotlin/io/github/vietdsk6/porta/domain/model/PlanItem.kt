@@ -20,5 +20,6 @@ data class PlanItem(
 enum class PlanStatus {
     PLANNED,
     IN_PROGRESS,
+    PAUSED,
     COMPLETED,
 }

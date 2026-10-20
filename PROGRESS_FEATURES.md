@@ -45,7 +45,7 @@
 - [x] **OpportunityDetail** — rule receipt, actual/required/source limits, scenario navigation, preview + UI test
 - [x] **Frontier** *(tab)* — horizon constraint, Pareto action card, scenario navigation, preview + UI test
 - [x] **ScenarioPreview** — persistent WHAT-IF, before/after and deltas, explicit commit/discard, preview + UI test
-- [~] **ActivePlan** — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
+- [x] **ActivePlan** — single local milestone, progress/pause/complete, evidence + impact, explicit profile boundary, preview + tests
 - [~] **StudentProfile** *(tab)* — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
 - [~] **PackInspector** — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
 
@@ -70,13 +70,13 @@
 - [x] Immutable/context-only facts never become recommended actions
 - [x] Candidate deduplication, deadline feasibility, Pareto dominance, stable ranking, and honest explanation
 - [x] Synthetic test fixture opens exactly four doors for IELTS `6.5 → 7.0`
-- [ ] Android navigation/back behavior and Desktop keyboard path
+- [~] Android navigation/back behavior and Desktop keyboard path — Active Plan route/callbacks covered; full pass pending
 - [ ] Large text and reduced-motion summaries preserve all essential information
 
 ## Validation
 
 - [ ] Every P0 screen has a pure composable test and `@Preview`
-- [~] Rendered previews inspected through `verify-ui` — onboarding and ProfileSetup inspected
+- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, and ActivePlan inspected
 - [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
 - [ ] Developer ran Android or Desktop and confirmed the vertical slice behaves correctly
 

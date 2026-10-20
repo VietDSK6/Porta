@@ -20,6 +20,30 @@ class ProfileSetupViewModel(
     private val _uiState = MutableStateFlow(ProfileSetupUiState())
     val uiState: StateFlow<ProfileSetupUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            profileRepository.getProfile().onSuccess { profile ->
+                if (profile.facts.isNotEmpty()) {
+                    val facts = profile.facts
+                    val studyLevel = (facts[FactKey.STUDY_LEVEL]?.value as? FactValue.EnumValue)?.value
+                    _uiState.value = _uiState.value.copy(
+                        studyLevel = StudyLevelOption.entries.firstOrNull {
+                            it.storedValue.equals(studyLevel, ignoreCase = true)
+                        },
+                        fieldOfStudy = (facts[FactKey.FIELD_OF_STUDY]?.value as? FactValue.TextValue)?.value.orEmpty(),
+                        nationality = (facts[FactKey.NATIONALITY]?.value as? FactValue.EnumValue)?.value.orEmpty(),
+                        gpa = (facts[FactKey.GPA]?.value as? FactValue.NumberValue)?.amount?.toInputText().orEmpty(),
+                        ielts = (facts[FactKey.IELTS_SCORE]?.value as? FactValue.NumberValue)
+                            ?.amount
+                            ?.toInputText()
+                            .orEmpty(),
+                        isEnrolled = (facts[FactKey.ENROLLED]?.value as? FactValue.BooleanValue)?.value ?: true,
+                    )
+                }
+            }
+        }
+    }
+
     fun onUiEvent(event: ProfileSetupUiEvent) {
         when (event) {
             is ProfileSetupUiEvent.StudyLevelChanged -> update { copy(studyLevel = event.value) }
@@ -43,7 +67,13 @@ class ProfileSetupViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
-            profileRepository.saveFacts(state.toFacts())
+            val saveResult = profileRepository.saveFacts(state.toFacts())
+            val result = if (saveResult.isSuccess && state.ieltsValue == null) {
+                profileRepository.deleteFact(FactKey.IELTS_SCORE)
+            } else {
+                saveResult
+            }
+            result
                 .onSuccess {
                     _uiState.update { it.copy(isSaving = false, isSaved = true) }
                 }
@@ -100,4 +130,6 @@ class ProfileSetupViewModel(
             val firstDot = value.indexOf('.')
             if (firstDot == -1) value else value.take(firstDot + 1) + value.drop(firstDot + 1).replace(".", "")
         }
+
+    private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
 }

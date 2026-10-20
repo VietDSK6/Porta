@@ -8,6 +8,9 @@ data class ScenarioPreviewUiState(
     val openedDoors: List<ScenarioDoorUiState> = emptyList(),
     val unchangedDoors: List<ScenarioDoorUiState> = emptyList(),
     val isSampleProfile: Boolean = true,
+    val isSaving: Boolean = false,
+    val isSaved: Boolean = false,
+    val saveError: String? = null,
     val error: String? = null,
 )
 
@@ -19,4 +22,6 @@ data class ScenarioDoorUiState(
 
 sealed interface ScenarioPreviewUiEvent {
     data object Acknowledged : ScenarioPreviewUiEvent
+    data object SavePlan : ScenarioPreviewUiEvent
+    data object SaveHandled : ScenarioPreviewUiEvent
 }

@@ -16,6 +16,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,15 +34,22 @@ import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 fun ScenarioPreviewScreen(
     viewModel: ScenarioPreviewViewModel,
     onNavigateBack: () -> Unit,
-    onSavePlan: () -> Unit,
+    onPlanSaved: () -> Unit,
+    onBuildProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(uiState.isSaved) {
+        if (uiState.isSaved) {
+            viewModel.onUiEvent(ScenarioPreviewUiEvent.SaveHandled)
+            onPlanSaved()
+        }
+    }
     ScenarioPreviewScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
-        onSavePlan = onSavePlan,
+        onBuildProfile = onBuildProfile,
         modifier = modifier.fillMaxSize(),
     )
 }
@@ -51,7 +59,7 @@ fun ScenarioPreviewScreen(
     uiState: ScenarioPreviewUiState,
     onUiEvent: (ScenarioPreviewUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
-    onSavePlan: () -> Unit,
+    onBuildProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ScreenWithToolbar(
@@ -105,12 +113,25 @@ fun ScenarioPreviewScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isSaving,
                         onClick = {
-                            onUiEvent(ScenarioPreviewUiEvent.Acknowledged)
-                            onSavePlan()
+                            if (uiState.isSampleProfile) {
+                                onBuildProfile()
+                            } else {
+                                onUiEvent(ScenarioPreviewUiEvent.SavePlan)
+                            }
                         },
                     ) {
-                        Text("Add milestone to plan")
+                        Text(
+                            when {
+                                uiState.isSampleProfile -> "Build my profile to save"
+                                uiState.isSaving -> "Saving locally…"
+                                else -> "Add milestone to plan"
+                            },
+                        )
+                    }
+                    uiState.saveError?.let { message ->
+                        Text(message, color = AppTheme.colors.status.error, style = AppTheme.typography.bodyMedium)
                     }
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNavigateBack) {
                         Text("Discard scenario")
@@ -201,7 +222,7 @@ private fun ScenarioPreviewScreenPreview() {
             ),
             onUiEvent = {},
             onNavigateBack = {},
-            onSavePlan = {},
+            onBuildProfile = {},
         )
     }
 }

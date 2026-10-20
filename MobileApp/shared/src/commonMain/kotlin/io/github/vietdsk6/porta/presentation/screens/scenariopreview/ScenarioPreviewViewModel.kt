@@ -2,12 +2,16 @@ package io.github.vietdsk6.porta.presentation.screens.scenariopreview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
+import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +21,10 @@ class ScenarioPreviewViewModel(
     private val actionId: String,
     private val scenarioEvaluator: ScenarioEvaluator,
     private val profileRepository: ProfileRepository,
+    private val planRepository: PlanRepository,
 ) : ViewModel() {
+    private var activeProfile = PortaSampleData.profile
+    private var isSampleProfile = true
     private val _uiState = MutableStateFlow(
         buildState(
             profile = PortaSampleData.profile,
@@ -30,6 +37,8 @@ class ScenarioPreviewViewModel(
         viewModelScope.launch {
             profileRepository.getProfile().onSuccess { profile ->
                 if (profile.facts.isNotEmpty()) {
+                    activeProfile = profile
+                    isSampleProfile = false
                     _uiState.value = buildState(profile = profile, isSampleProfile = false)
                 }
             }
@@ -39,6 +48,51 @@ class ScenarioPreviewViewModel(
     fun onUiEvent(event: ScenarioPreviewUiEvent) {
         when (event) {
             ScenarioPreviewUiEvent.Acknowledged -> Unit
+            ScenarioPreviewUiEvent.SavePlan -> savePlan()
+            ScenarioPreviewUiEvent.SaveHandled -> _uiState.value = _uiState.value.copy(isSaved = false)
+        }
+    }
+
+    private fun savePlan() {
+        if (isSampleProfile) {
+            _uiState.value = _uiState.value.copy(
+                saveError = "Create a real local profile before saving a milestone.",
+            )
+            return
+        }
+        val action = PortaSampleData.opportunities
+            .flatMap { it.actionTemplates }
+            .firstOrNull { it.id == actionId }
+            ?: return
+        val timestamp = nowEpochMillis()
+        val plan = PlanItem(
+            id = "${activeProfile.id}:${action.id}",
+            profileId = activeProfile.id,
+            actionTemplateId = action.id,
+            title = "Raise ${action.targetFactKey.readable()} to ${action.targetValue.displayValue()}",
+            targetFactKey = action.targetFactKey,
+            targetValue = action.targetValue,
+            targetDateEpochDays = timestamp / MILLIS_PER_DAY + action.minimumDurationDays,
+            note = action.sourceNote,
+            expectedDurationDays = action.minimumDurationDays,
+            effort = action.effort,
+            costBand = action.costBand,
+            createdAtEpochMillis = timestamp,
+            updatedAtEpochMillis = timestamp,
+        )
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, saveError = null)
+            planRepository.replaceCurrentPlan(plan).fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true)
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        saveError = "Porta could not save this plan locally. Please try again.",
+                    )
+                },
+            )
         }
     }
 
@@ -53,7 +107,7 @@ class ScenarioPreviewViewModel(
         val currentValue = profile.facts[action.targetFactKey]?.value
             ?: return ScenarioPreviewUiState(
                 isSampleProfile = isSampleProfile,
-                error = "Your profile is missing ${action.targetFactKey.name.readable()}.",
+                error = "Your profile is missing ${action.targetFactKey.readable()}.",
             )
         val scenario = scenarioEvaluator.evaluate(
             profile = profile,
@@ -80,7 +134,7 @@ class ScenarioPreviewViewModel(
             title = if (isSampleProfile) {
                 action.title
             } else {
-                "Raise ${action.targetFactKey.name.readable()} to ${action.targetValue.displayValue()}"
+                "Raise ${action.targetFactKey.readable()} to ${action.targetValue.displayValue()}"
             },
             beforeLabel = currentValue.displayValue(),
             afterLabel = action.targetValue.displayValue(),
@@ -90,5 +144,12 @@ class ScenarioPreviewViewModel(
         )
     }
 
-    private fun String.readable(): String = lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+    private fun FactKey.readable(): String = when (this) {
+        FactKey.IELTS_SCORE -> "IELTS"
+        else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+    }
+
+    private companion object {
+        const val MILLIS_PER_DAY = 86_400_000L
+    }
 }

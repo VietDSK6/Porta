@@ -5,6 +5,7 @@ import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.CreditRepository
 import io.github.vietdsk6.porta.data.repository.GenerationRepository
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
@@ -142,6 +143,7 @@ private val dataModule = module {
     single { SubscriptionRepository(get(), get(), get(), get()) }
     single { GenerationRepository(get(), get(), get(), get(), get(), get(), get()) }
     singleOf(::OpportunityPackRepository)
+    singleOf(::PlanRepository)
     singleOf(::ProfileRepository)
 
     // Loggers
@@ -178,7 +180,7 @@ private val presentationModule = module {
     viewModelOf(::DoorsViewModel)
     viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get()) }
     viewModelOf(::FrontierViewModel)
-    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get()) }
+    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get(), get()) }
     viewModelOf(::ActivePlanViewModel)
     viewModelOf(::StudentProfileViewModel)
     viewModelOf(::PackInspectorViewModel)

@@ -5,6 +5,7 @@ package io.github.vietdsk6.porta.presentation
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
+import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.domain.model.Actionability
@@ -17,8 +18,10 @@ import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiEvent
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -35,6 +38,7 @@ class PersistedProfileViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var database: AppDatabase
     private lateinit var repository: ProfileRepository
+    private lateinit var planRepository: PlanRepository
     private val eligibilityEvaluator = EligibilityEvaluator()
     private val scenarioEvaluator = ScenarioEvaluator(eligibilityEvaluator)
 
@@ -47,6 +51,10 @@ class PersistedProfileViewModelTest {
             .build()
         repository = ProfileRepository(
             profileFactDao = database.profileFactDao(),
+            backgroundExecutor = BackgroundExecutor(dispatcher),
+        )
+        planRepository = PlanRepository(
+            planItemDao = database.planItemDao(),
             backgroundExecutor = BackgroundExecutor(dispatcher),
         )
     }
@@ -89,6 +97,7 @@ class PersistedProfileViewModelTest {
         val frontier = FrontierViewModel(
             actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
             profileRepository = repository,
+            planRepository = planRepository,
         )
         advanceUntilIdle()
 
@@ -98,6 +107,7 @@ class PersistedProfileViewModelTest {
             actionId = action.id,
             scenarioEvaluator = scenarioEvaluator,
             profileRepository = repository,
+            planRepository = planRepository,
         )
         advanceUntilIdle()
 
@@ -108,6 +118,24 @@ class PersistedProfileViewModelTest {
             FactValue.NumberValue(6.5, "band"),
             repository.getProfile().getOrThrow().facts[FactKey.IELTS_SCORE]?.value,
         )
+    }
+
+    @Test
+    fun `real profile scenario saves one local plan`() = runTest(dispatcher) {
+        saveIelts(6.5)
+        val scenario = ScenarioPreviewViewModel(
+            actionId = "raise-ielts-aurora",
+            scenarioEvaluator = scenarioEvaluator,
+            profileRepository = repository,
+            planRepository = planRepository,
+        )
+        advanceUntilIdle()
+
+        scenario.onUiEvent(ScenarioPreviewUiEvent.SavePlan)
+        advanceUntilIdle()
+
+        assertTrue(scenario.uiState.value.isSaved)
+        assertEquals("raise-ielts-aurora", planRepository.observeCurrentPlan().first()?.actionTemplateId)
     }
 
     private suspend fun saveIelts(value: Double) {

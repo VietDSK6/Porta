@@ -204,6 +204,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             onPreviewScenario = { actionId ->
                 navigator.navigate(ScenarioPreviewScreenRoute(actionId = actionId))
             },
+            onOpenActivePlan = { navigator.navigate(ActivePlanScreenRoute) },
         )
     }
 
@@ -343,13 +344,22 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         ScenarioPreviewScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
-            onSavePlan = { navigator.replace(ActivePlanScreenRoute) },
+            onPlanSaved = { navigator.replace(ActivePlanScreenRoute) },
+            onBuildProfile = { navigator.replace(ProfileSetupScreenRoute) },
         )
     }
 
     entry<ActivePlanScreenRoute> {
         val viewModel = koinViewModel<ActivePlanViewModel>()
-        ActivePlanScreen(viewModel = viewModel)
+        ActivePlanScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+            onBrowseActions = { navigator.navigate(FrontierScreenRoute) },
+            onPreviewImpact = { actionId ->
+                navigator.replace(ScenarioPreviewScreenRoute(actionId = actionId))
+            },
+            onUpdateProfile = { navigator.navigate(ProfileSetupScreenRoute) },
+        )
     }
 
     entry<PackInspectorScreenRoute> {

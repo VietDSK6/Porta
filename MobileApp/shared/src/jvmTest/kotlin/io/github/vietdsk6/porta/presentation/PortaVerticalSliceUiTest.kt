@@ -20,6 +20,7 @@ import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.Opportuni
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.RuleReceiptUiState
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorUiState
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiEvent
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,6 +55,7 @@ class PortaVerticalSliceUiTest {
                     uiState = frontierState,
                     onUiEvent = { events += it },
                     onPreviewScenario = {},
+                    onOpenActivePlan = {},
                 )
             }
         }
@@ -64,22 +66,22 @@ class PortaVerticalSliceUiTest {
 
     @Test
     fun `scenario keeps what-if label visible and saves only on explicit action`() = runComposeUiTest {
-        var saved = false
+        val events = mutableListOf<ScenarioPreviewUiEvent>()
         setContent {
             AppTheme {
                 ScenarioPreviewScreen(
                     uiState = scenarioState,
-                    onUiEvent = {},
+                    onUiEvent = { events += it },
                     onNavigateBack = {},
-                    onSavePlan = { saved = true },
+                    onBuildProfile = {},
                 )
             }
         }
 
-        onNodeWithText("WHAT-IF · SAMPLE").assertExists()
+        onNodeWithText("WHAT-IF · REAL PROFILE").assertExists()
         onNodeWithText("4 doors open").assertExists()
         onNodeWithText("Add milestone to plan").performClick()
-        assertTrue(saved)
+        assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
     }
 
     @Test
@@ -146,6 +148,7 @@ class PortaVerticalSliceUiTest {
             ScenarioDoorUiState("horizon", "Horizon Exchange", "Opens"),
             ScenarioDoorUiState("spark", "Spark Fellowship", "Opens"),
         ),
+        isSampleProfile = false,
     )
 
     private val receiptState = OpportunityDetailUiState(

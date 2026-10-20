@@ -3,7 +3,13 @@ package io.github.vietdsk6.porta.presentation.screens.frontier
 data class FrontierUiState(
     val isSampleMode: Boolean = true,
     val horizonDays: Int = 90,
+    val activePlan: ActivePlanSummaryUiState? = null,
     val actions: List<FrontierActionUiState> = emptyList(),
+)
+
+data class ActivePlanSummaryUiState(
+    val title: String,
+    val statusLabel: String,
 )
 
 data class FrontierActionUiState(
