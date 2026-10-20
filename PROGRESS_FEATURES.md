@@ -77,7 +77,7 @@
 
 - [ ] Every P0 screen has a pure composable test and `@Preview`
 - [ ] Rendered previews inspected through `verify-ui`
-- [ ] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
+- [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
 - [ ] Developer ran Android or Desktop and confirmed the vertical slice behaves correctly
 
 ---

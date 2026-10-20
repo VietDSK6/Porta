@@ -32,7 +32,7 @@
 - [ ] **Agent** — Shipped onboarding + paywall screens branded to this product.
 
 ## E. Validate
-- [ ] **Agent** — Run quality gates (`run-quality-gates` skill).
+- [x] **Agent** — Run quality gates (`run-quality-gates` skill).
 - [ ] **User** — Re-run the app; confirm your features work on a device.
 
 ## Gate
