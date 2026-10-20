@@ -9,10 +9,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import io.github.vietdsk6.porta.root.App
-import io.github.vietdsk6.porta.root.AppInitializer
 import com.mmk.kmpnotifier.KMPNotifier
 import com.mmk.kmpnotifier.extensions.onCreateOrOnNewIntent
+import io.github.vietdsk6.porta.root.App
+import io.github.vietdsk6.porta.root.AppInitializer
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import org.koin.android.ext.koin.androidContext

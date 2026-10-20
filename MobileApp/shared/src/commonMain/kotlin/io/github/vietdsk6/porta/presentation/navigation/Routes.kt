@@ -61,4 +61,36 @@ data class GenerationResultScreenRoute(val id: String) : ScreenRoute
 @SerialName("Paywall")
 data class PaywallScreenRoute(val placementId: String? = null) : ScreenRoute
 
+@Serializable
+@SerialName("ProfileSetup")
+data object ProfileSetupScreenRoute : ScreenRoute
+
+@Serializable
+@SerialName("Doors")
+data object DoorsScreenRoute : TopLevelScreenRoute
+
+@Serializable
+@SerialName("OpportunityDetail")
+data class OpportunityDetailScreenRoute(val opportunityId: String) : ScreenRoute
+
+@Serializable
+@SerialName("Frontier")
+data object FrontierScreenRoute : TopLevelScreenRoute
+
+@Serializable
+@SerialName("ScenarioPreview")
+data class ScenarioPreviewScreenRoute(val actionId: String) : ScreenRoute
+
+@Serializable
+@SerialName("ActivePlan")
+data object ActivePlanScreenRoute : ScreenRoute
+
+@Serializable
+@SerialName("StudentProfile")
+data object StudentProfileScreenRoute : TopLevelScreenRoute
+
+@Serializable
+@SerialName("PackInspector")
+data object PackInspectorScreenRoute : ScreenRoute
+
 // Add new routes below — generate_screen.sh inserts here.

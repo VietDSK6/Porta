@@ -1,8 +1,8 @@
 package io.github.vietdsk6.porta.subscription.revenuecat
 
+import com.revenuecat.purchases.kmp.models.CustomerInfo
 import io.github.vietdsk6.porta.subscription.api.GrantedAccess
 import io.github.vietdsk6.porta.subscription.api.SubscriptionProviderUser
-import com.revenuecat.purchases.kmp.models.CustomerInfo
 
 internal fun CustomerInfo.asSubscriptionProviderUser(): SubscriptionProviderUser {
     val grantedAccesses =

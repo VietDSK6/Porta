@@ -2,10 +2,10 @@ package io.github.vietdsk6.porta.presentation.screens.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mmk.kmpauth.core.auth.KMPAuthRecentLoginRequiredException
 import io.github.vietdsk6.porta.data.repository.UserRepository
 import io.github.vietdsk6.porta.domain.exceptions.UnAuthorizedException
 import io.github.vietdsk6.porta.util.logging.AppLogger
-import com.mmk.kmpauth.core.auth.KMPAuthRecentLoginRequiredException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

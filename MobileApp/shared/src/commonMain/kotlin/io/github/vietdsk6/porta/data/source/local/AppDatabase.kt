@@ -7,14 +7,22 @@ import androidx.room3.RoomDatabaseConstructor
 import io.github.vietdsk6.porta.data.source.local.dao.CreditTransactionDao
 import io.github.vietdsk6.porta.data.source.local.dao.ExampleDao
 import io.github.vietdsk6.porta.data.source.local.dao.GenerationOutputDao
+import io.github.vietdsk6.porta.data.source.local.dao.OpportunityPackDao
+import io.github.vietdsk6.porta.data.source.local.dao.PlanItemDao
+import io.github.vietdsk6.porta.data.source.local.dao.ProfileFactDao
+import io.github.vietdsk6.porta.data.source.local.dao.SavedOpportunityDao
 import io.github.vietdsk6.porta.data.source.local.entity.CreditTransactionEntity
 import io.github.vietdsk6.porta.data.source.local.entity.ExampleEntity
 import io.github.vietdsk6.porta.data.source.local.entity.GenerationOutputEntity
+import io.github.vietdsk6.porta.data.source.local.entity.OpportunityPackEntity
+import io.github.vietdsk6.porta.data.source.local.entity.PlanItemEntity
+import io.github.vietdsk6.porta.data.source.local.entity.ProfileFactEntity
+import io.github.vietdsk6.porta.data.source.local.entity.SavedOpportunityEntity
 
 // The app's Room 3 database (lives in commonMain). Bump `version` and add a Migration when you
 // change the schema after shipping; otherwise DatabaseModule drops all tables on schema change.
 @Database(
-    entities = [GenerationOutputEntity::class, CreditTransactionEntity::class, ExampleEntity::class],
+    entities = [PlanItemEntity::class, SavedOpportunityEntity::class, OpportunityPackEntity::class, ProfileFactEntity::class, GenerationOutputEntity::class, CreditTransactionEntity::class, ExampleEntity::class],
     version = 1,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -23,6 +31,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun creditTransactionDao(): CreditTransactionDao
     abstract fun exampleDao(): ExampleDao
 
+    abstract fun profileFactDao(): ProfileFactDao
+    abstract fun opportunityPackDao(): OpportunityPackDao
+    abstract fun savedOpportunityDao(): SavedOpportunityDao
+    abstract fun planItemDao(): PlanItemDao
     // Add new DAOs above — make_local.sh inserts here.
 }
 

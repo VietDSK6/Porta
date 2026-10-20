@@ -22,12 +22,12 @@
 - [x] **Validation** — App still builds after the rename (`:androidApp:assembleDebug`).
 
 ## C. Define the product
-- [ ] **Agent** — Product defined by the `new-app` skill: `prd.md`, `user_flow.md`, `ui_ux.md` filled + confirmed.
-- [ ] **Agent** — App name/id decided; deferred decisions marked `TODO(<phase>)` in `root/AppConfiguration.kt`.
+- [x] **Agent** — Product defined by the `new-app` skill: `prd.md`, `user_flow.md`, `ui_ux.md` filled + confirmed.
+- [x] **Agent** — App name/id decided; deferred decisions marked `TODO(<phase>)` in `root/AppConfiguration.kt`.
 
 ## D. Build your features — `build-features`
 > Per-feature status lives in **`PROGRESS_FEATURES.md`** (repo root), not here. This is just the gate.
-- [ ] **Agent** — Plan derived from `prd.md`/`user_flow.md`, confirmed, and written to `PROGRESS_FEATURES.md`.
+- [x] **Agent** — Plan derived from `prd.md`/`user_flow.md`, confirmed, and written to `PROGRESS_FEATURES.md`.
 - [ ] **Agent** — Every model + screen in `PROGRESS_FEATURES.md` is checked off.
 - [ ] **Agent** — Shipped onboarding + paywall screens branded to this product.
 

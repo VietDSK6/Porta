@@ -33,8 +33,14 @@ import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_home
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_profile
 import io.github.vietdsk6.porta.presentation.screens.account.AccountScreen
 import io.github.vietdsk6.porta.presentation.screens.account.AccountViewModel
+import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanScreen
+import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceScreen
 import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceViewModel
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.gallery.GalleryScreen
 import io.github.vietdsk6.porta.presentation.screens.gallery.GalleryViewModel
 import io.github.vietdsk6.porta.presentation.screens.generationresult.GenerationResultScreen
@@ -45,12 +51,22 @@ import io.github.vietdsk6.porta.presentation.screens.home.HomeViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreen
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreenStyle
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
+import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailScreen
+import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
+import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorScreen
+import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
 import io.github.vietdsk6.porta.presentation.screens.paywall.PaywallScreen
 import io.github.vietdsk6.porta.presentation.screens.paywall.PaywallViewModel
 import io.github.vietdsk6.porta.presentation.screens.paywall.remotepaywall.RemotePaywallScreen
 import io.github.vietdsk6.porta.presentation.screens.profile.ProfileScreen
 import io.github.vietdsk6.porta.presentation.screens.profile.ProfileViewModel
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupScreen
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
 import io.github.vietdsk6.porta.presentation.screens.signin.SignInScreen
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileScreen
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.presentation.screens.subscriptions.SubscriptionsScreen
 import io.github.vietdsk6.porta.presentation.screens.subscriptions.SubscriptionsViewModel
 import io.github.vietdsk6.porta.root.AppConfiguration
@@ -72,15 +88,15 @@ private val noAnimationMetadata =
 
 // Bottom-nav tabs, in display order. The keys are the routes; the values render the nav bar.
 private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMapOf(
-    HomeScreenRoute to BottomNavItem(
+    DoorsScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_home,
         icon = UiRes.drawable.ic_home,
     ),
-    GalleryScreenRoute to BottomNavItem(
+    FrontierScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_gallery,
         icon = UiRes.drawable.ic_gallery,
     ),
-    AccountScreenRoute to BottomNavItem(
+    StudentProfileScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_profile,
         icon = UiRes.drawable.ic_profile,
     ),
@@ -96,7 +112,7 @@ fun AppNavigation() {
     val navigationState = rememberNavigationState(
         startRoute = OnBoardingScreenRoute,
         topLevelRoutes = TOP_LEVEL_ROUTES.keys,
-        primaryTopLevelRoute = HomeScreenRoute,
+        primaryTopLevelRoute = DoorsScreenRoute,
     )
     val navigator = remember(navigationState) { Navigator(navigationState) }
 
@@ -170,6 +186,31 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         )
     }
 
+    entry<DoorsScreenRoute>(metadata = noAnimationMetadata) {
+        val viewModel = koinViewModel<DoorsViewModel>()
+        DoorsScreen(
+            viewModel = viewModel,
+            onOpenOpportunity = { id ->
+                navigator.navigate(OpportunityDetailScreenRoute(opportunityId = id))
+            },
+        )
+    }
+
+    entry<FrontierScreenRoute>(metadata = noAnimationMetadata) {
+        val viewModel = koinViewModel<FrontierViewModel>()
+        FrontierScreen(
+            viewModel = viewModel,
+            onPreviewScenario = { actionId ->
+                navigator.navigate(ScenarioPreviewScreenRoute(actionId = actionId))
+            },
+        )
+    }
+
+    entry<StudentProfileScreenRoute>(metadata = noAnimationMetadata) {
+        val viewModel = koinViewModel<StudentProfileViewModel>()
+        StudentProfileScreen(viewModel = viewModel)
+    }
+
     // ── Pushed destinations ─────────────────────────────────────────────────────
 
     entry<OnBoardingScreenRoute> {
@@ -178,7 +219,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             style = OnBoardingScreenStyle.STYLE1,
             viewModel = viewModel,
             onOnBoardingFinished = { isNewUser ->
-                navigator.set(HomeScreenRoute)
+                navigator.set(DoorsScreenRoute)
                 if (isNewUser && AppConfiguration.PREMIUM_FEATURES_ENABLED) {
                     navigator.navigate(
                         PaywallScreenRoute(placementId = Constants.PAYWALL_PLACEMENT_ONBOARDING),
@@ -265,6 +306,45 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
                 onSignInRequired = { navigator.navigate(SignInScreenRoute()) },
             )
         }
+    }
+
+    entry<ProfileSetupScreenRoute> {
+        val viewModel = koinViewModel<ProfileSetupViewModel>()
+        ProfileSetupScreen(viewModel = viewModel)
+    }
+
+    entry<OpportunityDetailScreenRoute> { key ->
+        val viewModel = koinViewModel<OpportunityDetailViewModel>(
+            parameters = { parametersOf(key.opportunityId) },
+        )
+        OpportunityDetailScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+            onPreviewAction = { actionId ->
+                navigator.navigate(ScenarioPreviewScreenRoute(actionId = actionId))
+            },
+        )
+    }
+
+    entry<ScenarioPreviewScreenRoute> { key ->
+        val viewModel = koinViewModel<ScenarioPreviewViewModel>(
+            parameters = { parametersOf(key.actionId) },
+        )
+        ScenarioPreviewScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+            onSavePlan = { navigator.replace(ActivePlanScreenRoute) },
+        )
+    }
+
+    entry<ActivePlanScreenRoute> {
+        val viewModel = koinViewModel<ActivePlanViewModel>()
+        ActivePlanScreen(viewModel = viewModel)
+    }
+
+    entry<PackInspectorScreenRoute> {
+        val viewModel = koinViewModel<PackInspectorViewModel>()
+        PackInspectorScreen(viewModel = viewModel)
     }
 
     // Add new screen entries below — generate_screen.sh inserts here.

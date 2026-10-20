@@ -1,14 +1,5 @@
 package io.github.vietdsk6.porta.subscription.revenuecat
 
-import io.github.vietdsk6.porta.subscription.api.BillingPeriod
-import io.github.vietdsk6.porta.subscription.api.GrantedAccess
-import io.github.vietdsk6.porta.subscription.api.IntroductoryOffer
-import io.github.vietdsk6.porta.subscription.api.Price
-import io.github.vietdsk6.porta.subscription.api.PurchasePackage
-import io.github.vietdsk6.porta.subscription.api.PurchasePackageId
-import io.github.vietdsk6.porta.subscription.api.SubscriptionProvider
-import io.github.vietdsk6.porta.subscription.api.SubscriptionProviderUser
-import io.github.vietdsk6.porta.subscription.api.runCatchingSuspend
 import com.revenuecat.purchases.kmp.LogLevel
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
@@ -31,6 +22,15 @@ import com.revenuecat.purchases.kmp.models.StoreProduct
 import com.revenuecat.purchases.kmp.models.StoreTransaction
 import com.revenuecat.purchases.kmp.models.freePhase
 import com.revenuecat.purchases.kmp.models.introPhase
+import io.github.vietdsk6.porta.subscription.api.BillingPeriod
+import io.github.vietdsk6.porta.subscription.api.GrantedAccess
+import io.github.vietdsk6.porta.subscription.api.IntroductoryOffer
+import io.github.vietdsk6.porta.subscription.api.Price
+import io.github.vietdsk6.porta.subscription.api.PurchasePackage
+import io.github.vietdsk6.porta.subscription.api.PurchasePackageId
+import io.github.vietdsk6.porta.subscription.api.SubscriptionProvider
+import io.github.vietdsk6.porta.subscription.api.SubscriptionProviderUser
+import io.github.vietdsk6.porta.subscription.api.runCatchingSuspend
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

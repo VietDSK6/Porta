@@ -4,9 +4,13 @@ import io.github.vietdsk6.porta.common.BuildConfig
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.CreditRepository
 import io.github.vietdsk6.porta.data.repository.GenerationRepository
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
 import io.github.vietdsk6.porta.data.source.ai.ReplicateGenerationProvider
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
 import io.github.vietdsk6.porta.data.source.preferences.PreferencesDataStoreProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferencesImpl
@@ -17,15 +21,26 @@ import io.github.vietdsk6.porta.data.source.remote.apiservices.ai.AiTransport
 import io.github.vietdsk6.porta.data.source.remote.apiservices.ai.OpenAiApiService
 import io.github.vietdsk6.porta.data.source.remote.apiservices.ai.ReplicateApiService
 import io.github.vietdsk6.porta.domain.model.credit.creditSystemConfig
+import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.AiGenerationProvider
+import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.account.AccountViewModel
+import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceViewModel
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.gallery.GalleryViewModel
 import io.github.vietdsk6.porta.presentation.screens.generationresult.GenerationResultViewModel
 import io.github.vietdsk6.porta.presentation.screens.home.HomeViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
+import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
+import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
 import io.github.vietdsk6.porta.presentation.screens.paywall.PaywallViewModel
 import io.github.vietdsk6.porta.presentation.screens.profile.ProfileViewModel
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.presentation.screens.subscriptions.SubscriptionsViewModel
 import io.github.vietdsk6.porta.subscription.api.MockSubscriptionProvider
 import io.github.vietdsk6.porta.subscription.api.NoOpSubscriptionProviderUi
@@ -53,12 +68,16 @@ import kotlin.coroutines.CoroutineContext
 
 /**
  * Koin module graph for the shared app. [AppInitializer] loads [appModules] at startup.
- * Layered by concern: [domainModule] (pure, empty), [dataModule] (infra + repositories),
+ * Layered by concern: [domainModule] (deterministic planning engines), [dataModule] (infra + repositories),
  * [presentationModule] (ViewModels), plus the per-target expect/actual `platformModule`.
  */
 
-// Empty by design — the domain layer is pure (models/exceptions), nothing to inject.
+// Pure, deterministic Porta engines. Keeping them in the graph gives ViewModels one shared source
+// of truth without coupling the domain layer to Koin.
 private val domainModule = module {
+    singleOf(::EligibilityEvaluator)
+    singleOf(::ScenarioEvaluator)
+    singleOf(::ActionFrontierEngine)
 }
 
 // Infrastructure + repositories: scopes/dispatchers, preferences, network, auth & subscription
@@ -67,6 +86,9 @@ private val dataModule = module {
     singleOf(::ApplicationScope)
     factory { defaultAsyncDispatcher } bind CoroutineContext::class
     factory { BackgroundExecutor.IO } bind BackgroundExecutor::class
+    singleOf(::OpportunityPackCodec)
+    singleOf(::OpportunityPackValidator)
+    singleOf(::OpportunityPackParser)
 
     // Preferences Source. The DataStore instance stays out of the Koin graph on
     // purpose — generic types erase to `DataStore`, so a second DataStore<T>
@@ -118,6 +140,7 @@ private val dataModule = module {
     single { UserRepository(get(), get(), get(), get()) }
     single { SubscriptionRepository(get(), get(), get(), get()) }
     single { GenerationRepository(get(), get(), get(), get(), get(), get(), get()) }
+    singleOf(::OpportunityPackRepository)
 
     // Loggers
     factory { TelegramLogger(get(), get(), get()) } bind Logger::class
@@ -149,6 +172,14 @@ private val presentationModule = module {
     viewModelOf(::GenerationResultViewModel)
     viewModelOf(::CreditBalanceViewModel)
 
+    viewModelOf(::ProfileSetupViewModel)
+    viewModelOf(::DoorsViewModel)
+    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get()) }
+    viewModelOf(::FrontierViewModel)
+    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get()) }
+    viewModelOf(::ActivePlanViewModel)
+    viewModelOf(::StudentProfileViewModel)
+    viewModelOf(::PackInspectorViewModel)
     // Add new view models below — generate_screen.sh inserts here.
 }
 

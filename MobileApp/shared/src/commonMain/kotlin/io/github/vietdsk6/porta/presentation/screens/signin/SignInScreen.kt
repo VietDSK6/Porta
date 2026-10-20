@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mmk.kmpauth.core.auth.KMPAuthUserCollisionException
 import io.github.vietdsk6.porta.data.repository.UserRepository
 import io.github.vietdsk6.porta.designsystem.components.AgreePrivacyPolicyTermsConditionsText
 import io.github.vietdsk6.porta.designsystem.components.AppButton
@@ -59,7 +60,6 @@ import io.github.vietdsk6.porta.root.AppConfiguration
 import io.github.vietdsk6.porta.root.AppGlobalUiState
 import io.github.vietdsk6.porta.util.UiMessage
 import io.github.vietdsk6.porta.util.logging.AppLogger
-import com.mmk.kmpauth.core.auth.KMPAuthUserCollisionException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject

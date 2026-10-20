@@ -1,5 +1,8 @@
 package io.github.vietdsk6.porta.util
 
+import com.mmk.kmpnotifier.KMPNotifier
+import com.mmk.kmpnotifier.local.LocalNotifications
+import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
 import io.github.vietdsk6.porta.data.source.featureflag.FeatureFlagManager
 import io.github.vietdsk6.porta.data.source.featureflag.NoImplFeatureFlagManager
 import io.github.vietdsk6.porta.data.source.local.webDatabaseModule
@@ -11,9 +14,6 @@ import io.github.vietdsk6.porta.util.analytics.Analytics
 import io.github.vietdsk6.porta.util.analytics.NoImplAnalytics
 import io.github.vietdsk6.porta.util.file.FileManager
 import io.github.vietdsk6.porta.util.file.FileManagerImpl
-import com.mmk.kmpnotifier.KMPNotifier
-import com.mmk.kmpnotifier.local.LocalNotifications
-import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.Module

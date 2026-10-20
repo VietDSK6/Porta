@@ -2,6 +2,8 @@
 
 package io.github.vietdsk6.porta.data.repository
 
+import com.mmk.kmpauth.core.KMPAuth
+import com.mmk.kmpauth.core.auth.KMPAuthUser
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences.Keys.KEY_FIRST_TIME_USER
@@ -9,8 +11,6 @@ import io.github.vietdsk6.porta.domain.exceptions.UnAuthorizedException
 import io.github.vietdsk6.porta.domain.model.User
 import io.github.vietdsk6.porta.util.ApplicationScope
 import io.github.vietdsk6.porta.util.logging.AppLogger
-import com.mmk.kmpauth.core.KMPAuth
-import com.mmk.kmpauth.core.auth.KMPAuthUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted

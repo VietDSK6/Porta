@@ -1,5 +1,13 @@
 package io.github.vietdsk6.porta.root
 
+import com.mmk.kmpauth.core.KMPAuth
+import com.mmk.kmpauth.firebase.firebase
+import com.mmk.kmpauth.google.GoogleAuthCredentials
+import com.mmk.kmpauth.google.google
+import com.mmk.kmpnotifier.KMPNotifier
+import com.mmk.kmpnotifier.notification.PayloadData
+import com.mmk.kmpnotifier.push.PushListener
+import com.mmk.kmpnotifier.push.firebase.addPushListener
 import io.github.vietdsk6.porta.common.BuildConfig
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
@@ -15,14 +23,6 @@ import io.github.vietdsk6.porta.util.isAndroid
 import io.github.vietdsk6.porta.util.isDebug
 import io.github.vietdsk6.porta.util.logging.AppLogger
 import io.github.vietdsk6.porta.util.onApplicationStartPlatformSpecific
-import com.mmk.kmpauth.core.KMPAuth
-import com.mmk.kmpauth.firebase.firebase
-import com.mmk.kmpauth.google.GoogleAuthCredentials
-import com.mmk.kmpauth.google.google
-import com.mmk.kmpnotifier.KMPNotifier
-import com.mmk.kmpnotifier.notification.PayloadData
-import com.mmk.kmpnotifier.push.PushListener
-import com.mmk.kmpnotifier.push.firebase.addPushListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

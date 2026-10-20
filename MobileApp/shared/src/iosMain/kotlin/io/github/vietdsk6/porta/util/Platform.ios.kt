@@ -1,5 +1,9 @@
 package io.github.vietdsk6.porta.util
 
+import com.mmk.kmpnotifier.KMPNotifier
+import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
+import com.mmk.kmpnotifier.push.firebase.FirebasePush
+import com.mmk.kmpnotifier.push.firebase.onApplicationDidReceiveRemoteNotification
 import io.github.vietdsk6.porta.data.source.featureflag.FeatureFlagManager
 import io.github.vietdsk6.porta.data.source.local.DatabaseProvider
 import io.github.vietdsk6.porta.data.source.local.DatabaseProviderImpl
@@ -11,10 +15,6 @@ import io.github.vietdsk6.porta.presentation.components.ads.IosAdsDisplayer
 import io.github.vietdsk6.porta.util.analytics.Analytics
 import io.github.vietdsk6.porta.util.file.FileManager
 import io.github.vietdsk6.porta.util.file.FileManagerImpl
-import com.mmk.kmpnotifier.KMPNotifier
-import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
-import com.mmk.kmpnotifier.push.firebase.FirebasePush
-import com.mmk.kmpnotifier.push.firebase.onApplicationDidReceiveRemoteNotification
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO

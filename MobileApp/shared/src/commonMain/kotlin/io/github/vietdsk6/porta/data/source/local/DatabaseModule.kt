@@ -18,5 +18,9 @@ val databaseModule = module {
     single { get<AppDatabase>().exampleDao() }
     single { get<AppDatabase>().creditTransactionDao() }
     single { get<AppDatabase>().generationOutputDao() }
+    single { get<AppDatabase>().profileFactDao() }
+    single { get<AppDatabase>().opportunityPackDao() }
+    single { get<AppDatabase>().savedOpportunityDao() }
+    single { get<AppDatabase>().planItemDao() }
     // Add new DAO accessors above — make_local.sh inserts here.
 }
