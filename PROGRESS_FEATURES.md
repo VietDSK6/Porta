@@ -40,7 +40,7 @@
 
 ## Screens
 
-- [~] **ProfileSetup** — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
+- [x] **ProfileSetup** — minimal local-first facts, validation, Room persistence, nav callbacks, preview + UI/repository tests
 - [x] **Doors** *(tab)* — Portal Atlas cards, states/filters/saves, receipt navigation, preview + UI test
 - [x] **OpportunityDetail** — rule receipt, actual/required/source limits, scenario navigation, preview + UI test
 - [x] **Frontier** *(tab)* — horizon constraint, Pareto action card, scenario navigation, preview + UI test
@@ -51,15 +51,15 @@
 
 ## Screens and infrastructure that ship with the kit
 
-- [ ] **Onboarding** — rebuild the existing flow into four demo-first Porta steps
+- [x] **Onboarding** — four demo-first Porta steps, IELTS what-if, receipt, explicit sample/real-profile exit
 - [x] **Paywall disabled** — `PREMIUM_FEATURES_ENABLED=false`; onboarding cannot route to paywall
 - [ ] **Navigation** — Android tabs are Doors / Frontier / Profile; Desktop uses adaptive rail/master-detail
 - [ ] **Starter cleanup** — remove obsolete image-generation, gallery, credits, subscriptions, and account routes
 
 ## Stored preferences
 
-- [ ] Onboarding completed
-- [ ] Selected opportunity goal
+- [x] Onboarding completed
+- [x] Selected opportunity goal
 - [ ] Planning horizon, maximum effort, maximum cost, and saved-door priority
 
 ## Acceptance tests
@@ -76,7 +76,7 @@
 ## Validation
 
 - [ ] Every P0 screen has a pure composable test and `@Preview`
-- [ ] Rendered previews inspected through `verify-ui`
+- [~] Rendered previews inspected through `verify-ui` — onboarding and ProfileSetup inspected
 - [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
 - [ ] Developer ran Android or Desktop and confirmed the vertical slice behaves correctly
 

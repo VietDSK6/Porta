@@ -13,7 +13,9 @@ import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class OnBoardingViewModelTest {
@@ -32,53 +34,83 @@ class OnBoardingViewModelTest {
     }
 
     @Test
-    fun `first launch shows onboarding`() = runTest(mainDispatcher) {
+    fun `first launch shows demo without fabricating a selected goal`() = runTest(mainDispatcher) {
         val viewModel = OnBoardingViewModel(userPreferences)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertFalse(state.isOnBoardingFinished)
+        assertNull(state.completion)
+        assertNull(state.selectedGoal)
         assertFalse(state.isLoading)
     }
 
     @Test
-    fun `returning user finishes as an existing user`() = runTest(mainDispatcher) {
+    fun `returning user skips onboarding and opens the sample map`() = runTest(mainDispatcher) {
         userPreferences.putBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN, true)
 
         val viewModel = OnBoardingViewModel(userPreferences)
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertTrue(state.isOnBoardingFinished)
-        // Not a new user, so navigation skips the paywall and goes straight to main.
-        assertFalse(state.isNewUser)
+        assertEquals(
+            OnboardingCompletion(
+                destination = OnboardingDestination.SAMPLE_MAP,
+                isNewUser = false,
+            ),
+            viewModel.uiState.value.completion,
+        )
     }
 
     @Test
-    fun `clicking start finishes onboarding as a new user and persists it`() = runTest(mainDispatcher) {
+    fun `selecting a goal persists the local focus`() = runTest(mainDispatcher) {
         val viewModel = OnBoardingViewModel(userPreferences)
         advanceUntilIdle()
 
-        viewModel.onUiEvent(OnBoardingUiEvent.OnClickStart)
+        viewModel.onUiEvent(OnBoardingUiEvent.GoalSelected(OnboardingGoal.SCHOLARSHIPS))
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertTrue(state.isOnBoardingFinished)
-        // isNewUser lets navigation decide paywall vs. main; onboarding stays paywall-unaware.
-        assertTrue(state.isNewUser)
+        assertEquals(OnboardingGoal.SCHOLARSHIPS, viewModel.uiState.value.selectedGoal)
+        assertEquals(
+            OnboardingGoal.SCHOLARSHIPS.storageValue,
+            userPreferences.getString(UserPreferences.KEY_OPPORTUNITY_GOAL),
+        )
+    }
+
+    @Test
+    fun `sample control rounds to honest half band increments`() = runTest(mainDispatcher) {
+        val viewModel = OnBoardingViewModel(userPreferences)
+        advanceUntilIdle()
+
+        viewModel.onUiEvent(OnBoardingUiEvent.SampleIeltsChanged(6.82))
+        advanceUntilIdle()
+
+        assertEquals(7.0, viewModel.uiState.value.sampleIelts)
+        assertFalse(userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN))
+    }
+
+    @Test
+    fun `exploring sample completes onboarding without creating a profile`() = runTest(mainDispatcher) {
+        val viewModel = OnBoardingViewModel(userPreferences)
+        advanceUntilIdle()
+
+        viewModel.onUiEvent(OnBoardingUiEvent.ExploreSample)
+        advanceUntilIdle()
+
+        assertEquals(OnboardingDestination.SAMPLE_MAP, viewModel.uiState.value.completion?.destination)
+        assertTrue(viewModel.uiState.value.completion?.isNewUser == true)
         assertTrue(userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN))
     }
 
     @Test
-    fun `onFinishHandled resets the finished flag`() = runTest(mainDispatcher) {
+    fun `build my map completes toward profile setup`() = runTest(mainDispatcher) {
         val viewModel = OnBoardingViewModel(userPreferences)
         advanceUntilIdle()
 
-        viewModel.onUiEvent(OnBoardingUiEvent.OnClickStart)
+        viewModel.onUiEvent(OnBoardingUiEvent.BuildMyMap)
         advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.isOnBoardingFinished)
+
+        assertEquals(OnboardingDestination.PROFILE_SETUP, viewModel.uiState.value.completion?.destination)
 
         viewModel.onFinishHandled()
-        assertFalse(viewModel.uiState.value.isOnBoardingFinished)
+        assertNull(viewModel.uiState.value.completion)
     }
 }

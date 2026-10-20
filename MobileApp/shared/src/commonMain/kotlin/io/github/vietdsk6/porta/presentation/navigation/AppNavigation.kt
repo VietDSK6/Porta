@@ -51,6 +51,7 @@ import io.github.vietdsk6.porta.presentation.screens.home.HomeViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreen
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreenStyle
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
+import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailScreen
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorScreen
@@ -218,9 +219,14 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         OnBoardingScreen(
             style = OnBoardingScreenStyle.STYLE1,
             viewModel = viewModel,
-            onOnBoardingFinished = { isNewUser ->
-                navigator.set(DoorsScreenRoute)
-                if (isNewUser && AppConfiguration.PREMIUM_FEATURES_ENABLED) {
+            onOnBoardingFinished = { completion ->
+                navigator.set(
+                    when (completion.destination) {
+                        OnboardingDestination.SAMPLE_MAP -> DoorsScreenRoute
+                        OnboardingDestination.PROFILE_SETUP -> ProfileSetupScreenRoute
+                    },
+                )
+                if (completion.isNewUser && AppConfiguration.PREMIUM_FEATURES_ENABLED) {
                     navigator.navigate(
                         PaywallScreenRoute(placementId = Constants.PAYWALL_PLACEMENT_ONBOARDING),
                     )
@@ -310,7 +316,11 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
 
     entry<ProfileSetupScreenRoute> {
         val viewModel = koinViewModel<ProfileSetupViewModel>()
-        ProfileSetupScreen(viewModel = viewModel)
+        ProfileSetupScreen(
+            viewModel = viewModel,
+            onCompleted = { navigator.set(DoorsScreenRoute) },
+            onNavigateBack = { navigator.set(DoorsScreenRoute) },
+        )
     }
 
     entry<OpportunityDetailScreenRoute> { key ->

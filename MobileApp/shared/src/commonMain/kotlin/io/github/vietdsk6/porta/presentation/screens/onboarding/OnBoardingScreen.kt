@@ -23,13 +23,13 @@ fun OnBoardingScreen(
     modifier: Modifier = Modifier,
     style: OnBoardingScreenStyle,
     viewModel: OnBoardingViewModel,
-    onOnBoardingFinished: (isNewUser: Boolean) -> Unit,
+    onOnBoardingFinished: (OnboardingCompletion) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(uiState.isOnBoardingFinished) {
-        if (uiState.isOnBoardingFinished) {
-            onOnBoardingFinished(uiState.isNewUser)
+    LaunchedEffect(uiState.completion) {
+        uiState.completion?.let { completion ->
+            onOnBoardingFinished(completion)
             viewModel.onFinishHandled()
         }
     }
@@ -99,7 +99,10 @@ private fun OnBoardingScreenStyle1Preview() {
     AppTheme {
         OnBoardingScreen(
             style = OnBoardingScreenStyle.STYLE1,
-            uiState = OnBoardingUiState(isLoading = false),
+            uiState = OnBoardingUiState(
+                selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                isLoading = false,
+            ),
             onUiEvent = {},
         )
     }
@@ -111,7 +114,13 @@ private fun OnBoardingScreenStyle2Preview() {
     AppTheme {
         OnBoardingScreen(
             style = OnBoardingScreenStyle.STYLE2,
-            uiState = OnBoardingUiState(isLoading = false),
+            uiState = OnBoardingUiState(
+                currentStep = 2,
+                selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                sampleIelts = 7.0,
+                isReceiptExpanded = true,
+                isLoading = false,
+            ),
             onUiEvent = {},
         )
     }

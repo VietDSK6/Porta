@@ -72,9 +72,13 @@ fun ScenarioPreviewScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("WHAT-IF · SAMPLE", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
                     Text(
-                        "Nothing here changes your actual profile.",
+                        if (uiState.isSampleProfile) "WHAT-IF · SAMPLE" else "WHAT-IF · REAL PROFILE",
+                        color = AppTheme.colors.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        "Nothing here changes your actual profile. Opportunities are still a synthetic demo pack.",
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodyLarge,
                     )

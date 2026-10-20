@@ -105,7 +105,15 @@ fun OpportunityDetailScreen(
 @Composable
 private fun ReceiptHeader(uiState: OpportunityDetailUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("SYNTHETIC SAMPLE", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
+        Text(
+            if (uiState.isSampleProfile) {
+                "SAMPLE PROFILE · SYNTHETIC PACK"
+            } else {
+                "REAL PROFILE · SYNTHETIC PACK"
+            },
+            color = AppTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+        )
         Text(uiState.title, style = AppTheme.typography.h4)
         Text(uiState.provider, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyLarge)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

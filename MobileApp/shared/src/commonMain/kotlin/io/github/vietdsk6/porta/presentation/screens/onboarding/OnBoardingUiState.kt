@@ -1,44 +1,72 @@
 package io.github.vietdsk6.porta.presentation.screens.onboarding
 
-import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_logo
-import io.github.vietdsk6.porta.generated.resources.Res
-import io.github.vietdsk6.porta.generated.resources.desc_onboarding_page_1
-import io.github.vietdsk6.porta.generated.resources.title_onboarding_page_1
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.StringResource
-
-data class OnBoardingScreenData(
-    val title: StringResource,
-    val description: StringResource,
-    val imageRes: DrawableResource,
-)
-
 data class OnBoardingUiState(
-
-    val pages: List<OnBoardingScreenData> = listOf(
-        OnBoardingScreenData(
-            Res.string.title_onboarding_page_1,
-            Res.string.desc_onboarding_page_1,
-            UiRes.drawable.ic_logo,
-        ),
-        OnBoardingScreenData(
-            Res.string.title_onboarding_page_1,
-            Res.string.desc_onboarding_page_1,
-            UiRes.drawable.ic_logo,
-        ),
-        OnBoardingScreenData(
-            Res.string.title_onboarding_page_1,
-            Res.string.desc_onboarding_page_1,
-            UiRes.drawable.ic_logo,
-        ),
-    ),
-    val isOnBoardingFinished: Boolean = false,
-    // isNewUser distinguishes a fresh completion from an already-onboarded user
-    val isNewUser: Boolean = false,
+    val currentStep: Int = 0,
+    val selectedGoal: OnboardingGoal? = null,
+    val sampleIelts: Double = 6.5,
+    val isReceiptExpanded: Boolean = false,
+    val completion: OnboardingCompletion? = null,
     val isLoading: Boolean = true,
 )
 
+enum class OnboardingGoal(
+    val storageValue: String,
+    val label: String,
+    val description: String,
+) {
+    SCHOLARSHIPS(
+        storageValue = "scholarships",
+        label = "Scholarships",
+        description = "Funding from schools, foundations, and organizations",
+    ),
+    INTERNSHIPS(
+        storageValue = "internships",
+        label = "Internships",
+        description = "Roles that turn skills into evidence and experience",
+    ),
+    EXCHANGES(
+        storageValue = "exchanges",
+        label = "Exchange programs",
+        description = "Academic and cultural programs beyond your campus",
+    ),
+    COMPETITIONS(
+        storageValue = "competitions",
+        label = "Student competitions",
+        description = "Challenges where projects and teamwork create proof",
+    ),
+    ;
+
+    companion object {
+        fun fromStorageValue(value: String?): OnboardingGoal? = entries.firstOrNull { it.storageValue == value }
+    }
+}
+
+enum class OnboardingDestination {
+    SAMPLE_MAP,
+    PROFILE_SETUP,
+}
+
+data class OnboardingCompletion(
+    val destination: OnboardingDestination,
+    val isNewUser: Boolean,
+)
+
 sealed interface OnBoardingUiEvent {
-    data object OnClickStart : OnBoardingUiEvent
+    data class GoalSelected(val goal: OnboardingGoal) : OnBoardingUiEvent
+
+    data object Next : OnBoardingUiEvent
+
+    data object Back : OnBoardingUiEvent
+
+    data class SampleIeltsChanged(val value: Double) : OnBoardingUiEvent
+
+    data object TryIeltsSeven : OnBoardingUiEvent
+
+    data object ReceiptToggled : OnBoardingUiEvent
+
+    data object ExploreSample : OnBoardingUiEvent
+
+    data object BuildMyMap : OnBoardingUiEvent
+
+    data object SkipDemo : OnBoardingUiEvent
 }

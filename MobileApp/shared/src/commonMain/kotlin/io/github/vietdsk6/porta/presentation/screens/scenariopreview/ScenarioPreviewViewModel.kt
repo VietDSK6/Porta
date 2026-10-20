@@ -1,20 +1,40 @@
 package io.github.vietdsk6.porta.presentation.screens.scenariopreview
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class ScenarioPreviewViewModel(
-    actionId: String,
+    private val actionId: String,
     private val scenarioEvaluator: ScenarioEvaluator,
+    private val profileRepository: ProfileRepository,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(buildState(actionId))
+    private val _uiState = MutableStateFlow(
+        buildState(
+            profile = PortaSampleData.profile,
+            isSampleProfile = true,
+        ),
+    )
     val uiState: StateFlow<ScenarioPreviewUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            profileRepository.getProfile().onSuccess { profile ->
+                if (profile.facts.isNotEmpty()) {
+                    _uiState.value = buildState(profile = profile, isSampleProfile = false)
+                }
+            }
+        }
+    }
 
     fun onUiEvent(event: ScenarioPreviewUiEvent) {
         when (event) {
@@ -22,15 +42,21 @@ class ScenarioPreviewViewModel(
         }
     }
 
-    private fun buildState(actionId: String): ScenarioPreviewUiState {
+    private fun buildState(
+        profile: ProfileSnapshot,
+        isSampleProfile: Boolean,
+    ): ScenarioPreviewUiState {
         val action = PortaSampleData.opportunities
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionId }
-            ?: return ScenarioPreviewUiState(error = "This sample action is no longer available.")
-        val currentValue = PortaSampleData.profile.facts[action.targetFactKey]?.value
-            ?: return ScenarioPreviewUiState(error = "The sample profile is missing ${action.targetFactKey}.")
+            ?: return ScenarioPreviewUiState(error = "This action is no longer available.")
+        val currentValue = profile.facts[action.targetFactKey]?.value
+            ?: return ScenarioPreviewUiState(
+                isSampleProfile = isSampleProfile,
+                error = "Your profile is missing ${action.targetFactKey.name.readable()}.",
+            )
         val scenario = scenarioEvaluator.evaluate(
-            profile = PortaSampleData.profile,
+            profile = profile,
             overrides = mapOf(action.targetFactKey to action.targetValue),
             opportunities = PortaSampleData.opportunities,
             today = PortaSampleData.referenceDate,
@@ -51,11 +77,18 @@ class ScenarioPreviewViewModel(
             }
         return ScenarioPreviewUiState(
             actionId = action.id,
-            title = action.title,
+            title = if (isSampleProfile) {
+                action.title
+            } else {
+                "Raise ${action.targetFactKey.name.readable()} to ${action.targetValue.displayValue()}"
+            },
             beforeLabel = currentValue.displayValue(),
             afterLabel = action.targetValue.displayValue(),
             openedDoors = opened,
             unchangedDoors = unchanged,
+            isSampleProfile = isSampleProfile,
         )
     }
+
+    private fun String.readable(): String = lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
 }

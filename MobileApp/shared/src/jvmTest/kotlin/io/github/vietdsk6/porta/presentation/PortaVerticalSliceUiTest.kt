@@ -40,7 +40,7 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("SAMPLE MAP").assertExists()
+        onNodeWithText("SAMPLE PROFILE · SYNTHETIC PACK").assertExists()
         onNodeWithTag("door-card-aurora").performClick()
         assertEquals("aurora", openedId)
     }

@@ -1,6 +1,8 @@
 package io.github.vietdsk6.porta.presentation.screens.doors
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
@@ -9,14 +11,31 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class DoorsViewModel(
     private val eligibilityEvaluator: EligibilityEvaluator,
+    private val profileRepository: ProfileRepository,
 ) : ViewModel() {
     private val savedIds = PortaSampleData.savedOpportunityIds.toMutableSet()
-    private val allDoors = evaluateDoors()
+    private var isSampleProfile = true
+    private var activeProfile = PortaSampleData.profile
+    private var allDoors = evaluateDoors()
     private val _uiState = MutableStateFlow(buildState(DoorFilter.ALL))
     val uiState: StateFlow<DoorsUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            profileRepository.getProfile().onSuccess { profile ->
+                if (profile.facts.isNotEmpty()) {
+                    activeProfile = profile
+                    isSampleProfile = false
+                    allDoors = evaluateDoors()
+                    _uiState.update { current -> buildState(current.selectedFilter) }
+                }
+            }
+        }
+    }
 
     fun onUiEvent(event: DoorsUiEvent) {
         when (event) {
@@ -31,7 +50,7 @@ class DoorsViewModel(
 
     private fun evaluateDoors(): List<DoorCardUiState> = PortaSampleData.opportunities.map { opportunity ->
         val receipt = eligibilityEvaluator.evaluate(
-            profile = PortaSampleData.profile,
+            profile = activeProfile,
             opportunity = opportunity,
             today = PortaSampleData.referenceDate,
         )
@@ -59,6 +78,7 @@ class DoorsViewModel(
             }
         }
         return DoorsUiState(
+            isSampleMode = isSampleProfile,
             selectedFilter = filter,
             doors = filtered,
             openCount = refreshed.count { it.state == EligibilityState.OPEN },

@@ -7,6 +7,7 @@ data class ScenarioPreviewUiState(
     val afterLabel: String = "",
     val openedDoors: List<ScenarioDoorUiState> = emptyList(),
     val unchangedDoors: List<ScenarioDoorUiState> = emptyList(),
+    val isSampleProfile: Boolean = true,
     val error: String? = null,
 )
 

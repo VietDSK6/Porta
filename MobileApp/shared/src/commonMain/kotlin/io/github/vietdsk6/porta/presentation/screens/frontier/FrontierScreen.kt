@@ -65,6 +65,15 @@ fun FrontierScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
+                        if (uiState.isSampleMode) {
+                            "SAMPLE PROFILE · SYNTHETIC PACK"
+                        } else {
+                            "REAL PROFILE · SYNTHETIC PACK"
+                        },
+                        color = AppTheme.colors.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
                         "Only non-dominated, controllable milestones appear here.",
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodyLarge,

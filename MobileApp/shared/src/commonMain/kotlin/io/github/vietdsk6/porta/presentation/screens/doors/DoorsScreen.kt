@@ -66,7 +66,7 @@ fun DoorsScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SampleModeBanner()
+                    ProfileAndPackBanner(isSampleProfile = uiState.isSampleMode)
                     Text(
                         text = "See what is open now—and what one honest next step could change.",
                         color = AppTheme.colors.text.secondary,
@@ -94,15 +94,23 @@ fun DoorsScreen(
 }
 
 @Composable
-private fun SampleModeBanner() {
+private fun ProfileAndPackBanner(isSampleProfile: Boolean) {
     Card(
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text("SAMPLE MAP", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
             Text(
-                "These five doors are synthetic and exist only to demonstrate Porta safely.",
+                if (isSampleProfile) "SAMPLE PROFILE · SYNTHETIC PACK" else "REAL PROFILE · SYNTHETIC PACK",
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                if (isSampleProfile) {
+                    "These facts and five doors are fictional and exist only to demonstrate Porta safely."
+                } else {
+                    "Your local facts are being evaluated, but these five doors remain fictional demo data."
+                },
                 color = AppTheme.colors.text.primary,
                 style = AppTheme.typography.bodyMedium,
             )

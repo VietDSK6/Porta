@@ -29,7 +29,7 @@
 > Per-feature status lives in **`PROGRESS_FEATURES.md`** (repo root), not here. This is just the gate.
 - [x] **Agent** — Plan derived from `prd.md`/`user_flow.md`, confirmed, and written to `PROGRESS_FEATURES.md`.
 - [ ] **Agent** — Every model + screen in `PROGRESS_FEATURES.md` is checked off.
-- [ ] **Agent** — Shipped onboarding + paywall screens branded to this product.
+- [~] **Agent** — Shipped onboarding branded to Porta; paywall remains disabled for the contest MVP.
 
 ## E. Validate
 - [x] **Agent** — Run quality gates (`run-quality-gates` skill).

@@ -13,6 +13,7 @@ data class OpportunityDetailUiState(
     val disclaimer: String = "",
     val rules: List<RuleReceiptUiState> = emptyList(),
     val relatedActionId: String? = null,
+    val isSampleProfile: Boolean = true,
     val error: String? = null,
 )
 
