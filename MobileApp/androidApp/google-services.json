@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "MOBILESDK_APP_ID",
         "android_client_info": {
-          "package_name": "com.kotlinfoundation.koko"
+          "package_name": "io.github.vietdsk6.porta"
         }
       },
       "oauth_client": [],

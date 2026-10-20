@@ -6,7 +6,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "com.kotlinfoundation.koko.subscription.adapty"
+        namespace = "io.github.vietdsk6.porta.subscription.adapty"
     }
 
     sourceSets {

@@ -10,7 +10,7 @@ Monorepo with three main parts:
 - **Documentation/** — Docusaurus documentation site (git submodule, published at kotlinfoundation.org/kmp-contest-starter-kit-documentation)
 
 Tech stack: Kotlin 2.4.10, Compose Multiplatform 1.11.1, AGP 9.3.1, Gradle 9.7.1, Gradle Kotlin DSL
-Package: `com.kotlinfoundation.koko`
+Package: `io.github.vietdsk6.porta`
 
 ## Repository Structure
 
@@ -156,7 +156,7 @@ These three scoped tasks ARE the whole validation. Do not improvise around them:
 ### Test layout
 - Unit / Flow / ViewModel tests: `shared/src/commonTest/kotlin/`. Use `kotlinx-coroutines-test` for `runTest` + `StandardTestDispatcher`/`UnconfinedTestDispatcher`. No Turbine — collect `Flow` emissions via `launch { flow.toList(emissions) }` if needed.
 - Compose UI tests: `shared/src/commonTest/kotlin/` (multiplatform via `runComposeUiTest`, runs on both JVM and Android host) or `shared/src/jvmTest/kotlin/` for JVM-only ones. Screens expose a **pure `(uiState, onUiEvent)` overload** so they render with no ViewModel/Koin — see `SampleComposeUiTest` for the template, and the **`verify-ui`** skill.
-- Screenshot tests (optional, local only — NOT a PR gate, goldens are not committed): **every `@Preview`** under `com.kotlinfoundation.koko` is snapshotted by the parameterized `PreviewScreenshotTest` (`shared/src/androidHostTest/`), which discovers previews via ComposablePreviewScanner. Record with `./gradlew :shared:recordRoborazziAndroidHostTest` → PNGs in `shared/src/androidHostTest/snapshots/`; compare with `./gradlew :shared:verifyRoborazziAndroidHostTest`.
+- Screenshot tests (optional, local only — NOT a PR gate, goldens are not committed): **every `@Preview`** under `io.github.vietdsk6.porta` is snapshotted by the parameterized `PreviewScreenshotTest` (`shared/src/androidHostTest/`), which discovers previews via ComposablePreviewScanner. Record with `./gradlew :shared:recordRoborazziAndroidHostTest` → PNGs in `shared/src/androidHostTest/snapshots/`; compare with `./gradlew :shared:verifyRoborazziAndroidHostTest`.
 - Tests run on a **JDK 21** JVM (`tasks.withType<Test>` in `shared/build.gradle.kts`) while code compiles against 17. Robolectric loads real dependency bytecode and `filekit` ≥ 0.14 ships Java 21 class files, so a 17 test JVM fails the preview scan with `UnsupportedClassVersionError`. The foojay resolver provisions the JDK automatically.
 
 ### `@Preview` annotation
@@ -530,7 +530,7 @@ Two interchangeable billing backends live under `libs/subscription/` behind the
   property both (a) selects which module `shared/build.gradle.kts` puts on the classpath
   and (b) drives `AppConfiguration.subscriptionProviderFactory`, which delegates to
   `activeSubscriptionProviderFactory` — a single symbol each provider module exposes in
-  package `com.kotlinfoundation.koko.subscription.config`. Exactly one provider module is ever
+  package `io.github.vietdsk6.porta.subscription.config`. Exactly one provider module is ever
   linked, so `AppConfiguration` never names a concrete provider. **Do not hardcode a provider in
   `AppConfiguration`.**
 - Switching providers = change the gradle property only (plus the provider's API keys in
@@ -549,7 +549,7 @@ Two interchangeable billing backends live under `libs/subscription/` behind the
 
 ### Paywall Layer
 
-Location: `shared/src/commonMain/kotlin/com/kotlinfoundation/koko/presentation/screens/paywall/`
+Location: `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/paywall/`
 
 Three-piece architecture that keeps Compose screens display-only:
 

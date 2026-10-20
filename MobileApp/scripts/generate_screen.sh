@@ -64,7 +64,7 @@ import $fqn
 # Capitalize the first letter, leave the rest alone.
 SCREEN_BASE="$(printf '%s' "${SCREEN_NAME:0:1}" | tr '[:lower:]' '[:upper:]')${SCREEN_NAME:1}"
 
-BASE_PACKAGE="com.kotlinfoundation.koko"
+BASE_PACKAGE="io.github.vietdsk6.porta"
 BASE_PATH=$(echo "$BASE_PACKAGE" | tr '.' '/')
 
 LOWER_NAME=$(echo "$SCREEN_BASE" | tr '[:upper:]' '[:lower:]')
@@ -151,8 +151,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kotlinfoundation.koko.designsystem.components.ScreenWithToolbar
-import com.kotlinfoundation.koko.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
+import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 
 @Composable
 fun $SCREEN_CLASS(

@@ -14,11 +14,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.kotlinfoundation.koko.MainKt"
+        mainClass = "io.github.vietdsk6.porta.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.kotlinfoundation.koko"
+            packageName = "io.github.vietdsk6.porta"
             packageVersion = "1.0.0"
         }
     }

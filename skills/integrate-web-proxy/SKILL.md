@@ -111,7 +111,7 @@ The deploy prints the base URL, shaped
 ## 3. Point the app at the URL — User Action / Agent Action
 
 Set the base URL in
-`shared/src/commonMain/kotlin/com/kotlinfoundation/koko/root/AppConfiguration.kt`:
+`shared/src/commonMain/kotlin/io/github/vietdsk6/porta/root/AppConfiguration.kt`:
 
 ```kotlin
 const val CLOUD_FUNCTIONS_URL = "https://us-central1-your-project-id.cloudfunctions.net"
@@ -158,7 +158,7 @@ confirm the function returns `data`. This is the phase's validation gate.
 ## Swapping the Replicate model — read BEFORE changing MODEL_OWNER / MODEL_NAME
 
 The default model is wired in `ReplicateGenerationProvider.kt`
-(`shared/src/commonMain/kotlin/com/kotlinfoundation/koko/data/source/ai/`) via the companion constants
+(`shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/ai/`) via the companion constants
 `MODEL_OWNER` / `MODEL_NAME` (official models) or `MODEL_VERSION` (community models). Swapping models
 is invited by the TODOs there, but **three things silently break if you only change the constants**:
 

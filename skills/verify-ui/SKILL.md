@@ -29,7 +29,7 @@ render it with no Koin, no ViewModel, no device. Queries run against Compose's s
 same data a screen reader uses — so you match real text, not pixels.
 
 Copy the shape in
-[`SampleComposeUiTest`](../../MobileApp/shared/src/jvmTest/kotlin/com/kotlinfoundation/koko/example/SampleComposeUiTest.kt):
+[`SampleComposeUiTest`](../../MobileApp/shared/src/jvmTest/kotlin/io/github/vietdsk6/porta/example/SampleComposeUiTest.kt):
 
 ```kotlin
 @OptIn(ExperimentalTestApi::class)
@@ -102,7 +102,7 @@ Rules:
 - Import **`androidx.compose.ui.tooling.preview.Preview`**. The JetBrains one is not discovered.
 - `@StoreScreenshot`-tagged previews are storefront assets and are excluded here — see
   `capture-app-screens`.
-- Previews are scanned under package `com.kotlinfoundation.koko`.
+- Previews are scanned under package `io.github.vietdsk6.porta`.
 
 ## 3. Finish
 

@@ -132,7 +132,7 @@ PRs are gated by `.github/workflows/pr_checks.yml` (at the repo root, **not** un
 
 Optional (local only, not part of PR checks): Roborazzi screenshot comparison. Record baselines with `./gradlew :shared:recordRoborazziAndroidHostTest`, compare later runs with `./gradlew :shared:verifyRoborazziAndroidHostTest`. Goldens are not committed.
 
-`@Preview`s under `com.kotlinfoundation.koko.*` are scanned automatically. Use `androidx.compose.ui.tooling.preview.Preview` (multiplatform-aware as of CMP 1.10) — the deprecated `org.jetbrains.compose.ui.tooling.preview.Preview` is **not** discovered.
+`@Preview`s under `io.github.vietdsk6.porta.*` are scanned automatically. Use `androidx.compose.ui.tooling.preview.Preview` (multiplatform-aware as of CMP 1.10) — the deprecated `org.jetbrains.compose.ui.tooling.preview.Preview` is **not** discovered.
 
 ## Store Screenshot Generation
 
@@ -146,9 +146,9 @@ Output lands at `distribution/store_screenshots/<locale>/<device>/*.png` — pur
 
 ```kotlin
 import androidx.compose.ui.tooling.preview.Preview
-import com.kotlinfoundation.koko.designsystem.theme.AppTheme
-import com.kotlinfoundation.koko.util.StoreDevice
-import com.kotlinfoundation.koko.util.StoreScreenshot
+import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.util.StoreDevice
+import io.github.vietdsk6.porta.util.StoreScreenshot
 
 @Preview
 @StoreScreenshot(device = StoreDevice.IPHONE_6_5, locale = "en", tag = "01-home")

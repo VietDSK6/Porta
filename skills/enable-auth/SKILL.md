@@ -19,7 +19,7 @@ desktop and web; there is no in-repo auth module. `UserRepository` wraps it (`co
 
 ## 1. Turn on the feature flag — Agent Action
 
-In `shared/src/commonMain/kotlin/com/kotlinfoundation/koko/root/AppConfiguration.kt`:
+In `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/root/AppConfiguration.kt`:
 
 ```kotlin
 const val AUTH_SOCIAL_LOGIN_ENABLED = true

@@ -80,7 +80,7 @@ jobs:
       contents: write
     env:
       github_token: ${{ secrets.GITHUB_TOKEN }}
-      app_name: Koko
+      app_name: Porta
 
     steps:
       - uses: actions/checkout@v4

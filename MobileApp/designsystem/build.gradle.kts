@@ -8,7 +8,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "com.kotlinfoundation.koko.designsystem"
+        namespace = "io.github.vietdsk6.porta.designsystem"
     }
 
     sourceSets {
@@ -35,7 +35,7 @@ kotlin {
 compose.resources {
     publicResClass = true
     nameOfResClass = "UiRes"
-    packageOfResClass = "com.kotlinfoundation.koko.designsystem.generated.resources"
+    packageOfResClass = "io.github.vietdsk6.porta.designsystem.generated.resources"
 }
 
 // Hot reload support

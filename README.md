@@ -53,7 +53,7 @@ Documentation: https://kotlinfoundation.org/kmp-contest-starter-kit-documentatio
 ### Quality & Testing
 - **Spotless + ktlint** — Run `./gradlew spotlessApply` to auto-format Kotlin source and Gradle KTS. Enforced on every PR.
 - **Unit & Compose UI tests** — `kotlinx-coroutines-test` for `Flow` / ViewModel tests; `runComposeUiTest` for headless UI tests on JVM. Run via `./gradlew :shared:jvmTest :shared:testAndroidHostTest`.
-- **Screenshot tests (optional, local)** — Roborazzi + ComposablePreviewScanner can snapshot every `@Preview` under `com.kotlinfoundation.koko.*`. Record baselines with `./gradlew :shared:recordRoborazziAndroidHostTest`, then compare with `./gradlew :shared:verifyRoborazziAndroidHostTest`. Goldens are not committed and verification is not part of PR checks.
+- **Screenshot tests (optional, local)** — Roborazzi + ComposablePreviewScanner can snapshot every `@Preview` under `io.github.vietdsk6.porta.*`. Record baselines with `./gradlew :shared:recordRoborazziAndroidHostTest`, then compare with `./gradlew :shared:verifyRoborazziAndroidHostTest`. Goldens are not committed and verification is not part of PR checks.
 - **Storefront screenshot generator** — `./scripts/generate_store_screenshots.sh` renders every `@Preview @StoreScreenshot` composable at App Store / Play Store pixel sizes, ready to upload. The capture is the screen as it renders — no marketing chrome, device frames, or headlines added. No Fastlane / ImageMagick required.
 
 ### Monetization & Growth

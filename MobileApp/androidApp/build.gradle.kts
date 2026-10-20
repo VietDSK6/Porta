@@ -10,14 +10,14 @@ plugins {
 }
 
 android {
-    namespace = "com.kotlinfoundation.koko"
+    namespace = "io.github.vietdsk6.porta"
     compileSdk =
         libs.versions.android.compileSdk
             .get()
             .toInt()
 
     defaultConfig {
-        applicationId = "com.kotlinfoundation.koko"
+        applicationId = "io.github.vietdsk6.porta"
         minSdk =
             libs.versions.android.minSdk
                 .get()

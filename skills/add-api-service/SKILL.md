@@ -8,7 +8,7 @@ description: Add a Ktor-backed network request end-to-end — request/response D
 Generic Ktor call to **any** URL — this is not tied to the project's own backend. Follow the layering:
 DTOs → API service → repository (`Result` wrapping) → ViewModel.
 
-Paths below are under `shared/src/commonMain/kotlin/com/kotlinfoundation/koko/`.
+Paths below are under `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/`.
 
 > **AI services are special.** The OpenAI/Replicate services route through `AiTransport` (proxy vs direct
 > mode) rather than calling the client directly. In **proxy** mode the response is the

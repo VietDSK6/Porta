@@ -15,3 +15,24 @@ auto-load — read it now:
   the file-ownership and single-Gradle rules that make it safe.
 
 All Gradle commands run from this directory (`MobileApp/`).
+
+## Porta contest guardrails
+
+Porta is the contest product defined in [`PORTA_PRD.md`](PORTA_PRD.md). Keep these constraints active
+throughout implementation:
+
+- Treat [`CONTEST_SCORECARD.md`](CONTEST_SCORECARD.md) as the living record of compliance, scoring evidence,
+  unresolved risks, and submission readiness. Never mark an item complete without observable evidence.
+- Preserve the product's defensible novelty: the Action Frontier is the decision engine; What-if and opening
+  doors are its visual explanation. Do not reduce the app to a scholarship feed or a collection of sliders.
+- Maintain at least two genuinely usable declared targets. The contest baseline is Android + JVM Desktop, with
+  shared rule evaluation, action generation, persistence, and reusable Compose UI in shared Kotlin.
+- Keep the submission solo, substantial, app-shaped, and specific to the contest period. Preserve Git history
+  and the starter-kit license/provenance; never imply authorship of unchanged template code.
+- Before scope changes, weekly milestones, or submission work, use the local
+  [`contest-readiness`](.agents/skills/contest-readiness/SKILL.md) skill.
+- For Kotlin review, milestone sign-off, and the contest's conventions criterion, use
+  [`kotlin-convention-audit`](.agents/skills/kotlin-convention-audit/SKILL.md). `spotlessCheck` is necessary but
+  not sufficient because several ktlint rules are intentionally disabled for Compose and project preferences.
+- Re-read the official online rules before irreversible submission decisions and at final submission. The saved
+  references are dated snapshots, not substitutes for the current official rules.

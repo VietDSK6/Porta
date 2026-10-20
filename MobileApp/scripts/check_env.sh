@@ -31,8 +31,8 @@ MOBILE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_PROPS="$MOBILE_DIR/local.properties"
 GRADLE_PROPS="$MOBILE_DIR/gradle.properties"
 # Per-app config (URLs, contact, AI routing, auth toggle) lives in root/AppConfiguration.kt.
-APP_CONFIG="$MOBILE_DIR/shared/src/commonMain/kotlin/com/kotlinfoundation/koko/root/AppConfiguration.kt"
-FEATURE_FLAGS="$MOBILE_DIR/shared/src/commonMain/kotlin/com/kotlinfoundation/koko/data/source/featureflag/FeatureFlagManager.kt"
+APP_CONFIG="$MOBILE_DIR/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/root/AppConfiguration.kt"
+FEATURE_FLAGS="$MOBILE_DIR/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/featureflag/FeatureFlagManager.kt"
 GOOGLE_SERVICES="$MOBILE_DIR/androidApp/google-services.json"
 GOOGLE_PLIST="$MOBILE_DIR/iosApp/iosApp/GoogleService-Info.plist"
 

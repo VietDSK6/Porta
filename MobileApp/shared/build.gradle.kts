@@ -43,7 +43,7 @@ kotlin {
     }
 
     android {
-        namespace = "com.kotlinfoundation.koko.shared"
+        namespace = "io.github.vietdsk6.porta.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         androidResources { enable = true }
@@ -61,7 +61,7 @@ kotlin {
             baseName = "Shared"
             isStatic = true
             // Explicit bundle id for crash symbolication; silences the "Cannot infer a bundle ID" link warning.
-            binaryOption("bundleId", "com.kotlinfoundation.koko.shared")
+            binaryOption("bundleId", "io.github.vietdsk6.porta.shared")
         }
     }
 
@@ -192,7 +192,7 @@ kotlin {
 }
 
 compose.resources {
-    packageOfResClass = "com.kotlinfoundation.koko.generated.resources"
+    packageOfResClass = "io.github.vietdsk6.porta.generated.resources"
 }
 
 // iOS unit tests can't link: the Firebase (SwiftPM) dependency is wired into the app framework
@@ -239,7 +239,7 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.register("generateStoreScreenshots") {
-    group = "koko"
+    group = "porta"
     description = "Render every @Preview @StoreScreenshot into distribution/store_screenshots/."
     dependsOn("recordRoborazziAndroidHostTest")
 }
@@ -264,7 +264,7 @@ room3 {
 buildConfig {
     // BuildConfig configuration here.
     // https://github.com/gmazzo/gradle-buildconfig-plugin#usage-in-kts
-    packageName("com.kotlinfoundation.koko.common")
+    packageName("io.github.vietdsk6.porta.common")
     // AGP 9's `com.android.kotlin.multiplatform.library` plugin does NOT generate BuildConfig the way the
     // old `com.android.application` plugin did. Replicate the `DEBUG` flag here so commonMain code that
     // depended on `BuildConfig.DEBUG` keeps working. Defaults to `false` (production-safe); the consuming

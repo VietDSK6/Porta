@@ -1,10 +1,10 @@
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.window.ComposeUIViewController
-import com.kotlinfoundation.koko.root.App
-import com.kotlinfoundation.koko.util.LocalNativeViewFactory
-import com.kotlinfoundation.koko.util.NativeViewFactory
-import com.kotlinfoundation.koko.util.SwiftLibDependencyFactory
-import com.kotlinfoundation.koko.util.swiftLibDependenciesModule
+import io.github.vietdsk6.porta.root.App
+import io.github.vietdsk6.porta.util.LocalNativeViewFactory
+import io.github.vietdsk6.porta.util.NativeViewFactory
+import io.github.vietdsk6.porta.util.SwiftLibDependencyFactory
+import io.github.vietdsk6.porta.util.swiftLibDependenciesModule
 import org.koin.core.KoinApplication
 import platform.UIKit.UIViewController
 

@@ -5,7 +5,7 @@ description: Reference index for all available development skills in the Koko (K
 
 # Koko (KMPStarterKit) Agent Skills Index
 
-When working inside the `MobileApp/` Android Studio window, you are isolated from the root directory context. However, a comprehensive suite of development skills exists one level up in the parent directory (`../skills/`). 
+When working inside the `MobileApp/` Android Studio window, you are isolated from the root directory context. However, a comprehensive suite of development skills exists one level up in the parent directory (`../skills/`).
 
 This index provides you with the name, location, and exact description of every skill available in the project so you can reference and execute them directly.
 
@@ -15,6 +15,15 @@ This index provides you with the name, location, and exact description of every 
 To use any of these skills, read the corresponding `SKILL.md` file using your file-reading tool.
 The skills live in the **`skills/` directory at the repository root** — one level above `MobileApp/`.
 The links below are written relative to this file.
+
+## App-local contest skills
+
+These skills live beside this index and apply specifically to the Porta contest product:
+
+| Skill | Location | Description |
+|:------|:---------|:------------|
+| **`contest-readiness`** | [SKILL.md](../contest-readiness/SKILL.md) | Audit eligibility gates, the 40/40/20 rubric, evidence, milestone readiness, and final submission assets. |
+| **`kotlin-convention-audit`** | [SKILL.md](../kotlin-convention-audit/SKILL.md) | Combine Spotless/ktlint with a manual review of the official Kotlin conventions and documented repository exceptions. |
 
 ---
 
