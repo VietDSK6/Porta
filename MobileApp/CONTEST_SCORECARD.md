@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 21 October 2026
+> Last updated: 22 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -70,7 +70,9 @@ Required evidence:
 - [x] Shared counterfactual simulator and Action Frontier algorithm.
 - [x] Shared repository, validation, Room persistence, and import/export.
 - [x] Meaningful shared Compose UI/state, not only common constants.
-- [ ] Android quick-update/tracking flow works.
+- [x] Android quick-update/tracking flow completes a local plan, requires explicit actual-fact confirmation,
+  persists optional evidence metadata and refreshes Doors reactively; covered by ViewModel/UI tests and the
+  Android debug build.
 - [ ] Desktop comparison/authoring flow works.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
 - [ ] Shared-code metric documented with generated/vendor/template code excluded or separately disclosed.

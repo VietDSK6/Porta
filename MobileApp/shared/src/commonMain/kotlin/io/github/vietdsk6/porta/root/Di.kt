@@ -31,6 +31,7 @@ import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.account.AccountViewModel
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
+import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
 import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceViewModel
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
@@ -190,6 +191,7 @@ private val presentationModule = module {
     viewModelOf(::ActivePlanViewModel)
     viewModelOf(::StudentProfileViewModel)
     viewModelOf(::PackInspectorViewModel)
+    viewModelOf(::ActualProfileUpdateViewModel)
     // Add new view models below — generate_screen.sh inserts here.
 }
 

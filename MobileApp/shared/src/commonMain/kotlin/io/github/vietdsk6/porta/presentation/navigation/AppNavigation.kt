@@ -35,6 +35,8 @@ import io.github.vietdsk6.porta.presentation.screens.account.AccountScreen
 import io.github.vietdsk6.porta.presentation.screens.account.AccountViewModel
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanScreen
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
+import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateScreen
+import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
 import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceScreen
 import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceViewModel
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
@@ -366,7 +368,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             onPreviewImpact = { actionId ->
                 navigator.replace(ScenarioPreviewScreenRoute(actionId = actionId))
             },
-            onUpdateProfile = { navigator.navigate(ProfileSetupScreenRoute()) },
+            onUpdateProfile = { navigator.navigate(ActualProfileUpdateScreenRoute) },
         )
     }
 
@@ -375,6 +377,15 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         PackInspectorScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
+        )
+    }
+
+    entry<ActualProfileUpdateScreenRoute> {
+        val viewModel = koinViewModel<ActualProfileUpdateViewModel>()
+        ActualProfileUpdateScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+            onProfileUpdated = { navigator.set(DoorsScreenRoute) },
         )
     }
 

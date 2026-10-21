@@ -93,4 +93,8 @@ data object StudentProfileScreenRoute : TopLevelScreenRoute
 @SerialName("PackInspector")
 data object PackInspectorScreenRoute : ScreenRoute
 
+@Serializable
+@SerialName("ActualProfileUpdate")
+data object ActualProfileUpdateScreenRoute : ScreenRoute
+
 // Add new routes below — generate_screen.sh inserts here.
