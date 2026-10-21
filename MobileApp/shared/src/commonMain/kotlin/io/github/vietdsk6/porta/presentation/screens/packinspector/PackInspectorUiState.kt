@@ -21,7 +21,7 @@ data class ActivePackUiState(
     val verificationRangeLabel: String,
     val importedLabel: String,
     val sourceUrl: String?,
-    val isBundledDemo: Boolean,
+    val isBundledPack: Boolean,
     val providers: List<String>,
     val opportunities: List<PackOpportunityUiState>,
 )

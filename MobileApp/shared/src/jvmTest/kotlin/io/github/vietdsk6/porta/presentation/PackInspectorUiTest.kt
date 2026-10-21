@@ -35,10 +35,10 @@ class PackInspectorUiTest {
             }
         }
 
-        onNodeWithText("ACTIVE · SYNTHETIC DEMO").assertExists()
-        onNodeWithText("ATOMIC · IELTS SCORE ≥ 7.0 band").performScrollTo().assertExists()
-        onNodeWithTag("pack-inspector-opportunity-forge").performScrollTo().performClick()
-        assertEquals(PackInspectorUiEvent.OpportunitySelected("forge"), events.last())
+        onNodeWithText("ACTIVE · CURATED BUNDLE").assertExists()
+        onNodeWithText("ATOMIC · AGE ≥ 18.0 years").performScrollTo().assertExists()
+        onNodeWithTag("pack-inspector-opportunity-unicef-internship-rolling").performScrollTo().performClick()
+        assertEquals(PackInspectorUiEvent.OpportunitySelected("unicef-internship-rolling"), events.last())
 
         onNodeWithTag("pack-inspector-export").performScrollTo().performClick()
         assertEquals(PackInspectorUiEvent.ExportActivePack, events.last())
@@ -77,49 +77,49 @@ class PackInspectorUiTest {
     private val activePackState = PackInspectorUiState(
         isLoading = false,
         activePack = ActivePackUiState(
-            id = "porta-synthetic-demo",
-            name = "Porta synthetic demo pack",
-            publisher = "Porta",
+            id = "porta-curated-opportunities-2026-10-21",
+            name = "Porta curated opportunity pack",
+            publisher = "Porta · independently curated from official sources",
             versionLabel = "Version 1",
             schemaLabel = "Schema 1",
-            recordCountLabel = "5 records",
-            checkedLabel = "Pack checked 2026-10-20",
-            verificationRangeLabel = "Records checked 2026-10-20",
-            importedLabel = "Imported Oct 20, 2026",
-            sourceUrl = "https://example.invalid/porta-sample",
-            isBundledDemo = true,
-            providers = listOf("Northstar Foundation", "Open Learning Lab"),
+            recordCountLabel = "15 records",
+            checkedLabel = "Pack checked 2026-10-21",
+            verificationRangeLabel = "Records checked 2026-10-21",
+            importedLabel = "Imported Oct 21, 2026",
+            sourceUrl = null,
+            isBundledPack = true,
+            providers = listOf("Kotlin Foundation", "UNICEF"),
             opportunities = listOf(
                 PackOpportunityUiState(
-                    id = "aurora",
-                    title = "Aurora Scholars",
-                    provider = "Northstar Foundation",
-                    categoryLabel = "Scholarship",
-                    checkedLabel = "Checked 2026-10-20",
-                    sourceUrl = "https://example.invalid/porta-sample/aurora",
-                    sourceSection = "Synthetic eligibility example",
+                    id = "kotlin-student-coding-competition-2026",
+                    title = "Kotlin Student Coding Competition",
+                    provider = "Kotlin Foundation",
+                    categoryLabel = "Student contest",
+                    checkedLabel = "Checked 2026-10-21",
+                    sourceUrl = "https://kotlinconf.com/contest-rules/",
+                    sourceSection = "Eligibility; How to Enter",
                     ruleNodes = listOf(
                         RuleNodeUiState(
-                            id = "aurora-ielts",
+                            id = "kotlin-age",
                             depth = 0,
-                            typeLabel = "ATOMIC · IELTS SCORE ≥ 7.0 band",
-                            summary = "The sample requires IELTS 7.0 or above.",
-                            sourceNote = "Synthetic fixture.",
+                            typeLabel = "ATOMIC · AGE ≥ 18.0 years",
+                            summary = "Entrants must be at least 18.",
+                            sourceNote = "Official rules checked 2026-10-21.",
                         ),
                     ),
                 ),
                 PackOpportunityUiState(
-                    id = "forge",
-                    title = "Forge Student Lab",
-                    provider = "Open Learning Lab",
+                    id = "unicef-internship-rolling",
+                    title = "UNICEF Internship Programme",
+                    provider = "UNICEF",
                     categoryLabel = "Internship",
-                    checkedLabel = "Checked 2026-10-20",
-                    sourceUrl = "https://example.invalid/porta-sample/forge",
-                    sourceSection = "Synthetic eligibility example",
+                    checkedLabel = "Checked 2026-10-21",
+                    sourceUrl = "https://www.unicef.org/careers/internships",
+                    sourceSection = "Requirements; How to apply",
                     ruleNodes = emptyList(),
                 ),
             ),
         ),
-        selectedOpportunityId = "aurora",
+        selectedOpportunityId = "kotlin-student-coding-competition-2026",
     )
 }

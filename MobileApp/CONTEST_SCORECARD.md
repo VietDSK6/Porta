@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 20 October 2026
+> Last updated: 21 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -21,9 +21,9 @@
 | Entrant age, enrollment, residency/sanctions, employment and prize eligibility | USER CONFIRM | Confirm against the live rules before submission; do not store sensitive details here. |
 | Individual submission; one entry | USER CONFIRM | User confirms solo participation and no second entry. |
 | Created specifically during the contest period | RISK | Preserve Git history showing Porta-specific work began during the period; document that Koko is a licensed starter kit and distinguish new product code from template code. |
-| Substantial application, not template/Hello World/library | IN PROGRESS | PRD defines a complete Android/Desktop app; implementation evidence does not exist yet. |
-| Original work or sufficient rights | IN PROGRESS | Retain starter-kit and dependency notices; audit all data, icons, media, opportunity text, and generated assets before publication. |
-| Cross-platform Kotlin project | IN PROGRESS | Infrastructure exists. Contest baseline is Android + JVM Desktop; both product flows must be demonstrably usable. |
+| Substantial application, not template/Hello World/library | PASS | Porta-owned engine, Room repositories, Compose flows, pack validation/import and 15-record catalog are implemented; keep separating these changes from Koko template code in README evidence. |
+| Original work or sufficient rights | IN PROGRESS | `OPPORTUNITY_PACK_SOURCES.md` records independent interpretations and official URLs; retain starter-kit/dependency notices and still audit icons, media and generated assets before publication. |
+| Cross-platform Kotlin project | IN PROGRESS | Product logic, persistence and most UI are shared Kotlin and compile for Android/JVM/JS/Wasm; Android + JVM Desktop remain the contest promise until both exact launch paths are manually confirmed. |
 | GitHub repository submitted | TODO | Create/publish the final repository and verify judge access. |
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
 | Comprehensive README | TODO | Add product story, architecture, data provenance, prerequisites, troubleshooting, and key-feature instructions. |
@@ -54,8 +54,8 @@ Current evidence:
 - [x] Fifteen-opportunity feasibility/kill test documented in `PORTA_PRD.md`.
 - [x] Competitor boundary documented; What-if is treated as the visualization, not the sole novelty claim.
 - [ ] Working Action Frontier over a curated, sourced dataset.
-- [ ] Constraint changes visibly reorder the frontier.
-- [ ] Demo shows deterministic explanations and honest unknowns.
+- [x] Constraint-aware Action Frontier, Pareto ranking and deterministic tests are implemented over the synthetic demonstration fixture.
+- [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 
 Do not assign a numeric estimate until the working engine and demo evidence exist.
@@ -64,14 +64,14 @@ Do not assign a numeric estimate until the working engine and demo evidence exis
 
 Required evidence:
 
-- [ ] Shared domain models and typed rule graph.
-- [ ] Shared deterministic eligibility engine and receipts.
-- [ ] Shared counterfactual simulator and Action Frontier algorithm.
-- [ ] Shared repository, validation, Room persistence, and import/export.
-- [ ] Meaningful shared Compose UI/state, not only common constants.
+- [x] Shared domain models and typed rule graph.
+- [x] Shared deterministic eligibility engine and receipts.
+- [x] Shared counterfactual simulator and Action Frontier algorithm.
+- [x] Shared repository, validation, Room persistence, and import/export.
+- [x] Meaningful shared Compose UI/state, not only common constants.
 - [ ] Android quick-update/tracking flow works.
 - [ ] Desktop comparison/authoring flow works.
-- [ ] Tests demonstrate shared behavior.
+- [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
 - [ ] Shared-code metric documented with generated/vendor/template code excluded or separately disclosed.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
@@ -82,9 +82,10 @@ Required evidence:
 
 - [x] Spotless + ktlint configured.
 - [x] Repository exceptions identified and documented in the local convention-audit skill.
-- [ ] All Porta Kotlin passes `spotlessCheck`.
-- [ ] Manual audit covers organization, filenames, naming, class layout, idioms, and KDoc.
-- [ ] Every manual finding is fixed or justified.
+- [x] All Porta Kotlin passes `spotlessCheck`.
+- [x] Manual audit covers organization, filenames, naming, class layout, idioms, and KDoc.
+- [x] Every manual finding is fixed or justified; the large contest-pack file is intentionally one cohesive,
+  versioned data manifest rather than mixed application logic.
 - [ ] README documents formatting/test commands.
 - [ ] Final audit checks the then-current official convention page.
 
@@ -95,7 +96,7 @@ A green formatter alone must never be recorded as `20/20`.
 | Asset | Status | Definition of done |
 |---|---|---|
 | Product name and visual identity | IN PROGRESS | Product name is Porta; implement the Portal Atlas system consistently across icon and screens, then audit marks/assets. |
-| Curated opportunity pack | IN PROGRESS | At least 15 deeply verified records, each with source and verification date. |
+| Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register and two-profile receipt tests; complete an independent second reading before submission. |
 | README | TODO | Reproducible setup, all declared targets, architecture, feature tour, limitations, sources, license. |
 | Essay | TODO | Exactly 300 words and consistent with the actual submission. |
 | Screencast | TODO | 3–5 minutes; problem, magic moment, KMP proof, trust boundary, close. |
@@ -112,7 +113,7 @@ A green formatter alone must never be recorded as `20/20`.
 
 ## Next three contest actions
 
-1. Decide and record the final declared target set, especially how the existing iOS/Web modules are presented.
-2. Preserve a clear Git/provenance boundary between the licensed Koko starter kit and new Porta product work.
-3. Build the first vertical slice that demonstrates shared rule evaluation on Android and Desktop before adding
-   secondary features.
+1. Have a second person re-read all 15 official sources and refresh every TBA deadline before the submission freeze.
+2. Finish and manually exercise the adaptive Desktop rail/master-detail path while preserving Android's compact flow.
+3. Remove obsolete starter image-generation/gallery/credits/account routes, then document the final target and
+   provenance boundary in the README.

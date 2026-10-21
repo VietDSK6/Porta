@@ -86,7 +86,7 @@ fun ScenarioPreviewScreen(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        "Nothing here changes your actual profile. Opportunities are still a synthetic demo pack.",
+                        "Nothing here changes your actual profile. Confirm every result on the linked official source.",
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodyLarge,
                     )

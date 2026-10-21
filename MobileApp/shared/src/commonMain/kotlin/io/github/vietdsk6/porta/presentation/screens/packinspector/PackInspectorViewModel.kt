@@ -191,12 +191,12 @@ class PackInspectorViewModel(
                         it.copy(
                             isWorking = false,
                             selectedOpportunityId = result.document.opportunities.firstOrNull()?.id,
-                            message = "The bundled synthetic demo pack is active.",
+                            message = "The bundled curated opportunity pack is active.",
                         )
                     }
                 },
                 onFailure = {
-                    showFailure("Porta could not restore the bundled demo pack.")
+                    showFailure("Porta could not restore the bundled curated pack.")
                 },
             )
         }
@@ -246,7 +246,7 @@ class PackInspectorViewModel(
             diagnostics = transient.diagnostics,
             isRestoreConfirmationVisible = transient.isRestoreConfirmationVisible,
             message = transient.message ?: loadError?.let {
-                "Porta could not read the active pack. Restore the bundled demo or import a valid pack."
+                "Porta could not read the active pack. Restore the bundled curated pack or import a valid pack."
             },
         )
     }
@@ -269,7 +269,7 @@ class PackInspectorViewModel(
             },
             importedLabel = "Imported ${metadata.importedAtEpochMillis.asFormattedDate()}",
             sourceUrl = metadata.sourceUrl,
-            isBundledDemo = metadata.id == BundledOpportunityPackProvider.PACK_ID,
+            isBundledPack = metadata.id == BundledOpportunityPackProvider.PACK_ID,
             providers = providers,
             opportunities = opportunities.map { it.toUiState() },
         )

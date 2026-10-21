@@ -73,7 +73,10 @@ private fun KoinApplication.initializeBundledOpportunityPack() {
     applicationScope.launch {
         packRepository.getActive().fold(
             onSuccess = { activePack ->
-                if (activePack == null) {
+                if (
+                    activePack == null ||
+                    activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
+                ) {
                     packRepository.importPack(bundledPackProvider.rawJson())
                         .onFailure { AppLogger.e("Could not install bundled opportunity pack", it) }
                 }

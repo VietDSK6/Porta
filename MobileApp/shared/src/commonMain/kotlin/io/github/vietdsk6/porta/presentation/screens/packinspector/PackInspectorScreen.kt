@@ -144,16 +144,15 @@ fun PackInspectorScreen(
     if (uiState.isRestoreConfirmationVisible) {
         AlertDialog(
             onDismissRequest = { onUiEvent(PackInspectorUiEvent.RestoreBundledCancelled) },
-            title = { Text("Restore Porta's demo pack?") },
+            title = { Text("Restore Porta's curated pack?") },
             text = {
                 Text(
-                    "The bundled five-door pack is synthetic demo data. It will become active, while your current " +
-                        "import remains stored locally.",
+                    "The bundled 15-record pack will become active, while your current import remains stored locally.",
                 )
             },
             confirmButton = {
                 TextButton(onClick = { onUiEvent(PackInspectorUiEvent.RestoreBundledConfirmed) }) {
-                    Text("Restore demo pack")
+                    Text("Restore curated pack")
                 }
             },
             dismissButton = {
@@ -232,7 +231,7 @@ private fun EmptyPack(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Import a versioned JSON pack, or install Porta's bundled synthetic five-door demo.",
+                text = "Import a versioned JSON pack, or install Porta's bundled curated catalog.",
                 style = AppTheme.typography.bodyLarge,
                 color = AppTheme.colors.text.secondary,
             )
@@ -243,7 +242,7 @@ private fun EmptyPack(
                 onClick = onImportPack,
             )
             AppButton(
-                text = "Install bundled demo",
+                text = "Install curated pack",
                 modifier = Modifier.fillMaxWidth().testTag("pack-inspector-install-demo"),
                 style = ButtonStyle.ALTERNATIVE,
                 enabled = !isWorking,
@@ -264,7 +263,7 @@ private fun ActivePackContent(
     PackSummaryCard(pack = pack, onOpenSource = onOpenSource)
     PackControls(
         isWorking = uiState.isWorking,
-        isBundledDemo = pack.isBundledDemo,
+        isBundledPack = pack.isBundledPack,
         onImportPack = onImportPack,
         onExportPack = { onUiEvent(PackInspectorUiEvent.ExportActivePack) },
         onRestore = { onUiEvent(PackInspectorUiEvent.RestoreBundledRequested) },
@@ -302,7 +301,7 @@ private fun PackSummaryCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = if (pack.isBundledDemo) "ACTIVE · SYNTHETIC DEMO" else "ACTIVE · IMPORTED PACK",
+                        text = if (pack.isBundledPack) "ACTIVE · CURATED BUNDLE" else "ACTIVE · IMPORTED PACK",
                         style = AppTheme.typography.bodySmall,
                         color = AppTheme.colors.primary,
                         fontWeight = FontWeight.ExtraBold,
@@ -384,7 +383,7 @@ private fun StatusDot() {
 @Composable
 private fun PackControls(
     isWorking: Boolean,
-    isBundledDemo: Boolean,
+    isBundledPack: Boolean,
     onImportPack: () -> Unit,
     onExportPack: () -> Unit,
     onRestore: () -> Unit,
@@ -423,9 +422,9 @@ private fun PackControls(
                 enabled = !isWorking,
                 onClick = onExportPack,
             )
-            if (!isBundledDemo) {
+            if (!isBundledPack) {
                 AppButton(
-                    text = "Restore bundled demo pack",
+                    text = "Restore bundled curated pack",
                     modifier = Modifier.fillMaxWidth(),
                     style = ButtonStyle.TEXT,
                     enabled = !isWorking,
@@ -751,48 +750,47 @@ private fun PackInspectorDesktopPreview() {
 private val previewState = PackInspectorUiState(
     isLoading = false,
     activePack = ActivePackUiState(
-        id = "porta-synthetic-demo",
-        name = "Porta synthetic demo pack",
-        publisher = "Porta",
+        id = "porta-curated-opportunities-2026-10-21",
+        name = "Porta curated opportunity pack",
+        publisher = "Porta · independently curated from official sources",
         versionLabel = "Version 1",
         schemaLabel = "Schema 1",
-        recordCountLabel = "5 records",
-        checkedLabel = "Pack checked 2026-10-20",
-        verificationRangeLabel = "Records checked 2026-10-20",
-        importedLabel = "Imported Oct 20, 2026",
-        sourceUrl = "https://example.invalid/porta-sample",
-        isBundledDemo = true,
-        providers = listOf("Atlas University", "Northstar Foundation", "Open Learning Lab"),
+        recordCountLabel = "15 records",
+        checkedLabel = "Pack checked 2026-10-21",
+        verificationRangeLabel = "Records checked 2026-10-21",
+        importedLabel = "Imported Oct 21, 2026",
+        sourceUrl = null,
+        isBundledPack = true,
+        providers = listOf("CERN openlab", "Kotlin Foundation", "UNICEF"),
         opportunities = listOf(
             PackOpportunityUiState(
-                id = "aurora",
-                title = "Aurora Scholars",
-                provider = "Northstar Foundation",
-                categoryLabel = "Scholarship",
-                checkedLabel = "Checked 2026-10-20",
-                sourceUrl = "https://example.invalid/porta-sample/aurora",
-                sourceSection = "Synthetic eligibility example",
+                id = "kotlin-student-coding-competition-2026",
+                title = "Kotlin Student Coding Competition",
+                provider = "Kotlin Foundation",
+                categoryLabel = "Student contest",
+                checkedLabel = "Checked 2026-10-21",
+                sourceUrl = "https://kotlinconf.com/contest-rules/",
+                sourceSection = "Eligibility; How to Enter",
                 ruleNodes = listOf(
                     RuleNodeUiState(
-                        id = "aurora-ielts",
+                        id = "kotlin-root",
                         depth = 0,
-                        typeLabel = "ATOMIC · IELTS SCORE ≥ 7.0 band",
-                        summary = "The synthetic sample requires IELTS 7.0 or above.",
-                        sourceNote = "Synthetic sample rule; it is not a real provider requirement.",
+                        typeLabel = "ALL",
+                        summary = "Every one of 3 child rules must match.",
                     ),
                 ),
             ),
             PackOpportunityUiState(
-                id = "forge",
-                title = "Forge Student Lab",
-                provider = "Open Learning Lab",
+                id = "unicef-internship-rolling",
+                title = "UNICEF Internship Programme",
+                provider = "UNICEF",
                 categoryLabel = "Internship",
-                checkedLabel = "Checked 2026-10-20",
-                sourceUrl = "https://example.invalid/porta-sample/forge",
-                sourceSection = "Synthetic eligibility example",
+                checkedLabel = "Checked 2026-10-21",
+                sourceUrl = "https://www.unicef.org/careers/internships",
+                sourceSection = "Requirements; How to apply",
                 ruleNodes = emptyList(),
             ),
         ),
     ),
-    selectedOpportunityId = "aurora",
+    selectedOpportunityId = "kotlin-student-coding-competition-2026",
 )

@@ -34,9 +34,9 @@
 - [x] **Scenario evaluator** — sparse overlay, exact state deltas, reset immutability
 - [x] **Action generator** — curated templates only, immutable/context-only rejection, deduplication
 - [x] **Feasibility and Action Frontier** — deadline/time/effort/cost filters, Pareto set, stable ranking/explanation
-- [x] **Pack validation and loading** — schema diagnostics + atomic import/export ☑ · bundled synthetic demo pack ☑
+- [x] **Pack validation and loading** — schema diagnostics + atomic import/export ☑ · bundled curated pack + legacy-demo migration ☑
 - [x] **Demo fixtures** — clearly labelled synthetic profile and five opportunities; IELTS `6.5 → 7.0` opens four doors
-- [ ] **Contest pack** — at least 15 manually checked opportunities with source and verification date
+- [x] **Contest pack** — 15 official-source records, verification date + source register, manual/soft boundaries, two-profile receipt tests
 
 ## Screens
 
@@ -76,7 +76,7 @@
 ## Validation
 
 - [ ] Every P0 screen has a pure composable test and `@Preview`
-- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, ActivePlan, and StudentProfile inspected
+- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, ActivePlan, StudentProfile, and PackInspector inspected
 - [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
 - [ ] Developer ran Android or Desktop and confirmed the vertical slice behaves correctly
 

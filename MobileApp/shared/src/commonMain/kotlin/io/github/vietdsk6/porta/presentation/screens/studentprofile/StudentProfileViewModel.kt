@@ -44,7 +44,7 @@ class StudentProfileViewModel(
             profile = profile,
             opportunities = activePack?.opportunities ?: PortaSampleData.opportunities,
             isSampleCatalog = activePack == null ||
-                activePack.metadata.id == BundledOpportunityPackProvider.PACK_ID,
+                activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
             transient = transient,
         )
     }.stateIn(
