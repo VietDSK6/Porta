@@ -96,7 +96,7 @@ private val dataModule = module {
     singleOf(::BundledOpportunityPackProvider)
     singleOf(::OpportunityPackValidator)
     singleOf(::OpportunityPackParser)
-    singleOf(::ProfileExportCodec)
+    single { ProfileExportCodec() }
 
     // Preferences Source. The DataStore instance stays out of the Koin graph on
     // purpose — generic types erase to `DataStore`, so a second DataStore<T>
