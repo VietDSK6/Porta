@@ -90,7 +90,9 @@ private val dataModule = module {
     singleOf(::ApplicationScope)
     factory { defaultAsyncDispatcher } bind CoroutineContext::class
     factory { BackgroundExecutor.IO } bind BackgroundExecutor::class
-    singleOf(::OpportunityPackCodec)
+    // Use the codec's intentionally configured default Json instance. Constructor DSL would try
+    // to resolve Json from Koin instead of applying the Kotlin default argument.
+    single { OpportunityPackCodec() }
     singleOf(::BundledOpportunityPackProvider)
     singleOf(::OpportunityPackValidator)
     singleOf(::OpportunityPackParser)
