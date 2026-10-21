@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.presentation.screens.onboarding
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,13 +15,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,10 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.vietdsk6.porta.designsystem.components.AppButton
@@ -173,42 +182,110 @@ private fun GoalCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("onboarding-goal-${goal.storageValue}")
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            ),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (selected) AppTheme.colors.alternative else AppTheme.colors.surfaceContainer,
+            containerColor = if (selected) {
+                AppTheme.colors.alternative
+            } else {
+                AppTheme.colors.surfaceContainer
+            },
         ),
         border = BorderStroke(
             width = if (selected) 2.dp else 1.dp,
-            color = if (selected) AppTheme.colors.primary else AppTheme.colors.outline.copy(alpha = 0.45f),
+            color = if (selected) {
+                AppTheme.colors.primary
+            } else {
+                AppTheme.colors.outline.copy(alpha = 0.4f)
+            },
         ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AppTheme.spacing.sectionSpacing),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (selected) AppTheme.colors.primary else AppTheme.colors.alternative)
-                    .padding(horizontal = 13.dp, vertical = 9.dp),
-                contentAlignment = Alignment.Center,
+            GoalSelectionIndicator(selected = selected)
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = if (selected) "✓" else "◇",
-                    color = if (selected) AppTheme.colors.onPrimary else AppTheme.colors.primary,
+                    text = goal.label,
+                    style = AppTheme.typography.h6,
+                    color = AppTheme.colors.text.primary,
                     fontWeight = FontWeight.Bold,
                 )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(goal.label, style = AppTheme.typography.h6, color = AppTheme.colors.text.primary)
+
                 Text(
-                    goal.description,
+                    text = goal.description,
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.text.secondary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GoalSelectionIndicator(selected: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (selected) {
+                    AppTheme.colors.primary.copy(alpha = 0.12f)
+                } else {
+                    AppTheme.colors.background
+                },
+            )
+            .border(
+                width = 1.dp,
+                color = if (selected) {
+                    AppTheme.colors.primary.copy(alpha = 0.22f)
+                } else {
+                    AppTheme.colors.outline.copy(alpha = 0.32f)
+                },
+                shape = RoundedCornerShape(16.dp),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(
+                    if (selected) {
+                        AppTheme.colors.primary
+                    } else {
+                        AppTheme.colors.background
+                    },
+                )
+                .border(
+                    width = 2.dp,
+                    color = if (selected) {
+                        AppTheme.colors.primary
+                    } else {
+                        AppTheme.colors.outline.copy(alpha = 0.6f)
+                    },
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = "Selected",
+                    tint = AppTheme.colors.onPrimary,
+                    modifier = Modifier.size(14.dp),
                 )
             }
         }
@@ -622,6 +699,18 @@ private fun OnboardingBottomBar(
                 onClick = { onUiEvent(OnBoardingUiEvent.Next) },
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun GoalCardPreview() {
+    AppTheme {
+        GoalCard(
+            goal = OnboardingGoal.entries.first(),
+            selected = true,
+            onClick = {},
+        )
     }
 }
 

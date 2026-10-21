@@ -53,11 +53,13 @@ fun HelpAndSupportScreen(
                     }
 
                     UiRes.string.privacy_policy -> {
-                        localUriHandler.openUri(AppConfiguration.URL_PRIVACY_POLICY)
+                        AppConfiguration.URL_PRIVACY_POLICY.takeIf { it.isNotBlank() }
+                            ?.let { localUriHandler.openUri(it) }
                     }
 
                     UiRes.string.terms_conditions -> {
-                        localUriHandler.openUri(AppConfiguration.URL_TERMS_CONDITIONS)
+                        AppConfiguration.URL_TERMS_CONDITIONS.takeIf { it.isNotBlank() }
+                            ?.let { localUriHandler.openUri(it) }
                     }
                 }
             },
