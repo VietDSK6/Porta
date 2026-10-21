@@ -54,12 +54,14 @@ class OpportunityPackRepository(
                     OpportunityPackVersionConflictException(metadata.id, metadata.version),
                 )
             }
-            return@execute Result.success(
-                OpportunityPackImportResult(
-                    status = OpportunityPackImportStatus.NO_CHANGE,
-                    document = document,
-                ),
-            )
+            if (existing.isActive) {
+                return@execute Result.success(
+                    OpportunityPackImportResult(
+                        status = OpportunityPackImportStatus.NO_CHANGE,
+                        document = document,
+                    ),
+                )
+            }
         }
 
         opportunityPackDao.replaceActive(metadata.toEntity())

@@ -34,7 +34,7 @@
 - [x] **Scenario evaluator** — sparse overlay, exact state deltas, reset immutability
 - [x] **Action generator** — curated templates only, immutable/context-only rejection, deduplication
 - [x] **Feasibility and Action Frontier** — deadline/time/effort/cost filters, Pareto set, stable ranking/explanation
-- [~] **Pack validation and loading** — schema diagnostics + atomic import/export ☑ · bundled verified pack ☐
+- [x] **Pack validation and loading** — schema diagnostics + atomic import/export ☑ · bundled synthetic demo pack ☑
 - [x] **Demo fixtures** — clearly labelled synthetic profile and five opportunities; IELTS `6.5 → 7.0` opens four doors
 - [ ] **Contest pack** — at least 15 manually checked opportunities with source and verification date
 
@@ -47,7 +47,7 @@
 - [x] **ScenarioPreview** — persistent WHAT-IF, before/after and deltas, explicit commit/discard, preview + UI test
 - [x] **ActivePlan** — single local milestone, progress/pause/complete, evidence + impact, explicit profile boundary, preview + tests
 - [x] **StudentProfile** *(tab)* — real local facts, dependencies, export/delete controls, preview + tests, nav callbacks
-- [~] **PackInspector** — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
+- [x] **PackInspector** — provenance, typed rule tree, atomic JSON import diagnostics, export/restore controls, responsive UI, preview + tests, nav callbacks
 
 ## Screens and infrastructure that ship with the kit
 

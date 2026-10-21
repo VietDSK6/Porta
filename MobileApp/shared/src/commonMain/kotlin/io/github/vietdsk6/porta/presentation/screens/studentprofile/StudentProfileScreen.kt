@@ -38,6 +38,7 @@ fun StudentProfileScreen(
     modifier: Modifier = Modifier,
     viewModel: StudentProfileViewModel,
     onEditProfile: () -> Unit,
+    onOpenPackInspector: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -46,6 +47,7 @@ fun StudentProfileScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onEditProfile = onEditProfile,
+        onOpenPackInspector = onOpenPackInspector,
     )
 }
 
@@ -55,6 +57,7 @@ fun StudentProfileScreen(
     uiState: StudentProfileUiState,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
     onEditProfile: () -> Unit,
+    onOpenPackInspector: () -> Unit,
 ) {
     ScreenWithToolbar(
         modifier = modifier,
@@ -69,12 +72,16 @@ fun StudentProfileScreen(
             when {
                 uiState.isLoading -> LoadingProfile()
 
-                !uiState.hasRealProfile -> EmptyProfile(onEditProfile = onEditProfile)
+                !uiState.hasRealProfile -> EmptyProfile(
+                    onEditProfile = onEditProfile,
+                    onOpenPackInspector = onOpenPackInspector,
+                )
 
                 else -> ProfileContent(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
                     onEditProfile = onEditProfile,
+                    onOpenPackInspector = onOpenPackInspector,
                 )
             }
 
@@ -143,7 +150,10 @@ private fun LoadingProfile() {
 }
 
 @Composable
-private fun EmptyProfile(onEditProfile: () -> Unit) {
+private fun EmptyProfile(
+    onEditProfile: () -> Unit,
+    onOpenPackInspector: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth().testTag("student-profile-empty"),
         shape = RoundedCornerShape(24.dp),
@@ -177,6 +187,12 @@ private fun EmptyProfile(onEditProfile: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().testTag("student-profile-build"),
                 onClick = onEditProfile,
             )
+            AppButton(
+                text = "Inspect opportunity pack",
+                modifier = Modifier.fillMaxWidth().testTag("student-profile-pack-inspector"),
+                style = ButtonStyle.ALTERNATIVE,
+                onClick = onOpenPackInspector,
+            )
         }
     }
 }
@@ -186,6 +202,7 @@ private fun ProfileContent(
     uiState: StudentProfileUiState,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
     onEditProfile: () -> Unit,
+    onOpenPackInspector: () -> Unit,
 ) {
     ProfileSummary(
         factCount = uiState.factCount,
@@ -218,6 +235,7 @@ private fun ProfileContent(
 
     DataControls(
         isWorking = uiState.isWorking,
+        onOpenPackInspector = onOpenPackInspector,
         onExport = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
         onClear = { onUiEvent(StudentProfileUiEvent.ClearProfileRequested) },
     )
@@ -422,6 +440,7 @@ private fun DependencyDetails(
 @Composable
 private fun DataControls(
     isWorking: Boolean,
+    onOpenPackInspector: () -> Unit,
     onExport: () -> Unit,
     onClear: () -> Unit,
 ) {
@@ -442,9 +461,17 @@ private fun DataControls(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Export includes values and evidence metadata, never evidence binary files. Delete clears the profile and plans from this device.",
+                text = "Export includes values and evidence metadata, never evidence binary files. " +
+                    "Delete clears the profile and plans from this device.",
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.secondary,
+            )
+            AppButton(
+                text = "Inspect opportunity pack",
+                modifier = Modifier.fillMaxWidth().testTag("student-profile-pack-inspector"),
+                style = ButtonStyle.ALTERNATIVE,
+                enabled = !isWorking,
+                onClick = onOpenPackInspector,
             )
             AppButton(
                 text = "Export profile metadata",
@@ -498,6 +525,7 @@ private fun StudentProfileScreenPreview() {
             uiState = previewState,
             onUiEvent = {},
             onEditProfile = {},
+            onOpenPackInspector = {},
         )
     }
 }

@@ -6,6 +6,7 @@ import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -42,7 +43,8 @@ class StudentProfileViewModel(
         buildUiState(
             profile = profile,
             opportunities = activePack?.opportunities ?: PortaSampleData.opportunities,
-            isSampleCatalog = activePack == null,
+            isSampleCatalog = activePack == null ||
+                activePack.metadata.id == BundledOpportunityPackProvider.PACK_ID,
             transient = transient,
         )
     }.stateIn(

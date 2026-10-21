@@ -23,12 +23,14 @@ class StudentProfileUiTest {
     fun `real profile exposes its explicit edit and data controls`() = runComposeUiTest {
         val events = mutableListOf<StudentProfileUiEvent>()
         var editRequested = false
+        var inspectorRequested = false
         setContent {
             AppTheme {
                 StudentProfileScreen(
                     uiState = actualProfileState,
                     onUiEvent = { events += it },
                     onEditProfile = { editRequested = true },
+                    onOpenPackInspector = { inspectorRequested = true },
                 )
             }
         }
@@ -45,23 +47,30 @@ class StudentProfileUiTest {
 
         onNodeWithTag("student-profile-export").performScrollTo().performClick()
         assertEquals(StudentProfileUiEvent.ExportMetadata, events.last())
+
+        onNodeWithTag("student-profile-pack-inspector").performScrollTo().performClick()
+        assertTrue(inspectorRequested)
     }
 
     @Test
     fun `empty profile sends the student to explicit profile setup`() = runComposeUiTest {
         var buildRequested = false
+        var inspectorRequested = false
         setContent {
             AppTheme {
                 StudentProfileScreen(
                     uiState = StudentProfileUiState(isLoading = false),
                     onUiEvent = {},
                     onEditProfile = { buildRequested = true },
+                    onOpenPackInspector = { inspectorRequested = true },
                 )
             }
         }
 
         onNodeWithTag("student-profile-build").performClick()
         assertTrue(buildRequested)
+        onNodeWithTag("student-profile-pack-inspector").performClick()
+        assertTrue(inspectorRequested)
     }
 
     private val actualProfileState = StudentProfileUiState(

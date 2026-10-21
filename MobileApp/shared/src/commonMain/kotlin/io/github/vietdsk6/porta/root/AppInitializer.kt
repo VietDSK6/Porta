@@ -9,9 +9,11 @@ import com.mmk.kmpnotifier.notification.PayloadData
 import com.mmk.kmpnotifier.push.PushListener
 import com.mmk.kmpnotifier.push.firebase.addPushListener
 import io.github.vietdsk6.porta.common.BuildConfig
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
 import io.github.vietdsk6.porta.data.source.featureflag.FeatureFlagManager
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.presentation.components.ads.AdsManager
 import io.github.vietdsk6.porta.subscription.api.SubscriptionProvider
 import io.github.vietdsk6.porta.subscription.api.runCatchingSuspend
@@ -51,6 +53,7 @@ object AppInitializer {
         // initialize logging
         AppLogger.initialize(isDebug = isDebug)
 
+        initializeBundledOpportunityPack()
         refreshFeatureFlags()
         initializeAnalytics()
         initializeNotification()
@@ -60,6 +63,23 @@ object AppInitializer {
 
         val userRepository by this.koin.inject<UserRepository>()
         userRepository.signInAnonymouslyIfNecessary()
+    }
+}
+
+private fun KoinApplication.initializeBundledOpportunityPack() {
+    val applicationScope by this.koin.inject<ApplicationScope>()
+    val packRepository by this.koin.inject<OpportunityPackRepository>()
+    val bundledPackProvider by this.koin.inject<BundledOpportunityPackProvider>()
+    applicationScope.launch {
+        packRepository.getActive().fold(
+            onSuccess = { activePack ->
+                if (activePack == null) {
+                    packRepository.importPack(bundledPackProvider.rawJson())
+                        .onFailure { AppLogger.e("Could not install bundled opportunity pack", it) }
+                }
+            },
+            onFailure = { AppLogger.e("Could not read active opportunity pack", it) },
+        )
     }
 }
 

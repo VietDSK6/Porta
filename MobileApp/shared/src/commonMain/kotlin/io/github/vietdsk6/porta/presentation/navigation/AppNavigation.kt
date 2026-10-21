@@ -213,6 +213,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         StudentProfileScreen(
             viewModel = viewModel,
             onEditProfile = { navigator.navigate(ProfileSetupScreenRoute(returnToProfile = true)) },
+            onOpenPackInspector = { navigator.navigate(PackInspectorScreenRoute) },
         )
     }
 
@@ -371,7 +372,10 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
 
     entry<PackInspectorScreenRoute> {
         val viewModel = koinViewModel<PackInspectorViewModel>()
-        PackInspectorScreen(viewModel = viewModel)
+        PackInspectorScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+        )
     }
 
     // Add new screen entries below — generate_screen.sh inserts here.

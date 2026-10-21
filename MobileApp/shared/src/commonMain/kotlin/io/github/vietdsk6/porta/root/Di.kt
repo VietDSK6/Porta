@@ -10,6 +10,7 @@ import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
 import io.github.vietdsk6.porta.data.source.ai.ReplicateGenerationProvider
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
@@ -90,6 +91,7 @@ private val dataModule = module {
     factory { defaultAsyncDispatcher } bind CoroutineContext::class
     factory { BackgroundExecutor.IO } bind BackgroundExecutor::class
     singleOf(::OpportunityPackCodec)
+    singleOf(::BundledOpportunityPackProvider)
     singleOf(::OpportunityPackValidator)
     singleOf(::OpportunityPackParser)
     singleOf(::ProfileExportCodec)

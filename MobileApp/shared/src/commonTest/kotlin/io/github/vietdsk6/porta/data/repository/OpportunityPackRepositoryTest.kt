@@ -70,6 +70,22 @@ class OpportunityPackRepositoryTest {
         assertEquals(firstJson, dao.getActive()?.rawJson)
     }
 
+    @Test
+    fun `importing a previously stored inactive pack reactivates it`() = runTest {
+        val dao = FakeOpportunityPackDao()
+        val repository = repository(dao)
+        val bundledJson = codec.encode(validPack())
+        val otherJson = codec.encode(validPack().copy(id = "another-pack"))
+
+        repository.importPack(bundledJson, importedAtEpochMillis = 10L).getOrThrow()
+        repository.importPack(otherJson, importedAtEpochMillis = 20L).getOrThrow()
+        val restored = repository.importPack(bundledJson, importedAtEpochMillis = 30L).getOrThrow()
+
+        assertEquals(OpportunityPackImportStatus.IMPORTED, restored.status)
+        assertEquals(3, dao.upsertCount)
+        assertEquals(bundledJson, dao.getActive()?.rawJson)
+    }
+
     private fun repository(dao: OpportunityPackDao): OpportunityPackRepository = OpportunityPackRepository(
         opportunityPackDao = dao,
         parser = OpportunityPackParser(codec, OpportunityPackValidator()),
