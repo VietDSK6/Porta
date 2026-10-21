@@ -94,10 +94,20 @@ data class EvidenceMetadata(
 
 fun FactValue.displayValue(): String = when (this) {
     is FactValue.BooleanValue -> if (value) "Yes" else "No"
+
     is FactValue.DateValue -> value.toString()
+
     is FactValue.DurationValue -> "$amount ${unit.name.lowercase()}"
+
     is FactValue.EnumListValue -> values.sorted().joinToString()
+
     is FactValue.EnumValue -> value
-    is FactValue.NumberValue -> "$amount $unit".trim()
+
+    is FactValue.NumberValue -> if (unit.endsWith(" scale")) {
+        "$amount / ${unit.removeSuffix(" scale")}"
+    } else {
+        "$amount $unit".trim()
+    }
+
     is FactValue.TextValue -> value
 }

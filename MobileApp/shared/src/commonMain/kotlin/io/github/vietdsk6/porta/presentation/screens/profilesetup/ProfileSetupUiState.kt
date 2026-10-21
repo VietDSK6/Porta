@@ -6,7 +6,11 @@ data class ProfileSetupUiState(
     val nationality: String = "",
     val gpa: String = "",
     val ielts: String = "",
+    val age: String = "",
+    val experienceMonths: String = "",
     val isEnrolled: Boolean = true,
+    val isDegreeCompleted: Boolean? = null,
+    val isAvailableFullPeriod: Boolean? = null,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val error: String? = null,
@@ -16,6 +20,12 @@ data class ProfileSetupUiState(
 
     val ieltsValue: Double?
         get() = ielts.takeIf(String::isNotBlank)?.toDoubleOrNull()
+
+    val ageValue: Double?
+        get() = age.takeIf(String::isNotBlank)?.toDoubleOrNull()
+
+    val experienceMonthsValue: Double?
+        get() = experienceMonths.takeIf(String::isNotBlank)?.toDoubleOrNull()
 
     val gpaError: String?
         get() = when {
@@ -33,12 +43,35 @@ data class ProfileSetupUiState(
             else -> null
         }
 
+    val ageError: String?
+        get() = when {
+            age.isBlank() -> null
+            ageValue == null -> "Use a whole number"
+            ageValue?.let { it !in 1.0..120.0 || it % 1.0 != 0.0 } == true -> "Use an age from 1 to 120"
+            else -> null
+        }
+
+    val experienceMonthsError: String?
+        get() = when {
+            experienceMonths.isBlank() -> null
+
+            experienceMonthsValue == null -> "Use a whole number"
+
+            experienceMonthsValue?.let { it !in 0.0..600.0 || it % 1.0 != 0.0 } == true -> {
+                "Use whole months from 0 to 600"
+            }
+
+            else -> null
+        }
+
     val canSave: Boolean
         get() = studyLevel != null &&
             fieldOfStudy.isNotBlank() &&
             nationality.isNotBlank() &&
             gpaValue?.let { it in 0.0..4.0 } == true &&
             ieltsError == null &&
+            ageError == null &&
+            experienceMonthsError == null &&
             !isSaving
 }
 
@@ -62,7 +95,15 @@ sealed interface ProfileSetupUiEvent {
 
     data class IeltsChanged(val value: String) : ProfileSetupUiEvent
 
+    data class AgeChanged(val value: String) : ProfileSetupUiEvent
+
+    data class ExperienceMonthsChanged(val value: String) : ProfileSetupUiEvent
+
     data class EnrolledChanged(val value: Boolean) : ProfileSetupUiEvent
+
+    data class DegreeCompletedChanged(val value: Boolean?) : ProfileSetupUiEvent
+
+    data class AvailableFullPeriodChanged(val value: Boolean?) : ProfileSetupUiEvent
 
     data object Save : ProfileSetupUiEvent
 

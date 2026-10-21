@@ -1,10 +1,14 @@
 package io.github.vietdsk6.porta.presentation
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.RuleResult
@@ -47,6 +51,28 @@ class PortaVerticalSliceUiTest {
     }
 
     @Test
+    fun `real doors use compact source context instead of a banner`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                DoorsScreen(
+                    uiState = doorsState.copy(
+                        isSampleMode = false,
+                        isSampleCatalog = false,
+                        catalogDoorCount = 15,
+                    ),
+                    onUiEvent = {},
+                    onOpenOpportunity = {},
+                )
+            }
+        }
+
+        onNodeWithText("15 source-linked opportunities · evaluated on this device").assertExists()
+        onAllNodesWithText(
+            "Your local facts are evaluated against published rules checked in the active offline pack.",
+        ).assertCountEquals(0)
+    }
+
+    @Test
     fun `frontier horizon control emits an explicit constraint change`() = runComposeUiTest {
         val events = mutableListOf<FrontierUiEvent>()
         setContent {
@@ -70,7 +96,7 @@ class PortaVerticalSliceUiTest {
         setContent {
             AppTheme {
                 ScenarioPreviewScreen(
-                    uiState = scenarioState,
+                    uiState = scenarioState.copy(openedDoors = scenarioState.openedDoors.take(1)),
                     onUiEvent = { events += it },
                     onNavigateBack = {},
                     onBuildProfile = {},
@@ -79,9 +105,34 @@ class PortaVerticalSliceUiTest {
         }
 
         onNodeWithText("WHAT-IF · REAL PROFILE").assertExists()
-        onNodeWithText("4 doors open").assertExists()
+        onNodeWithText("1 hard gap resolved · 1 open").assertExists()
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
+    }
+
+    @Test
+    fun `scenario keeps long opportunity titles readable`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                ScenarioPreviewScreen(
+                    uiState = scenarioState.copy(
+                        openedDoors = emptyList(),
+                        progressedDoors = listOf(
+                            ScenarioDoorUiState(
+                                id = "erasmus-mundus",
+                                title = "Erasmus Mundus Joint Masters",
+                                stateLabel = "Hard gap resolved · verify remaining rules",
+                            ),
+                        ),
+                    ),
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                    onBuildProfile = {},
+                )
+            }
+        }
+
+        onNodeWithTag("scenario-door-title-erasmus-mundus").assertWidthIsAtLeast(200.dp)
     }
 
     @Test

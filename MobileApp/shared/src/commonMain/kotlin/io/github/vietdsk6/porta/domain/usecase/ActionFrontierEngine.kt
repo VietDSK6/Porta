@@ -10,6 +10,7 @@ import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import kotlinx.datetime.LocalDate
 
 class ActionFrontierEngine(
@@ -57,36 +58,50 @@ class ActionFrontierEngine(
                 opportunities = opportunities,
                 today = today,
             )
-            val newlyOpen = scenario.deltas
-                .filter { delta ->
-                    delta.before != EligibilityState.OPEN && delta.after == EligibilityState.OPEN
-                }
-                .map { it.opportunityId }
+            val improved = scenario.resolvedHardGapOpportunityIds(template.targetFactKey)
                 .filter { opportunityId ->
                     opportunityById[opportunityId]
-                        ?.let { isFeasibleBeforeDeadline(it, today, template.minimumDurationDays) }
+                        ?.let { isFeasibleForPlanning(it, today, template.minimumDurationDays) }
                         ?: false
                 }
-                .sorted()
-
-            if (newlyOpen.isEmpty()) {
+            if (improved.isEmpty()) {
                 return@mapNotNull null
             }
-
+            val improvedSet = improved.toSet()
+            val newlyOpen = scenario.deltas
+                .filter { delta ->
+                    delta.opportunityId in improvedSet &&
+                        delta.before != EligibilityState.OPEN &&
+                        delta.after == EligibilityState.OPEN
+                }
+                .map { it.opportunityId }
+                .sorted()
+            val improvedSaved = improved.filter(savedOpportunityIds::contains)
             val newlyOpenSaved = newlyOpen.filter(savedOpportunityIds::contains)
-            val earliestDeadline = newlyOpen
+            val earliestDeadline = improved
                 .mapNotNull { id ->
                     (opportunityById.getValue(id).deadline as? Deadline.Known)?.date
                 }
                 .minOrNull()
+            val timingUnverified = improved.filter { id ->
+                opportunityById.getValue(id).deadline !is Deadline.Known
+            }
 
             FrontierAction(
                 template = template,
+                improvedOpportunityIds = improved,
+                improvedSavedOpportunityIds = improvedSaved,
                 newlyOpenOpportunityIds = newlyOpen,
                 newlyOpenSavedOpportunityIds = newlyOpenSaved,
+                timingUnverifiedOpportunityIds = timingUnverified,
                 earliestAffectedDeadline = earliestDeadline,
                 scenario = scenario,
-                explanation = explanationFor(template, newlyOpen.size, newlyOpenSaved.size),
+                explanation = explanationFor(
+                    template = template,
+                    improvedCount = improved.size,
+                    newlyOpenCount = newlyOpen.size,
+                    timingUnverifiedCount = timingUnverified.size,
+                ),
             )
         }
 
@@ -96,8 +111,9 @@ class ActionFrontierEngine(
 
         return frontier.sortedWith(
             compareByDescending<FrontierAction> {
-                if (constraints.prioritizeSaved) it.newlyOpenSavedOpportunityIds.size else 0
+                if (constraints.prioritizeSaved) it.improvedSavedOpportunityIds.size else 0
             }
+                .thenByDescending { it.improvedOpportunityIds.size }
                 .thenByDescending { it.newlyOpenOpportunityIds.size }
                 .thenBy { it.earliestAffectedDeadline?.toEpochDays() ?: Int.MAX_VALUE }
                 .thenBy { it.template.minimumDurationDays }
@@ -109,21 +125,26 @@ class ActionFrontierEngine(
 
     private fun dominates(a: FrontierAction, b: FrontierAction): Boolean {
         val noWorse =
-            a.newlyOpenSavedOpportunityIds.size >= b.newlyOpenSavedOpportunityIds.size &&
-                a.newlyOpenOpportunityIds.size >= b.newlyOpenOpportunityIds.size &&
+            a.improvedSavedOpportunityIds.size >= b.improvedSavedOpportunityIds.size &&
+                a.improvedOpportunityIds.size >= b.improvedOpportunityIds.size &&
                 a.template.minimumDurationDays <= b.template.minimumDurationDays &&
                 a.template.effort.rank <= b.template.effort.rank &&
                 a.template.costBand.rank <= b.template.costBand.rank
         val strictlyBetter =
-            a.newlyOpenSavedOpportunityIds.size > b.newlyOpenSavedOpportunityIds.size ||
-                a.newlyOpenOpportunityIds.size > b.newlyOpenOpportunityIds.size ||
+            a.improvedSavedOpportunityIds.size > b.improvedSavedOpportunityIds.size ||
+                a.improvedOpportunityIds.size > b.improvedOpportunityIds.size ||
                 a.template.minimumDurationDays < b.template.minimumDurationDays ||
                 a.template.effort.rank < b.template.effort.rank ||
                 a.template.costBand.rank < b.template.costBand.rank
         return noWorse && strictlyBetter
     }
 
-    private fun isFeasibleBeforeDeadline(
+    /**
+     * Known deadlines must leave enough time. TBA and missing deadlines remain eligible for
+     * comparison, but are carried in [FrontierAction.timingUnverifiedOpportunityIds] so the UI
+     * never claims that the milestone fits a date the provider has not published.
+     */
+    private fun isFeasibleForPlanning(
         opportunity: Opportunity,
         today: LocalDate,
         minimumDurationDays: Int,
@@ -132,20 +153,27 @@ class ActionFrontierEngine(
 
         Deadline.Missing,
         Deadline.Tba,
-        -> false
+        -> true
     }
 
     private fun explanationFor(
         template: ActionTemplate,
+        improvedCount: Int,
         newlyOpenCount: Int,
-        newlyOpenSavedCount: Int,
+        timingUnverifiedCount: Int,
     ): String {
-        val otherCount = newlyOpenCount - newlyOpenSavedCount
-        val impact = buildList {
-            if (newlyOpenSavedCount > 0) add("$newlyOpenSavedCount saved")
-            if (otherCount > 0) add("$otherCount other")
-        }.joinToString(" and ")
-        return "Opens $impact opportunities before their deadlines. " +
+        val impact = buildString {
+            append("Resolves an encoded hard-rule gap in $improvedCount ")
+            append(if (improvedCount == 1) "opportunity" else "opportunities")
+            append(". ")
+            if (newlyOpenCount > 0) {
+                append("$newlyOpenCount become fully open under the encoded rules; ")
+            }
+            if (timingUnverifiedCount > 0) {
+                append("$timingUnverifiedCount still need deadline verification. ")
+            }
+        }
+        return impact +
             "Target: ${template.targetValue.displayValue()}. " +
             "Estimated duration: ${template.minimumDurationDays} days. " +
             "Effort: ${template.effort.name.lowercase()}. Cost: ${template.costBand.name.lowercase()}."

@@ -5,9 +5,13 @@ package io.github.vietdsk6.porta.presentation
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
@@ -37,6 +41,7 @@ class ActivePlanViewModelTest {
     private lateinit var database: AppDatabase
     private lateinit var planRepository: PlanRepository
     private lateinit var profileRepository: ProfileRepository
+    private lateinit var opportunityPackRepository: OpportunityPackRepository
 
     @BeforeTest
     fun setUp() {
@@ -48,6 +53,11 @@ class ActivePlanViewModelTest {
         val backgroundExecutor = BackgroundExecutor(dispatcher)
         planRepository = PlanRepository(database.planItemDao(), backgroundExecutor)
         profileRepository = ProfileRepository(database.profileFactDao(), backgroundExecutor)
+        opportunityPackRepository = OpportunityPackRepository(
+            database.opportunityPackDao(),
+            OpportunityPackParser(OpportunityPackCodec(), OpportunityPackValidator()),
+            backgroundExecutor,
+        )
     }
 
     @AfterTest
@@ -72,6 +82,7 @@ class ActivePlanViewModelTest {
         val viewModel = ActivePlanViewModel(
             planRepository = planRepository,
             profileRepository = profileRepository,
+            opportunityPackRepository = opportunityPackRepository,
             scenarioEvaluator = ScenarioEvaluator(EligibilityEvaluator()),
         )
         advanceUntilIdle()

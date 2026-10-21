@@ -95,12 +95,19 @@ fun ScenarioPreviewScreen(
             }
             item {
                 Text(
-                    "${uiState.openedDoors.size} doors open",
+                    buildString {
+                        val resolvedCount = uiState.openedDoors.size + uiState.progressedDoors.size
+                        append("$resolvedCount hard ${if (resolvedCount == 1) "gap" else "gaps"} resolved")
+                        if (uiState.openedDoors.isNotEmpty()) append(" · ${uiState.openedDoors.size} open")
+                    },
                     color = PORTA_TEAL,
                     style = AppTheme.typography.h5,
                 )
             }
             items(uiState.openedDoors, key = ScenarioDoorUiState::id) { door ->
+                ScenarioDoorCard(door = door, changed = true)
+            }
+            items(uiState.progressedDoors, key = ScenarioDoorUiState::id) { door ->
                 ScenarioDoorCard(door = door, changed = true)
             }
             if (uiState.unchangedDoors.isNotEmpty()) {
@@ -184,12 +191,22 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState, changed: Boolean) {
         border = BorderStroke(1.dp, accent),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 14.dp, bottomEnd = 14.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(door.title, modifier = Modifier.weight(1f), style = AppTheme.typography.bodyLarge)
-            Text(door.stateLabel, color = accent, fontWeight = FontWeight.Bold)
+            Text(
+                text = door.title,
+                modifier = Modifier.fillMaxWidth().testTag("scenario-door-title-${door.id}"),
+                style = AppTheme.typography.h6,
+            )
+            Text(
+                text = door.stateLabel,
+                modifier = Modifier.fillMaxWidth(),
+                color = accent,
+                fontWeight = FontWeight.Bold,
+                style = AppTheme.typography.bodyMedium,
+            )
         }
     }
 }
@@ -218,6 +235,13 @@ private fun ScenarioPreviewScreenPreview() {
                 openedDoors = listOf(
                     ScenarioDoorUiState("aurora", "Aurora Scholars", "Opens"),
                     ScenarioDoorUiState("forge", "Forge Student Lab", "Opens"),
+                ),
+                progressedDoors = listOf(
+                    ScenarioDoorUiState(
+                        id = "erasmus-mundus",
+                        title = "Erasmus Mundus Joint Masters",
+                        stateLabel = "Hard gap resolved · verify remaining rules",
+                    ),
                 ),
             ),
             onUiEvent = {},

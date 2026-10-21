@@ -37,7 +37,20 @@ class ProfileSetupViewModel(
                             ?.amount
                             ?.toInputText()
                             .orEmpty(),
+                        age = (facts[FactKey.AGE]?.value as? FactValue.NumberValue)
+                            ?.amount
+                            ?.toInputText()
+                            .orEmpty(),
+                        experienceMonths = (facts[FactKey.EXPERIENCE_MONTHS]?.value as? FactValue.NumberValue)
+                            ?.amount
+                            ?.toInputText()
+                            .orEmpty(),
                         isEnrolled = (facts[FactKey.ENROLLED]?.value as? FactValue.BooleanValue)?.value ?: true,
+                        isDegreeCompleted = (facts[FactKey.DEGREE_COMPLETED]?.value as? FactValue.BooleanValue)?.value,
+                        isAvailableFullPeriod = facts[FactKey.AVAILABLE_FULL_PERIOD]
+                            ?.value
+                            .let { it as? FactValue.BooleanValue }
+                            ?.value,
                     )
                 }
             }
@@ -47,12 +60,31 @@ class ProfileSetupViewModel(
     fun onUiEvent(event: ProfileSetupUiEvent) {
         when (event) {
             is ProfileSetupUiEvent.StudyLevelChanged -> update { copy(studyLevel = event.value) }
+
             is ProfileSetupUiEvent.FieldOfStudyChanged -> update { copy(fieldOfStudy = event.value) }
+
             is ProfileSetupUiEvent.NationalityChanged -> update { copy(nationality = event.value) }
+
             is ProfileSetupUiEvent.GpaChanged -> update { copy(gpa = event.value.filterNumeric()) }
+
             is ProfileSetupUiEvent.IeltsChanged -> update { copy(ielts = event.value.filterNumeric()) }
+
+            is ProfileSetupUiEvent.AgeChanged -> update { copy(age = event.value.filterNumeric()) }
+
+            is ProfileSetupUiEvent.ExperienceMonthsChanged -> {
+                update { copy(experienceMonths = event.value.filterNumeric()) }
+            }
+
             is ProfileSetupUiEvent.EnrolledChanged -> update { copy(isEnrolled = event.value) }
+
+            is ProfileSetupUiEvent.DegreeCompletedChanged -> update { copy(isDegreeCompleted = event.value) }
+
+            is ProfileSetupUiEvent.AvailableFullPeriodChanged -> {
+                update { copy(isAvailableFullPeriod = event.value) }
+            }
+
             ProfileSetupUiEvent.Save -> save()
+
             ProfileSetupUiEvent.SaveHandled -> update { copy(isSaved = false) }
         }
     }
@@ -67,11 +99,11 @@ class ProfileSetupViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
-            val saveResult = profileRepository.saveFacts(state.toFacts())
-            val result = if (saveResult.isSuccess && state.ieltsValue == null) {
-                profileRepository.deleteFact(FactKey.IELTS_SCORE)
-            } else {
-                saveResult
+            var result = profileRepository.saveFacts(state.toFacts())
+            if (result.isSuccess) {
+                state.omittedOptionalKeys().forEach { key ->
+                    if (result.isSuccess) result = profileRepository.deleteFact(key)
+                }
             }
             result
                 .onSuccess {
@@ -97,6 +129,14 @@ class ProfileSetupViewModel(
             add(FactKey.GPA to FactValue.NumberValue(checkNotNull(gpaValue), "4.0 scale"))
             add(FactKey.ENROLLED to FactValue.BooleanValue(isEnrolled))
             ieltsValue?.let { add(FactKey.IELTS_SCORE to FactValue.NumberValue(it, "band")) }
+            ageValue?.let { add(FactKey.AGE to FactValue.NumberValue(it, "years")) }
+            experienceMonthsValue?.let {
+                add(FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(it, "months"))
+            }
+            isDegreeCompleted?.let { add(FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(it)) }
+            isAvailableFullPeriod?.let {
+                add(FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(it))
+            }
         }
         return values.map { (key, value) ->
             ProfileFact(
@@ -116,13 +156,27 @@ class ProfileSetupViewModel(
 
         FactKey.STUDY_LEVEL,
         FactKey.ENROLLED,
+        FactKey.DEGREE_COMPLETED,
+        FactKey.EXPERIENCE_MONTHS,
         -> Actionability.TIME_DEPENDENT
+
+        FactKey.AVAILABLE_FULL_PERIOD -> Actionability.CONTROLLABLE
+
+        FactKey.AGE -> Actionability.IMMUTABLE
 
         FactKey.FIELD_OF_STUDY,
         FactKey.NATIONALITY,
         -> Actionability.CONTEXT_ONLY
 
         else -> Actionability.UNKNOWN
+    }
+
+    private fun ProfileSetupUiState.omittedOptionalKeys(): List<FactKey> = buildList {
+        if (ieltsValue == null) add(FactKey.IELTS_SCORE)
+        if (ageValue == null) add(FactKey.AGE)
+        if (experienceMonthsValue == null) add(FactKey.EXPERIENCE_MONTHS)
+        if (isDegreeCompleted == null) add(FactKey.DEGREE_COMPLETED)
+        if (isAvailableFullPeriod == null) add(FactKey.AVAILABLE_FULL_PERIOD)
     }
 
     private fun String.filterNumeric(): String = filter { it.isDigit() || it == '.' }

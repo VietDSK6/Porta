@@ -2,37 +2,53 @@ package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.domain.model.Deadline
+import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class OpportunityDetailViewModel(
     private val opportunityId: String,
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val profileRepository: ProfileRepository,
+    private val opportunityPackRepository: OpportunityPackRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         buildState(
             profile = PortaSampleData.profile,
+            opportunities = PortaSampleData.opportunities,
             isSampleProfile = true,
+            isSampleCatalog = true,
         ),
     )
     val uiState: StateFlow<OpportunityDetailUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            profileRepository.getProfile().onSuccess { profile ->
-                if (profile.facts.isNotEmpty()) {
-                    _uiState.value = buildState(profile = profile, isSampleProfile = false)
+            combine(
+                profileRepository.observeProfile(),
+                opportunityPackRepository.observeActive(),
+            ) { profile, packResult -> profile to packResult.getOrNull() }
+                .collect { (profile, pack) ->
+                    val isSampleProfile = profile.facts.isEmpty()
+                    _uiState.value = buildState(
+                        profile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile,
+                        opportunities = pack?.opportunities ?: PortaSampleData.opportunities,
+                        isSampleProfile = isSampleProfile,
+                        isSampleCatalog = pack == null ||
+                            pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
+                    )
                 }
-            }
         }
     }
 
@@ -44,8 +60,10 @@ class OpportunityDetailViewModel(
 
     private fun buildState(
         profile: ProfileSnapshot,
+        opportunities: List<Opportunity>,
         isSampleProfile: Boolean,
-    ): OpportunityDetailUiState = PortaSampleData.opportunities
+        isSampleCatalog: Boolean,
+    ): OpportunityDetailUiState = opportunities
         .firstOrNull { it.id == opportunityId }
         ?.let { opportunity ->
             val receipt = eligibilityEvaluator.evaluate(
@@ -74,8 +92,9 @@ class OpportunityDetailViewModel(
                 },
                 relatedActionId = receipt.rules.firstNotNullOfOrNull { it.actionTemplateId },
                 isSampleProfile = isSampleProfile,
+                isSampleCatalog = isSampleCatalog,
             )
-        } ?: OpportunityDetailUiState(error = "This opportunity is not in the active sample pack.")
+        } ?: OpportunityDetailUiState(error = "This opportunity is no longer in the active opportunity pack.")
 
     private fun Deadline.label(): String = when (this) {
         is Deadline.Known -> "Deadline $date"

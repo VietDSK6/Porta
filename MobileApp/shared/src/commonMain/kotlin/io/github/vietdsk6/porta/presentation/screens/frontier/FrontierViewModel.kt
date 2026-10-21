@@ -2,12 +2,14 @@ package io.github.vietdsk6.porta.presentation.screens.frontier
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
-import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.displayValue
@@ -16,28 +18,38 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class FrontierViewModel(
     private val actionFrontierEngine: ActionFrontierEngine,
     private val profileRepository: ProfileRepository,
+    private val opportunityPackRepository: OpportunityPackRepository,
     planRepository: PlanRepository,
 ) : ViewModel() {
     private var activeProfile = PortaSampleData.profile
     private var isSampleProfile = true
+    private var isSampleCatalog = true
+    private var activeOpportunities = PortaSampleData.opportunities
     private var activePlan: ActivePlanSummaryUiState? = null
     private val _uiState = MutableStateFlow(buildState(horizonDays = 90))
     val uiState: StateFlow<FrontierUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            profileRepository.getProfile().onSuccess { profile ->
-                if (profile.facts.isNotEmpty()) {
-                    activeProfile = profile
-                    isSampleProfile = false
+            combine(
+                profileRepository.observeProfile(),
+                opportunityPackRepository.observeActive(),
+            ) { profile, packResult -> profile to packResult.getOrNull() }
+                .collect { (profile, pack) ->
+                    isSampleProfile = profile.facts.isEmpty()
+                    activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
+                    activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
+                        ?: PortaSampleData.opportunities
+                    isSampleCatalog = pack == null ||
+                        pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
                     _uiState.value = buildState(_uiState.value.horizonDays)
                 }
-            }
         }
         viewModelScope.launch {
             planRepository.observeCurrentPlan().collect { plan ->
@@ -64,10 +76,10 @@ class FrontierViewModel(
     }
 
     private fun buildState(horizonDays: Int): FrontierUiState {
-        val opportunitiesById = PortaSampleData.opportunities.associateBy { it.id }
+        val opportunitiesById = activeOpportunities.associateBy { it.id }
         val actions = actionFrontierEngine.build(
             profile = activeProfile,
-            opportunities = PortaSampleData.opportunities,
+            opportunities = activeOpportunities,
             savedOpportunityIds = PortaSampleData.savedOpportunityIds,
             constraints = PlanningConstraints(
                 horizonDays = horizonDays,
@@ -78,31 +90,26 @@ class FrontierViewModel(
         ).map { action ->
             FrontierActionUiState(
                 id = action.template.id,
-                title = if (isSampleProfile) {
-                    action.template.title
-                } else {
-                    "Raise ${action.template.targetFactKey.readable()} to ${action.template.targetValue.displayValue()}"
-                },
+                title = action.template.title,
                 targetLabel = action.template.targetValue.displayValue(),
                 newlyOpenCount = action.newlyOpenOpportunityIds.size,
-                savedDoorCount = action.newlyOpenSavedOpportunityIds.size,
+                improvedCount = action.improvedOpportunityIds.size,
+                savedDoorCount = action.improvedSavedOpportunityIds.size,
+                timingUnverifiedCount = action.timingUnverifiedOpportunityIds.size,
                 durationLabel = "${action.template.minimumDurationDays} days",
                 effortLabel = action.template.effort.name.lowercase().replaceFirstChar(Char::uppercaseChar),
                 costLabel = action.template.costBand.name.lowercase().replaceFirstChar(Char::uppercaseChar),
                 explanation = action.explanation,
-                doorTitles = action.newlyOpenOpportunityIds.mapNotNull { opportunitiesById[it]?.title },
+                doorTitles = action.improvedOpportunityIds.mapNotNull { opportunitiesById[it]?.title },
             )
         }
         return FrontierUiState(
             isSampleMode = isSampleProfile,
+            isSampleCatalog = isSampleCatalog,
+            catalogDoorCount = activeOpportunities.size,
             horizonDays = horizonDays,
             activePlan = activePlan,
             actions = actions,
         )
-    }
-
-    private fun FactKey.readable(): String = when (this) {
-        FactKey.IELTS_SCORE -> "IELTS"
-        else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
     }
 }

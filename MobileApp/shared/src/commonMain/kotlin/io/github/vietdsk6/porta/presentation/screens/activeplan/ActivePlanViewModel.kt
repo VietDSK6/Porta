@@ -2,14 +2,17 @@ package io.github.vietdsk6.porta.presentation.screens.activeplan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
-import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.util.extensions.asFormattedDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +25,7 @@ import kotlinx.coroutines.launch
 class ActivePlanViewModel(
     private val planRepository: PlanRepository,
     profileRepository: ProfileRepository,
+    opportunityPackRepository: OpportunityPackRepository,
     private val scenarioEvaluator: ScenarioEvaluator,
 ) : ViewModel() {
     private val operation = MutableStateFlow(OperationState())
@@ -29,12 +33,17 @@ class ActivePlanViewModel(
     val uiState: StateFlow<ActivePlanUiState> = combine(
         planRepository.observeCurrentPlan(),
         profileRepository.observeProfile(),
+        opportunityPackRepository.observeActive(),
         operation,
-    ) { plan, profile, operation ->
+    ) { plan, profile, packResult, operation ->
+        val activePack = packResult.getOrNull()
+        val opportunities = activePack?.opportunities ?: PortaSampleData.opportunities
         ActivePlanUiState(
             isLoading = false,
             isWorking = operation.isWorking,
-            plan = plan?.toUiState(profile),
+            isSampleCatalog = activePack == null ||
+                activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
+            plan = plan?.toUiState(profile, opportunities),
             error = operation.error,
         )
     }.stateIn(
@@ -66,8 +75,11 @@ class ActivePlanViewModel(
         )
     }
 
-    private fun PlanItem.toUiState(profile: ProfileSnapshot): ActivePlanCardUiState {
-        val action = PortaSampleData.opportunities
+    private fun PlanItem.toUiState(
+        profile: ProfileSnapshot,
+        opportunities: List<Opportunity>,
+    ): ActivePlanCardUiState {
+        val action = opportunities
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionTemplateId }
         val affectedDoors = if (profile.facts.isEmpty()) {
@@ -76,12 +88,11 @@ class ActivePlanViewModel(
             scenarioEvaluator.evaluate(
                 profile = profile,
                 overrides = mapOf(targetFactKey to targetValue),
-                opportunities = PortaSampleData.opportunities,
+                opportunities = opportunities,
                 today = PortaSampleData.referenceDate,
-            ).deltas
-                .filter { it.after == EligibilityState.OPEN && it.before != EligibilityState.OPEN }
-                .mapNotNull { delta ->
-                    PortaSampleData.opportunities.firstOrNull { it.id == delta.opportunityId }?.title
+            ).resolvedHardGapOpportunityIds(targetFactKey)
+                .mapNotNull { opportunityId ->
+                    opportunities.firstOrNull { it.id == opportunityId }?.title
                 }
         }
         val hasStarted = status == PlanStatus.IN_PROGRESS ||
@@ -103,8 +114,8 @@ class ActivePlanViewModel(
             evidenceLabel = action?.completionEvidenceTypes?.joinToString()?.replaceFirstChar(Char::uppercaseChar)
                 ?: "Evidence definition needs review",
             affectedDoorTitles = affectedDoors,
-            riskNote = "This milestone currently uses a synthetic opportunity pack. Confirm real deadlines and " +
-                "requirements on official sources before acting.",
+            riskNote = "This milestone resolves encoded hard-rule gaps only. Confirm remaining manual checks and " +
+                "live deadlines on official sources before acting.",
             updatedLabel = "Updated ${updatedAtEpochMillis.asFormattedDate()}",
             progress = completedSteps / 3f,
             checklist = listOf(

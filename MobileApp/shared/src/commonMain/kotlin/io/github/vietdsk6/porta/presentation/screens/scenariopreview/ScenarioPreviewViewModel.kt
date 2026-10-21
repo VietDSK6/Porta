@@ -2,28 +2,34 @@ package io.github.vietdsk6.porta.presentation.screens.scenariopreview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class ScenarioPreviewViewModel(
     private val actionId: String,
     private val scenarioEvaluator: ScenarioEvaluator,
     private val profileRepository: ProfileRepository,
+    private val opportunityPackRepository: OpportunityPackRepository,
     private val planRepository: PlanRepository,
 ) : ViewModel() {
     private var activeProfile = PortaSampleData.profile
+    private var activeOpportunities: List<Opportunity> = PortaSampleData.opportunities
     private var isSampleProfile = true
     private val _uiState = MutableStateFlow(
         buildState(
@@ -35,13 +41,19 @@ class ScenarioPreviewViewModel(
 
     init {
         viewModelScope.launch {
-            profileRepository.getProfile().onSuccess { profile ->
-                if (profile.facts.isNotEmpty()) {
-                    activeProfile = profile
-                    isSampleProfile = false
-                    _uiState.value = buildState(profile = profile, isSampleProfile = false)
+            combine(
+                profileRepository.observeProfile(),
+                opportunityPackRepository.observeActive(),
+            ) { profile, packResult -> profile to packResult.getOrNull() }
+                .collect { (profile, pack) ->
+                    isSampleProfile = profile.facts.isEmpty()
+                    activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
+                    activeOpportunities = pack?.opportunities ?: PortaSampleData.opportunities
+                    _uiState.value = buildState(
+                        profile = activeProfile,
+                        isSampleProfile = isSampleProfile,
+                    )
                 }
-            }
         }
     }
 
@@ -60,7 +72,7 @@ class ScenarioPreviewViewModel(
             )
             return
         }
-        val action = PortaSampleData.opportunities
+        val action = activeOpportunities
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionId }
             ?: return
@@ -100,7 +112,7 @@ class ScenarioPreviewViewModel(
         profile: ProfileSnapshot,
         isSampleProfile: Boolean,
     ): ScenarioPreviewUiState {
-        val action = PortaSampleData.opportunities
+        val action = activeOpportunities
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionId }
             ?: return ScenarioPreviewUiState(error = "This action is no longer available.")
@@ -112,33 +124,50 @@ class ScenarioPreviewViewModel(
         val scenario = scenarioEvaluator.evaluate(
             profile = profile,
             overrides = mapOf(action.targetFactKey to action.targetValue),
-            opportunities = PortaSampleData.opportunities,
+            opportunities = activeOpportunities,
             today = PortaSampleData.referenceDate,
         )
-        val opportunitiesById = PortaSampleData.opportunities.associateBy { it.id }
+        val opportunitiesById = activeOpportunities.associateBy { it.id }
+        val improvedIds = scenario.resolvedHardGapOpportunityIds(action.targetFactKey).toSet()
         val opened = scenario.deltas
-            .filter { it.before != EligibilityState.OPEN && it.after == EligibilityState.OPEN }
+            .filter {
+                it.opportunityId in improvedIds &&
+                    it.before != EligibilityState.OPEN &&
+                    it.after == EligibilityState.OPEN
+            }
             .mapNotNull { delta ->
                 opportunitiesById[delta.opportunityId]?.let {
                     ScenarioDoorUiState(it.id, it.title, "Opens")
                 }
             }
-        val unchanged = PortaSampleData.opportunities
-            .filter { opportunity -> scenario.deltas.none { it.opportunityId == opportunity.id } }
+        val openedIds = opened.map(ScenarioDoorUiState::id).toSet()
+        val progressed = improvedIds
+            .filterNot(openedIds::contains)
+            .mapNotNull { opportunityId ->
+                opportunitiesById[opportunityId]?.let { opportunity ->
+                    val before = scenario.baseline.getValue(opportunityId).state
+                    val after = scenario.simulated.getValue(opportunityId).state
+                    val label = if (before == after) {
+                        "Hard gap resolved · verify remaining rules"
+                    } else {
+                        "${before.readable()} → ${after.readable()}"
+                    }
+                    ScenarioDoorUiState(opportunity.id, opportunity.title, label)
+                }
+            }
+        val unchanged = activeOpportunities
+            .filterNot { it.id in improvedIds }
             .map { opportunity ->
                 val state = scenario.baseline.getValue(opportunity.id).state
-                ScenarioDoorUiState(opportunity.id, opportunity.title, state.name.replace('_', ' '))
+                ScenarioDoorUiState(opportunity.id, opportunity.title, state.readable())
             }
         return ScenarioPreviewUiState(
             actionId = action.id,
-            title = if (isSampleProfile) {
-                action.title
-            } else {
-                "Raise ${action.targetFactKey.readable()} to ${action.targetValue.displayValue()}"
-            },
+            title = action.title,
             beforeLabel = currentValue.displayValue(),
             afterLabel = action.targetValue.displayValue(),
             openedDoors = opened,
+            progressedDoors = progressed,
             unchangedDoors = unchanged,
             isSampleProfile = isSampleProfile,
         )
@@ -148,6 +177,11 @@ class ScenarioPreviewViewModel(
         FactKey.IELTS_SCORE -> "IELTS"
         else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
     }
+
+    private fun EligibilityState.readable(): String = name
+        .lowercase()
+        .replace('_', ' ')
+        .replaceFirstChar(Char::uppercaseChar)
 
     private companion object {
         const val MILLIS_PER_DAY = 86_400_000L

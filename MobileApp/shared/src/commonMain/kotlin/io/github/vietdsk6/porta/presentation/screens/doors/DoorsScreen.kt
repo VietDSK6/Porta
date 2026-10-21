@@ -66,7 +66,11 @@ fun DoorsScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ProfileAndPackBanner(isSampleProfile = uiState.isSampleMode)
+                    ProfileAndPackContext(
+                        isSampleProfile = uiState.isSampleMode,
+                        isSampleCatalog = uiState.isSampleCatalog,
+                        doorCount = uiState.catalogDoorCount,
+                    )
                     Text(
                         text = "See what is open now—and what one honest next step could change.",
                         color = AppTheme.colors.text.secondary,
@@ -94,22 +98,49 @@ fun DoorsScreen(
 }
 
 @Composable
-private fun ProfileAndPackBanner(isSampleProfile: Boolean) {
+private fun ProfileAndPackContext(
+    isSampleProfile: Boolean,
+    isSampleCatalog: Boolean,
+    doorCount: Int,
+) {
+    if (!isSampleProfile && !isSampleCatalog) {
+        Text(
+            text = "$doorCount source-linked opportunities · evaluated on this device",
+            color = AppTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+            style = AppTheme.typography.bodySmall,
+        )
+        return
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
-                if (isSampleProfile) "SAMPLE PROFILE · SYNTHETIC PACK" else "REAL PROFILE · SYNTHETIC PACK",
+                when {
+                    isSampleProfile && isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
+                    isSampleProfile -> "SAMPLE PROFILE · $doorCount SOURCED DOORS"
+                    isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
+                    else -> "YOUR PROFILE · $doorCount SOURCED DOORS"
+                },
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                if (isSampleProfile) {
-                    "These facts and five doors are fictional and exist only to demonstrate Porta safely."
-                } else {
-                    "Your local facts are being evaluated, but these five doors remain fictional demo data."
+                when {
+                    isSampleCatalog -> {
+                        "This fallback catalog is fictional and exists only to demonstrate Porta safely."
+                    }
+
+                    isSampleProfile -> {
+                        "A sample student is evaluated against Porta's offline, source-linked opportunity pack."
+                    }
+
+                    else -> {
+                        "Your local facts are evaluated against published rules checked in the active offline pack."
+                    }
                 },
                 color = AppTheme.colors.text.primary,
                 style = AppTheme.typography.bodyMedium,
@@ -225,20 +256,24 @@ private fun DoorsScreenPreview() {
     AppTheme(isDarkMode = true) {
         DoorsScreen(
             uiState = DoorsUiState(
+                isSampleMode = false,
+                isSampleCatalog = false,
+                catalogDoorCount = 15,
                 doors = listOf(
                     DoorCardUiState(
-                        id = "sample",
-                        title = "Aurora Scholars",
-                        provider = "Northstar Foundation",
-                        state = EligibilityState.HAS_GAPS,
-                        deadlineLabel = "Due 2027-06-01",
-                        checkedLabel = "Checked 2026-10-20",
+                        id = "kotlin-contest",
+                        title = "Kotlin Student Coding Competition",
+                        provider = "Kotlin Foundation",
+                        state = EligibilityState.NEEDS_INFO,
+                        deadlineLabel = "Due 2026-12-07",
+                        checkedLabel = "Checked 2026-10-21",
                         isSaved = true,
-                        primaryReason = "The synthetic sample requires IELTS 7.0 or above.",
+                        primaryReason = "Confirm full-time enrollment within the published eligibility period.",
                     ),
                 ),
-                openCount = 1,
+                openCount = 0,
                 gapCount = 4,
+                needsInfoCount = 10,
             ),
             onUiEvent = {},
             onOpenOpportunity = {},

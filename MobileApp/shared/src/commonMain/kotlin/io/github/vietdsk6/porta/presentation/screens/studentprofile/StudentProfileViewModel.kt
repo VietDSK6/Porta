@@ -11,6 +11,7 @@ import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactProvenance
+import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
@@ -182,7 +183,7 @@ class StudentProfileViewModel(
             fact.key to ProfileFactUiState(
                 key = fact.key,
                 label = fact.key.label(),
-                value = fact.value.displayValue(),
+                value = fact.value.profileDisplayValue(fact.key),
                 provenanceLabel = fact.provenance.label(),
                 actionabilityLabel = fact.actionability.label(),
                 evidenceLabel = fact.evidence?.label,
@@ -221,6 +222,19 @@ class StudentProfileViewModel(
         is RuleNode.Atomic -> factKey == key
         is RuleNode.ManualCheck -> false
     }
+
+    private fun FactValue.profileDisplayValue(key: FactKey): String = when {
+        key == FactKey.GPA && this is FactValue.NumberValue -> {
+            val scale = unit.removeSuffix(" scale").ifBlank { "4.0" }
+            "${amount.compact()} / $scale"
+        }
+
+        this is FactValue.NumberValue -> "${amount.compact()} $unit".trim()
+
+        else -> displayValue()
+    }
+
+    private fun Double.compact(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
 
     private fun FactKey.label(): String = when (this) {
         FactKey.GPA -> "GPA"

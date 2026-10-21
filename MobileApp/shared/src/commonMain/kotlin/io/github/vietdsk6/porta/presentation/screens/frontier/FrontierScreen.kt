@@ -68,10 +68,11 @@ fun FrontierScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        if (uiState.isSampleMode) {
-                            "SAMPLE PROFILE · SYNTHETIC PACK"
-                        } else {
-                            "REAL PROFILE · SYNTHETIC PACK"
+                        when {
+                            uiState.isSampleMode && uiState.isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
+                            uiState.isSampleMode -> "SAMPLE PROFILE · ${uiState.catalogDoorCount} SOURCED DOORS"
+                            uiState.isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
+                            else -> "YOUR PROFILE · ${uiState.catalogDoorCount} SOURCED DOORS"
                         },
                         color = AppTheme.colors.primary,
                         fontWeight = FontWeight.Bold,
@@ -162,7 +163,11 @@ private fun FrontierCard(action: FrontierActionUiState, onPreview: () -> Unit) {
             Text("PARETO FRONTIER", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
             Text(action.title, style = AppTheme.typography.h5)
             Text(
-                "${action.newlyOpenCount} doors open · ${action.savedDoorCount} saved",
+                buildString {
+                    append("${action.improvedCount} hard gaps resolved")
+                    if (action.newlyOpenCount > 0) append(" · ${action.newlyOpenCount} open")
+                    if (action.savedDoorCount > 0) append(" · ${action.savedDoorCount} saved")
+                },
                 color = PORTA_TEAL,
                 style = AppTheme.typography.h6,
             )
@@ -173,7 +178,7 @@ private fun FrontierCard(action: FrontierActionUiState, onPreview: () -> Unit) {
             }
             Text(action.explanation, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
             Text(
-                action.doorTitles.joinToString(prefix = "Opens: ", separator = " · "),
+                action.doorTitles.joinToString(prefix = "Moves forward: ", separator = " · "),
                 style = AppTheme.typography.bodyMedium,
             )
             Button(modifier = Modifier.fillMaxWidth(), onClick = onPreview) {

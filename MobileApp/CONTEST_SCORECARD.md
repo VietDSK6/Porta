@@ -53,7 +53,8 @@ Current evidence:
 
 - [x] Fifteen-opportunity feasibility/kill test documented in `PORTA_PRD.md`.
 - [x] Competitor boundary documented; What-if is treated as the visualization, not the sole novelty claim.
-- [ ] Working Action Frontier over a curated, sourced dataset.
+- [x] Working Action Frontier over the bundled 15-record sourced dataset, with hard-gap resolution kept distinct
+  from fully open eligibility and unverified deadlines.
 - [x] Constraint-aware Action Frontier, Pareto ranking and deterministic tests are implemented over the synthetic demonstration fixture.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.

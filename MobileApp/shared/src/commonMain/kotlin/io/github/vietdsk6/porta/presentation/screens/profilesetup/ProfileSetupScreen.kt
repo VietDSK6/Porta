@@ -81,7 +81,7 @@ fun ProfileSetupScreen(
             ProfileSetupHeader()
             StudyLevelField(uiState = uiState, onUiEvent = onUiEvent)
             ProfileTextFields(uiState = uiState, onUiEvent = onUiEvent)
-            EnrolmentField(uiState = uiState, onUiEvent = onUiEvent)
+            DoorRelevantFacts(uiState = uiState, onUiEvent = onUiEvent)
             LocalDataNotice()
 
             uiState.error?.let { error ->
@@ -230,25 +230,89 @@ private fun ProfileTextFields(
 }
 
 @Composable
-private fun EnrolmentField(
+private fun DoorRelevantFacts(
     uiState: ProfileSetupUiState,
     onUiEvent: (ProfileSetupUiEvent) -> Unit,
 ) {
     FormSection(
-        title = "Are you currently enrolled?",
-        description = "Some opportunities use this as a hard eligibility rule.",
+        title = "Door-relevant facts",
+        description = "Optional facts below make the sourced door map and Action Frontier more specific.",
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.weight(1f).testTag("profile-age"),
+                value = uiState.age,
+                onValueChange = { onUiEvent(ProfileSetupUiEvent.AgeChanged(it)) },
+                label = { Text("Age") },
+                placeholder = { Text("Optional") },
+                supportingText = { uiState.ageError?.let { Text(it) } },
+                isError = uiState.ageError != null,
+                singleLine = true,
+            )
+            OutlinedTextField(
+                modifier = Modifier.weight(1f).testTag("profile-experience-months"),
+                value = uiState.experienceMonths,
+                onValueChange = { onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(it)) },
+                label = { Text("Experience") },
+                placeholder = { Text("Optional") },
+                suffix = { Text("months") },
+                supportingText = { uiState.experienceMonthsError?.let { Text(it) } },
+                isError = uiState.experienceMonthsError != null,
+                singleLine = true,
+            )
+        }
+
+        BooleanFactField(
+            label = "Currently enrolled",
+            value = uiState.isEnrolled,
+            includeUnknown = false,
+            onChanged = { value -> value?.let { onUiEvent(ProfileSetupUiEvent.EnrolledChanged(it)) } },
+        )
+        BooleanFactField(
+            label = "First degree completed",
+            value = uiState.isDegreeCompleted,
+            includeUnknown = true,
+            onChanged = { onUiEvent(ProfileSetupUiEvent.DegreeCompletedChanged(it)) },
+        )
+        BooleanFactField(
+            label = "Available for the full programme period",
+            value = uiState.isAvailableFullPeriod,
+            includeUnknown = true,
+            onChanged = { onUiEvent(ProfileSetupUiEvent.AvailableFullPeriodChanged(it)) },
+        )
+    }
+}
+
+@Composable
+private fun BooleanFactField(
+    label: String,
+    value: Boolean?,
+    includeUnknown: Boolean,
+    onChanged: (Boolean?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.primary)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
-                selected = uiState.isEnrolled,
-                onClick = { onUiEvent(ProfileSetupUiEvent.EnrolledChanged(true)) },
+                selected = value == true,
+                onClick = { onChanged(true) },
                 label = { Text("Yes") },
             )
             FilterChip(
-                selected = !uiState.isEnrolled,
-                onClick = { onUiEvent(ProfileSetupUiEvent.EnrolledChanged(false)) },
+                selected = value == false,
+                onClick = { onChanged(false) },
                 label = { Text("No") },
             )
+            if (includeUnknown) {
+                FilterChip(
+                    selected = value == null,
+                    onClick = { onChanged(null) },
+                    label = { Text("Not sure") },
+                )
+            }
         }
     }
 }
@@ -319,6 +383,10 @@ private fun ProfileSetupScreenPreview() {
                 nationality = "VN",
                 gpa = "3.6",
                 ielts = "6.5",
+                age = "20",
+                experienceMonths = "6",
+                isDegreeCompleted = false,
+                isAvailableFullPeriod = false,
             ),
             onUiEvent = {},
             onNavigateBack = {},

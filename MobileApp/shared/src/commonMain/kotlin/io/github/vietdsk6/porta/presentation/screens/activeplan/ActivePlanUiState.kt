@@ -3,6 +3,7 @@ package io.github.vietdsk6.porta.presentation.screens.activeplan
 data class ActivePlanUiState(
     val isLoading: Boolean = true,
     val isWorking: Boolean = false,
+    val isSampleCatalog: Boolean = true,
     val plan: ActivePlanCardUiState? = null,
     val error: String? = null,
 )

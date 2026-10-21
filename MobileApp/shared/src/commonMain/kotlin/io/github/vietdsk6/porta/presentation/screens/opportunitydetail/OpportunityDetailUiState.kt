@@ -14,6 +14,7 @@ data class OpportunityDetailUiState(
     val rules: List<RuleReceiptUiState> = emptyList(),
     val relatedActionId: String? = null,
     val isSampleProfile: Boolean = true,
+    val isSampleCatalog: Boolean = true,
     val error: String? = null,
 )
 

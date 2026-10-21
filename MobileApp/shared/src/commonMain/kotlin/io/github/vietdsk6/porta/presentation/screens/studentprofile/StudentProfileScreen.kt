@@ -1,19 +1,25 @@
 package io.github.vietdsk6.porta.presentation.screens.studentprofile
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,8 +27,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,6 +74,21 @@ fun StudentProfileScreen(
         isScrollableContent = true,
         title = "Profile",
         includeBottomInsets = false,
+        toolbarExtraContent = {
+            if (uiState.hasRealProfile) {
+                TextButton(
+                    modifier = Modifier.testTag("student-profile-edit"),
+                    enabled = !uiState.isWorking,
+                    onClick = onEditProfile,
+                ) {
+                    Text(
+                        text = "Edit",
+                        color = AppTheme.colors.primary.copy(alpha = if (uiState.isWorking) 0.5f else 1f),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -80,7 +105,6 @@ fun StudentProfileScreen(
                 else -> ProfileContent(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
-                    onEditProfile = onEditProfile,
                     onOpenPackInspector = onOpenPackInspector,
                 )
             }
@@ -156,29 +180,39 @@ private fun EmptyProfile(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().testTag("student-profile-empty"),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
     ) {
         Column(
-            modifier = Modifier.padding(AppTheme.spacing.sectionSpacing),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ProfileAvatar(monogram = "+")
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = "START YOUR PROFILE",
+                        color = AppTheme.colors.primary,
+                        style = AppTheme.typography.bodySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp,
+                    )
+                    Text(
+                        text = "Make Porta yours",
+                        style = AppTheme.typography.h4,
+                        color = AppTheme.colors.text.primary,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
+            }
             Text(
-                text = "NO REAL PROFILE YET",
-                color = AppTheme.colors.primary,
-                style = AppTheme.typography.bodySmall,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.sp,
-            )
-            Text(
-                text = "Build your source of truth",
-                style = AppTheme.typography.h4,
-                color = AppTheme.colors.text.primary,
-                fontWeight = FontWeight.ExtraBold,
-            )
-            Text(
-                text = "Add a few current facts. Porta evaluates only published hard rules and keeps the data on this device.",
+                text = "Add the academic facts that shape your opportunities. They stay on this device and remain under your control.",
                 style = AppTheme.typography.bodyLarge,
                 color = AppTheme.colors.text.secondary,
             )
@@ -188,7 +222,7 @@ private fun EmptyProfile(
                 onClick = onEditProfile,
             )
             AppButton(
-                text = "Inspect opportunity pack",
+                text = "Explore the opportunity pack",
                 modifier = Modifier.fillMaxWidth().testTag("student-profile-pack-inspector"),
                 style = ButtonStyle.ALTERNATIVE,
                 onClick = onOpenPackInspector,
@@ -201,28 +235,12 @@ private fun EmptyProfile(
 private fun ProfileContent(
     uiState: StudentProfileUiState,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
-    onEditProfile: () -> Unit,
     onOpenPackInspector: () -> Unit,
 ) {
-    ProfileSummary(
-        factCount = uiState.factCount,
-        isWorking = uiState.isWorking,
-        onEditProfile = onEditProfile,
-    )
+    ProfileIdentity(uiState = uiState)
 
     if (uiState.isSampleCatalog) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = AppTheme.colors.alternative,
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Text(
-                text = "Used-by counts currently refer to Porta's synthetic demo pack, not verified real opportunities.",
-                modifier = Modifier.padding(AppTheme.spacing.defaultSpacing),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.text.primary,
-            )
-        }
+        DemoPackNotice()
     }
 
     uiState.sections.forEach { section ->
@@ -242,44 +260,136 @@ private fun ProfileContent(
 }
 
 @Composable
-private fun ProfileSummary(
-    factCount: Int,
-    isWorking: Boolean,
-    onEditProfile: () -> Unit,
-) {
-    Card(
+private fun ProfileIdentity(uiState: StudentProfileUiState) {
+    val facts = uiState.sections.flatMap(ProfileFactSectionUiState::facts)
+    val fieldOfStudy = facts.valueOf(FactKey.FIELD_OF_STUDY)
+    val studyLevel = facts.valueOf(FactKey.STUDY_LEVEL)?.sentenceCase()
+    val nationality = facts.valueOf(FactKey.NATIONALITY)
+    val identityLine = listOfNotNull(studyLevel, nationality).joinToString(" · ")
+    val usedByDoorCount = facts.flatMap(ProfileFactUiState::dependentDoorTitles).distinct().size
+    val evidenceCount = facts.count { it.evidenceLabel != null }
+
+    Surface(
         modifier = Modifier.fillMaxWidth().testTag("student-profile-summary"),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
+        color = AppTheme.colors.alternative,
+        shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
     ) {
         Column(
-            modifier = Modifier.padding(AppTheme.spacing.sectionSpacing),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ProfileAvatar(monogram = fieldOfStudy.initials())
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = "ACADEMIC PROFILE",
+                        color = AppTheme.colors.primary,
+                        style = AppTheme.typography.bodySmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp,
+                    )
+                    Text(
+                        text = fieldOfStudy?.let { "$it student" } ?: "Your student profile",
+                        style = AppTheme.typography.h5,
+                        color = AppTheme.colors.text.primary,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = identityLine.ifEmpty { "Built from your current academic facts" },
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.text.secondary,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ProfilePill("${uiState.factCount} facts")
+                ProfilePill("$usedByDoorCount doors")
+                if (evidenceCount > 0) ProfilePill("$evidenceCount documented")
+            }
+
             Text(
-                text = "LOCAL SOURCE OF TRUTH",
-                color = AppTheme.colors.primary,
+                text = "Private by design · stored only on this device",
                 style = AppTheme.typography.bodySmall,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.sp,
-            )
-            Text(
-                text = "$factCount facts saved on this device",
-                style = AppTheme.typography.h4,
-                color = AppTheme.colors.text.primary,
-                fontWeight = FontWeight.ExtraBold,
-            )
-            Text(
-                text = "What-if previews never change these values. Only an explicit edit updates your real profile.",
-                style = AppTheme.typography.bodyLarge,
                 color = AppTheme.colors.text.secondary,
             )
-            AppButton(
-                text = "Edit profile facts",
-                modifier = Modifier.fillMaxWidth().testTag("student-profile-edit"),
-                style = ButtonStyle.ALTERNATIVE,
-                enabled = !isWorking,
-                onClick = onEditProfile,
+        }
+    }
+}
+
+@Composable
+private fun ProfileAvatar(monogram: String) {
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .clip(CircleShape)
+            .background(AppTheme.colors.primary),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = monogram,
+            style = AppTheme.typography.h4,
+            color = AppTheme.colors.onPrimary,
+            fontWeight = FontWeight.ExtraBold,
+        )
+    }
+}
+
+@Composable
+private fun ProfilePill(label: String) {
+    Surface(
+        color = AppTheme.colors.surfaceContainer.copy(alpha = 0.86f),
+        shape = CircleShape,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.text.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun DemoPackNotice() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(color = AppTheme.colors.alternative, shape = CircleShape) {
+                Text(
+                    text = "DEMO PACK",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    style = AppTheme.typography.bodyExtraSmall,
+                    color = AppTheme.colors.primary,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.6.sp,
+                )
+            }
+            Text(
+                text = "Door usage below comes from Porta's synthetic opportunity pack.",
+                modifier = Modifier.weight(1f),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
             )
         }
     }
@@ -291,105 +401,155 @@ private fun FactSection(
     expandedFactKey: FactKey?,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.verticalListItemSpacingSmall)) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacingSmall)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = section.title,
+                    style = AppTheme.typography.h5,
+                    color = AppTheme.colors.text.primary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = section.description,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.text.secondary,
+                )
+            }
             Text(
-                text = section.title,
-                style = AppTheme.typography.h5,
-                color = AppTheme.colors.text.primary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = section.description,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.text.secondary,
+                text = section.facts.size.toString().padStart(2, '0'),
+                style = AppTheme.typography.h6,
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.ExtraBold,
             )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacing)) {
-            section.facts.forEach { fact ->
-                FactCard(
-                    fact = fact,
-                    expanded = fact.key == expandedFactKey,
-                    onToggle = { onUiEvent(StudentProfileUiEvent.ToggleDependencies(fact.key)) },
-                    onDelete = { onUiEvent(StudentProfileUiEvent.DeleteFactRequested(fact)) },
-                )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+            border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+        ) {
+            Column {
+                section.facts.forEachIndexed { index, fact ->
+                    FactRow(
+                        fact = fact,
+                        expanded = fact.key == expandedFactKey,
+                        onToggle = { onUiEvent(StudentProfileUiEvent.ToggleDependencies(fact.key)) },
+                        onDelete = { onUiEvent(StudentProfileUiEvent.DeleteFactRequested(fact)) },
+                    )
+                    if (index != section.facts.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = AppTheme.colors.outline.copy(alpha = 0.24f),
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun FactCard(
+private fun FactRow(
     fact: ProfileFactUiState,
     expanded: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("student-profile-fact-${fact.key.name.lowercase()}")
-            .clickable(onClick = onToggle),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.4f)),
+            .clickable(role = Role.Button, onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 15.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = fact.label,
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.colors.text.secondary,
-                    )
-                    Text(
-                        text = fact.value,
-                        style = AppTheme.typography.h6,
-                        color = AppTheme.colors.text.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
                 Text(
-                    text = if (expanded) "Hide" else "Inspect",
-                    color = AppTheme.colors.primary,
-                    style = AppTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            Text(
-                text = "${fact.provenanceLabel} · ${fact.actionabilityLabel}",
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.text.secondary,
-            )
-            fact.evidenceLabel?.let { evidence ->
-                Text(
-                    text = "Evidence: $evidence",
+                    text = fact.label,
                     style = AppTheme.typography.bodySmall,
                     color = AppTheme.colors.text.secondary,
                 )
+                Text(
+                    text = fact.value,
+                    style = AppTheme.typography.h6,
+                    color = AppTheme.colors.text.primary,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             Text(
-                text = fact.usedByLabel,
-                style = AppTheme.typography.bodyMedium,
+                text = if (expanded) "Close" else "Details",
                 color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
             )
-
-            if (expanded) {
-                DependencyDetails(fact = fact, onDelete = onDelete)
-            }
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "${fact.provenanceLabel} · ${fact.actionabilityLabel}",
+                modifier = Modifier.weight(1f),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
+            DoorCountBadge(fact.dependentDoorTitles.size)
+        }
+
+        fact.evidenceLabel?.let { evidence ->
+            Text(
+                text = "Evidence · $evidence",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        if (expanded) {
+            DependencyDetails(fact = fact, onDelete = onDelete)
+        }
+    }
+}
+
+@Composable
+private fun DoorCountBadge(count: Int) {
+    val hasDependencies = count > 0
+    Surface(
+        color = if (hasDependencies) AppTheme.colors.alternative else AppTheme.colors.background,
+        shape = CircleShape,
+    ) {
+        Text(
+            text = when (count) {
+                0 -> "No doors"
+                1 -> "1 door"
+                else -> "$count doors"
+            },
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+            style = AppTheme.typography.bodyExtraSmall,
+            color = if (hasDependencies) AppTheme.colors.primary else AppTheme.colors.text.secondary,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -400,19 +560,19 @@ private fun DependencyDetails(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = AppTheme.colors.background,
+        color = AppTheme.colors.alternative,
         shape = RoundedCornerShape(14.dp),
     ) {
         Column(
-            modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacingSmall),
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "RULE DEPENDENCIES",
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.text.secondary,
+                text = if (fact.dependentDoorTitles.isEmpty()) "NO RULE DEPENDENCIES" else "USED BY THESE DOORS",
+                style = AppTheme.typography.bodyExtraSmall,
+                color = AppTheme.colors.primary,
                 fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.8.sp,
+                letterSpacing = 0.7.sp,
             )
             if (fact.dependentDoorTitles.isEmpty()) {
                 Text(
@@ -446,50 +606,106 @@ private fun DataControls(
     onExport: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().testTag("student-profile-data-controls"),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.4f)),
-    ) {
-        Column(
-            modifier = Modifier.padding(AppTheme.spacing.sectionSpacing),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
-        ) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "Data controls",
-                style = AppTheme.typography.h6,
+                text = "Privacy & data",
+                style = AppTheme.typography.h5,
                 color = AppTheme.colors.text.primary,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Export includes values and evidence metadata, never evidence binary files. " +
-                    "Delete clears the profile and plans from this device.",
+                text = "Review what uses your profile, take a copy, or remove it.",
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.secondary,
             )
-            AppButton(
-                text = "Inspect opportunity pack",
-                modifier = Modifier.fillMaxWidth().testTag("student-profile-pack-inspector"),
-                style = ButtonStyle.ALTERNATIVE,
-                enabled = !isWorking,
-                onClick = onOpenPackInspector,
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("student-profile-data-controls"),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+            border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+        ) {
+            Column {
+                DataActionRow(
+                    title = "Opportunity pack",
+                    supportingText = "See which encoded rules read your facts.",
+                    actionLabel = "Inspect",
+                    modifier = Modifier.testTag("student-profile-pack-inspector"),
+                    enabled = !isWorking,
+                    onClick = onOpenPackInspector,
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = AppTheme.colors.outline.copy(alpha = 0.24f),
+                )
+                DataActionRow(
+                    title = "Profile metadata",
+                    supportingText = "Export values and evidence metadata as JSON.",
+                    actionLabel = "Export",
+                    modifier = Modifier.testTag("student-profile-export"),
+                    enabled = !isWorking,
+                    onClick = onExport,
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = AppTheme.colors.outline.copy(alpha = 0.24f),
+                )
+                DataActionRow(
+                    title = "Local profile and plans",
+                    supportingText = "Permanently remove them from this device.",
+                    actionLabel = "Delete",
+                    modifier = Modifier.testTag("student-profile-clear"),
+                    enabled = !isWorking,
+                    actionColor = MaterialTheme.colorScheme.error,
+                    onClick = onClear,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DataActionRow(
+    title: String,
+    supportingText: String,
+    actionLabel: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean,
+    actionColor: Color = AppTheme.colors.primary,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.text.primary.copy(alpha = if (enabled) 1f else 0.5f),
+                fontWeight = FontWeight.SemiBold,
             )
-            AppButton(
-                text = "Export profile metadata",
-                modifier = Modifier.fillMaxWidth().testTag("student-profile-export"),
-                style = ButtonStyle.ALTERNATIVE,
-                enabled = !isWorking,
-                onClick = onExport,
-            )
-            AppButton(
-                text = "Delete local profile and plans",
-                modifier = Modifier.fillMaxWidth().testTag("student-profile-clear"),
-                style = ButtonStyle.TEXT,
-                enabled = !isWorking,
-                onClick = onClear,
+            Text(
+                text = supportingText,
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary.copy(alpha = if (enabled) 1f else 0.5f),
             )
         }
+        Text(
+            text = actionLabel,
+            style = AppTheme.typography.bodyMedium,
+            color = actionColor.copy(alpha = if (enabled) 1f else 0.5f),
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -519,7 +735,23 @@ private fun MessageNotice(
     }
 }
 
-@Preview
+private fun List<ProfileFactUiState>.valueOf(key: FactKey): String? = firstOrNull { it.key == key }
+    ?.value
+    ?.takeIf(String::isNotBlank)
+
+private fun String?.initials(): String {
+    if (isNullOrBlank()) return "P"
+    return trim()
+        .split(Regex("\\s+"))
+        .take(2)
+        .mapNotNull(String::firstOrNull)
+        .joinToString(separator = "")
+        .uppercase()
+}
+
+private fun String.sentenceCase(): String = lowercase().replaceFirstChar(Char::uppercaseChar)
+
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun StudentProfileScreenPreview() {
     AppTheme {
@@ -532,15 +764,12 @@ private fun StudentProfileScreenPreview() {
     }
 }
 
-@Preview
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun StudentProfileCollapsedScreenPreview() {
+private fun StudentProfileExpandedScreenPreview() {
     AppTheme {
         StudentProfileScreen(
-            uiState = previewState.copy(
-                isSampleCatalog = false,
-                expandedFactKey = null,
-            ),
+            uiState = previewState.copy(expandedFactKey = FactKey.IELTS_SCORE),
             onUiEvent = {},
             onEditProfile = {},
             onOpenPackInspector = {},
@@ -551,18 +780,36 @@ private fun StudentProfileCollapsedScreenPreview() {
 private val previewState = StudentProfileUiState(
     isLoading = false,
     hasRealProfile = true,
-    factCount = 4,
-    isSampleCatalog = true,
-    expandedFactKey = FactKey.IELTS_SCORE,
+    factCount = 10,
+    isSampleCatalog = false,
+    expandedFactKey = null,
     sections = listOf(
         ProfileFactSectionUiState(
             title = "Academic",
             description = "Study status and measurable academic facts.",
             facts = listOf(
                 ProfileFactUiState(
+                    key = FactKey.STUDY_LEVEL,
+                    label = "Study level",
+                    value = "undergraduate",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Changes with time",
+                    evidenceLabel = null,
+                    dependentDoorTitles = emptyList(),
+                ),
+                ProfileFactUiState(
+                    key = FactKey.FIELD_OF_STUDY,
+                    label = "Field of study",
+                    value = "Computer Science",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Context only",
+                    evidenceLabel = null,
+                    dependentDoorTitles = emptyList(),
+                ),
+                ProfileFactUiState(
                     key = FactKey.GPA,
                     label = "GPA",
-                    value = "3.6 4.0 scale",
+                    value = "3.6 / 4.0",
                     provenanceLabel = "Self-reported",
                     actionabilityLabel = "Can change",
                     evidenceLabel = null,
@@ -575,18 +822,41 @@ private val previewState = StudentProfileUiState(
                     provenanceLabel = "Evidence-backed",
                     actionabilityLabel = "Can change",
                     evidenceLabel = "Official score report",
+                    dependentDoorTitles = emptyList(),
+                ),
+                ProfileFactUiState(
+                    key = FactKey.ENROLLED,
+                    label = "Currently enrolled",
+                    value = "Yes",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Changes with time",
+                    evidenceLabel = null,
                     dependentDoorTitles = listOf(
-                        "Aurora Scholars",
-                        "Forge Student Lab",
-                        "Horizon Exchange",
-                        "Spark Fellowship",
+                        "Kotlin Student Coding Competition",
+                        "OECD Internship Programme",
+                        "UNICEF Internship Programme",
+                        "CERN openlab Summer Student Programme",
+                    ),
+                ),
+                ProfileFactUiState(
+                    key = FactKey.DEGREE_COMPLETED,
+                    label = "Degree completed",
+                    value = "No",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Changes with time",
+                    evidenceLabel = null,
+                    dependentDoorTitles = listOf(
+                        "Erasmus Mundus Joint Masters",
+                        "Chevening Scholarship",
+                        "DAAD EPOS",
+                        "Joint Japan/World Bank Graduate Scholarship",
                     ),
                 ),
             ),
         ),
         ProfileFactSectionUiState(
-            title = "Location and identity context",
-            description = "Context can explain a rule, but Porta never recommends changing it.",
+            title = "Identity context",
+            description = "Context explains rules; Porta never recommends changing it.",
             facts = listOf(
                 ProfileFactUiState(
                     key = FactKey.NATIONALITY,
@@ -596,6 +866,48 @@ private val previewState = StudentProfileUiState(
                     actionabilityLabel = "Context only",
                     evidenceLabel = null,
                     dependentDoorTitles = emptyList(),
+                ),
+                ProfileFactUiState(
+                    key = FactKey.AGE,
+                    label = "Age",
+                    value = "20 years",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Not an action target",
+                    evidenceLabel = null,
+                    dependentDoorTitles = listOf(
+                        "Kotlin Student Coding Competition",
+                        "UNICEF Internship Programme",
+                        "Google Summer of Code",
+                    ),
+                ),
+            ),
+        ),
+        ProfileFactSectionUiState(
+            title = "Experience and availability",
+            description = "Experience, projects and time commitments.",
+            facts = listOf(
+                ProfileFactUiState(
+                    key = FactKey.EXPERIENCE_MONTHS,
+                    label = "Experience",
+                    value = "6 months",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Changes with time",
+                    evidenceLabel = null,
+                    dependentDoorTitles = listOf("DAAD EPOS", "Joint Japan/World Bank Graduate Scholarship"),
+                ),
+                ProfileFactUiState(
+                    key = FactKey.AVAILABLE_FULL_PERIOD,
+                    label = "Available for full period",
+                    value = "No",
+                    provenanceLabel = "Self-reported",
+                    actionabilityLabel = "Can change",
+                    evidenceLabel = null,
+                    dependentDoorTitles = listOf(
+                        "OECD Internship Programme",
+                        "World Bank Treasury Summer Internship",
+                        "ESA Student Internships",
+                        "CERN openlab Summer Student Programme",
+                    ),
                 ),
             ),
         ),

@@ -4,6 +4,8 @@ import io.github.vietdsk6.porta.domain.model.EligibilityState
 
 data class DoorsUiState(
     val isSampleMode: Boolean = true,
+    val isSampleCatalog: Boolean = true,
+    val catalogDoorCount: Int = 0,
     val selectedFilter: DoorFilter = DoorFilter.ALL,
     val doors: List<DoorCardUiState> = emptyList(),
     val openCount: Int = 0,

@@ -184,9 +184,9 @@ private val presentationModule = module {
 
     viewModelOf(::ProfileSetupViewModel)
     viewModelOf(::DoorsViewModel)
-    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get()) }
+    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get(), get()) }
     viewModelOf(::FrontierViewModel)
-    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get(), get()) }
+    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get(), get(), get()) }
     viewModelOf(::ActivePlanViewModel)
     viewModelOf(::StudentProfileViewModel)
     viewModelOf(::PackInspectorViewModel)

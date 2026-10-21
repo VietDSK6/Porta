@@ -52,9 +52,29 @@ data class ScenarioResult(
 
 data class FrontierAction(
     val template: ActionTemplate,
+    val improvedOpportunityIds: List<String>,
+    val improvedSavedOpportunityIds: List<String>,
     val newlyOpenOpportunityIds: List<String>,
     val newlyOpenSavedOpportunityIds: List<String>,
+    val timingUnverifiedOpportunityIds: List<String>,
     val earliestAffectedDeadline: LocalDate?,
     val scenario: ScenarioResult,
     val explanation: String,
 )
+
+/**
+ * Returns opportunities where the scenario resolves a failed encoded rule for [targetFactKey].
+ * The door may still need a manual source check, so this is intentionally broader than "open".
+ */
+fun ScenarioResult.resolvedHardGapOpportunityIds(targetFactKey: FactKey): List<String> = baseline
+    .mapNotNull { (opportunityId, beforeReceipt) ->
+        val afterReceipt = simulated[opportunityId] ?: return@mapNotNull null
+        val afterRules = afterReceipt.rules.associateBy(RuleReceipt::ruleId)
+        val resolved = beforeReceipt.rules.any { beforeRule ->
+            beforeRule.factKey == targetFactKey &&
+                beforeRule.result == RuleResult.FAIL &&
+                afterRules[beforeRule.ruleId]?.result == RuleResult.PASS
+        }
+        opportunityId.takeIf { resolved }
+    }
+    .sorted()

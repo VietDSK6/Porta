@@ -106,10 +106,11 @@ fun OpportunityDetailScreen(
 private fun ReceiptHeader(uiState: OpportunityDetailUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            if (uiState.isSampleProfile) {
-                "SAMPLE PROFILE · SYNTHETIC PACK"
-            } else {
-                "REAL PROFILE · SYNTHETIC PACK"
+            when {
+                uiState.isSampleProfile && uiState.isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
+                uiState.isSampleProfile -> "SAMPLE PROFILE · SOURCED PACK"
+                uiState.isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
+                else -> "YOUR PROFILE · SOURCED PACK"
             },
             color = AppTheme.colors.primary,
             fontWeight = FontWeight.Bold,

@@ -25,10 +25,16 @@ object PortaSampleData {
     val profile = ProfileSnapshot(
         id = "porta-sample-profile",
         facts = listOf(
+            fact(FactKey.STUDY_LEVEL, FactValue.EnumValue("undergraduate"), Actionability.TIME_DEPENDENT),
+            fact(FactKey.FIELD_OF_STUDY, FactValue.TextValue("Computer Science"), Actionability.CONTEXT_ONLY),
             fact(FactKey.IELTS_SCORE, FactValue.NumberValue(6.5, "band"), Actionability.CONTROLLABLE),
             fact(FactKey.GPA, FactValue.NumberValue(3.6, "4.0 scale"), Actionability.CONTROLLABLE),
             fact(FactKey.ENROLLED, FactValue.BooleanValue(true), Actionability.TIME_DEPENDENT),
             fact(FactKey.NATIONALITY, FactValue.EnumValue("VN"), Actionability.CONTEXT_ONLY),
+            fact(FactKey.AGE, FactValue.NumberValue(20.0, "years"), Actionability.IMMUTABLE),
+            fact(FactKey.DEGREE_COMPLETED, FactValue.BooleanValue(false), Actionability.TIME_DEPENDENT),
+            fact(FactKey.EXPERIENCE_MONTHS, FactValue.NumberValue(6.0, "months"), Actionability.TIME_DEPENDENT),
+            fact(FactKey.AVAILABLE_FULL_PERIOD, FactValue.BooleanValue(false), Actionability.CONTROLLABLE),
         ).associateBy(ProfileFact::key),
     )
 
@@ -40,7 +46,13 @@ object PortaSampleData {
         sampleDoor("local", "Local Makers Challenge", "Makers Guild", OpportunityCategory.STUDENT_CONTEST, 6.0),
     )
 
-    val savedOpportunityIds: Set<String> = setOf("aurora", "horizon")
+    val savedOpportunityIds: Set<String> = setOf(
+        "aurora",
+        "horizon",
+        "kotlin-student-coding-competition-2026",
+        "oecd-internship-rolling",
+        "cern-openlab-summer-student-2027",
+    )
 
     private fun sampleDoor(
         id: String,

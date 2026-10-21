@@ -153,7 +153,11 @@ private fun ActivePlanContent(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "LOCAL PLAN · SYNTHETIC PACK",
+                    if (uiState.isSampleCatalog) {
+                        "LOCAL PLAN · SYNTHETIC PACK"
+                    } else {
+                        "LOCAL PLAN · SOURCED PACK"
+                    },
                     color = AppTheme.colors.primary,
                     fontWeight = FontWeight.Bold,
                 )

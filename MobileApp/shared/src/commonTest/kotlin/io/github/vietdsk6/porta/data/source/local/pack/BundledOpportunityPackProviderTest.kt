@@ -1,13 +1,18 @@
 package io.github.vietdsk6.porta.data.source.local.pack
 
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
+import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -90,6 +95,44 @@ class BundledOpportunityPackProviderTest {
         assertTrue(EligibilityState.HAS_GAPS in states)
         assertTrue(EligibilityState.NOT_ACTIONABLE in states)
         assertTrue(EligibilityState.CLOSED in states)
+    }
+
+    @Test
+    fun `bundled catalog produces a multi-door frontier from non-language facts`() {
+        val codec = OpportunityPackCodec()
+        val opportunities = assertNotNull(
+            OpportunityPackParser(codec, OpportunityPackValidator())
+                .parse(BundledOpportunityPackProvider(codec).rawJson())
+                .document,
+        ).opportunities
+        val eligibilityEvaluator = EligibilityEvaluator()
+        val frontier = ActionFrontierEngine(
+            eligibilityEvaluator = eligibilityEvaluator,
+            scenarioEvaluator = ScenarioEvaluator(eligibilityEvaluator),
+        ).build(
+            profile = profile(
+                FactKey.AGE to FactValue.NumberValue(20.0, "years"),
+                FactKey.ENROLLED to FactValue.BooleanValue(true),
+                FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(false),
+                FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(false),
+                FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(6.0, "months"),
+            ),
+            opportunities = opportunities,
+            savedOpportunityIds = setOf("oecd-internship-rolling", "cern-openlab-summer-student-2027"),
+            constraints = PlanningConstraints(
+                horizonDays = 90,
+                maxEffort = EffortLevel.VERY_HIGH,
+                maxCost = CostBand.UNKNOWN,
+            ),
+            today = LocalDate(2026, 10, 21),
+        )
+
+        val availability = frontier.single()
+        assertEquals(FactKey.AVAILABLE_FULL_PERIOD, availability.template.targetFactKey)
+        assertEquals(4, availability.improvedOpportunityIds.size)
+        assertEquals(2, availability.improvedSavedOpportunityIds.size)
+        assertEquals(4, availability.timingUnverifiedOpportunityIds.size)
+        assertTrue(availability.newlyOpenOpportunityIds.isEmpty())
     }
 }
 

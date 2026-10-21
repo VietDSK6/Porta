@@ -2,38 +2,52 @@ package io.github.vietdsk6.porta.presentation.screens.doors
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.Opportunity
+import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class DoorsViewModel(
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val profileRepository: ProfileRepository,
+    private val opportunityPackRepository: OpportunityPackRepository,
 ) : ViewModel() {
     private val savedIds = PortaSampleData.savedOpportunityIds.toMutableSet()
     private var isSampleProfile = true
+    private var isSampleCatalog = true
     private var activeProfile = PortaSampleData.profile
+    private var activeOpportunities = PortaSampleData.opportunities
     private var allDoors = evaluateDoors()
     private val _uiState = MutableStateFlow(buildState(DoorFilter.ALL))
     val uiState: StateFlow<DoorsUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            profileRepository.getProfile().onSuccess { profile ->
-                if (profile.facts.isNotEmpty()) {
-                    activeProfile = profile
-                    isSampleProfile = false
+            combine(
+                profileRepository.observeProfile(),
+                opportunityPackRepository.observeActive(),
+            ) { profile, packResult -> profile to packResult.getOrNull() }
+                .collect { (profile, pack) ->
+                    isSampleProfile = profile.facts.isEmpty()
+                    activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
+                    activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
+                        ?: PortaSampleData.opportunities
+                    isSampleCatalog = pack == null ||
+                        pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
                     allDoors = evaluateDoors()
                     _uiState.update { current -> buildState(current.selectedFilter) }
                 }
-            }
         }
     }
 
@@ -48,7 +62,7 @@ class DoorsViewModel(
         }
     }
 
-    private fun evaluateDoors(): List<DoorCardUiState> = PortaSampleData.opportunities.map { opportunity ->
+    private fun evaluateDoors(): List<DoorCardUiState> = activeOpportunities.map { opportunity ->
         val receipt = eligibilityEvaluator.evaluate(
             profile = activeProfile,
             opportunity = opportunity,
@@ -62,7 +76,12 @@ class DoorsViewModel(
             deadlineLabel = opportunity.deadline.label(),
             checkedLabel = "Checked ${opportunity.lastCheckedOn}",
             isSaved = opportunity.id in savedIds,
-            primaryReason = receipt.rules.firstOrNull()?.explanation.orEmpty(),
+            primaryReason = receipt.rules
+                .firstOrNull { it.result == RuleResult.FAIL }
+                ?.explanation
+                ?: receipt.rules.firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
+                    ?.explanation
+                ?: receipt.rules.firstOrNull()?.explanation.orEmpty(),
         )
     }
 
@@ -79,6 +98,8 @@ class DoorsViewModel(
         }
         return DoorsUiState(
             isSampleMode = isSampleProfile,
+            isSampleCatalog = isSampleCatalog,
+            catalogDoorCount = refreshed.size,
             selectedFilter = filter,
             doors = filtered,
             openCount = refreshed.count { it.state == EligibilityState.OPEN },

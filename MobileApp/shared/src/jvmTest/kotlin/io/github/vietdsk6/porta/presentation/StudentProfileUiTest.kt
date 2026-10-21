@@ -35,7 +35,8 @@ class StudentProfileUiTest {
             }
         }
 
-        onNodeWithText("LOCAL SOURCE OF TRUTH").assertExists()
+        onNodeWithText("ACADEMIC PROFILE").assertExists()
+        onNodeWithText("Your student profile").assertExists()
         onNodeWithTag("student-profile-edit").performClick()
         assertTrue(editRequested)
 
