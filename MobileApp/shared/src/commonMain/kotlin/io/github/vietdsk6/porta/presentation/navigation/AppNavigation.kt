@@ -210,7 +210,10 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
 
     entry<StudentProfileScreenRoute>(metadata = noAnimationMetadata) {
         val viewModel = koinViewModel<StudentProfileViewModel>()
-        StudentProfileScreen(viewModel = viewModel)
+        StudentProfileScreen(
+            viewModel = viewModel,
+            onEditProfile = { navigator.navigate(ProfileSetupScreenRoute(returnToProfile = true)) },
+        )
     }
 
     // ── Pushed destinations ─────────────────────────────────────────────────────
@@ -224,7 +227,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
                 navigator.set(
                     when (completion.destination) {
                         OnboardingDestination.SAMPLE_MAP -> DoorsScreenRoute
-                        OnboardingDestination.PROFILE_SETUP -> ProfileSetupScreenRoute
+                        OnboardingDestination.PROFILE_SETUP -> ProfileSetupScreenRoute()
                     },
                 )
                 if (completion.isNewUser && AppConfiguration.PREMIUM_FEATURES_ENABLED) {
@@ -315,12 +318,16 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         }
     }
 
-    entry<ProfileSetupScreenRoute> {
+    entry<ProfileSetupScreenRoute> { key ->
         val viewModel = koinViewModel<ProfileSetupViewModel>()
         ProfileSetupScreen(
             viewModel = viewModel,
-            onCompleted = { navigator.set(DoorsScreenRoute) },
-            onNavigateBack = { navigator.set(DoorsScreenRoute) },
+            onCompleted = {
+                if (key.returnToProfile) navigator.goBack() else navigator.set(DoorsScreenRoute)
+            },
+            onNavigateBack = {
+                if (key.returnToProfile) navigator.goBack() else navigator.set(DoorsScreenRoute)
+            },
         )
     }
 
@@ -345,7 +352,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
             onPlanSaved = { navigator.replace(ActivePlanScreenRoute) },
-            onBuildProfile = { navigator.replace(ProfileSetupScreenRoute) },
+            onBuildProfile = { navigator.replace(ProfileSetupScreenRoute()) },
         )
     }
 
@@ -358,7 +365,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             onPreviewImpact = { actionId ->
                 navigator.replace(ScenarioPreviewScreenRoute(actionId = actionId))
             },
-            onUpdateProfile = { navigator.navigate(ProfileSetupScreenRoute) },
+            onUpdateProfile = { navigator.navigate(ProfileSetupScreenRoute()) },
         )
     }
 

@@ -46,7 +46,7 @@
 - [x] **Frontier** *(tab)* — horizon constraint, Pareto action card, scenario navigation, preview + UI test
 - [x] **ScenarioPreview** — persistent WHAT-IF, before/after and deltas, explicit commit/discard, preview + UI test
 - [x] **ActivePlan** — single local milestone, progress/pause/complete, evidence + impact, explicit profile boundary, preview + tests
-- [~] **StudentProfile** *(tab)* — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
+- [x] **StudentProfile** *(tab)* — real local facts, dependencies, export/delete controls, preview + tests, nav callbacks
 - [~] **PackInspector** — scaffolded ☑ · UI per `ui_ux.md` ☐ · nav callbacks wired ☐
 
 ## Screens and infrastructure that ship with the kit
@@ -76,7 +76,7 @@
 ## Validation
 
 - [ ] Every P0 screen has a pure composable test and `@Preview`
-- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, and ActivePlan inspected
+- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, ActivePlan, and StudentProfile inspected
 - [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
 - [ ] Developer ran Android or Desktop and confirmed the vertical slice behaves correctly
 

@@ -63,7 +63,7 @@ data class PaywallScreenRoute(val placementId: String? = null) : ScreenRoute
 
 @Serializable
 @SerialName("ProfileSetup")
-data object ProfileSetupScreenRoute : ScreenRoute
+data class ProfileSetupScreenRoute(val returnToProfile: Boolean = false) : ScreenRoute
 
 @Serializable
 @SerialName("Doors")

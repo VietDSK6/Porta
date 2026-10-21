@@ -64,6 +64,15 @@ class PlanRepositoryTest {
         assertNull(repository.observeCurrentPlan().first())
     }
 
+    @Test
+    fun `clearing profile plans removes the active milestone`() = runTest(dispatcher) {
+        repository.replaceCurrentPlan(plan()).getOrThrow()
+
+        assertTrue(repository.clearForProfile().isSuccess)
+
+        assertNull(repository.observeCurrentPlan().first())
+    }
+
     private fun plan(
         id: String = "plan",
         title: String = "Raise IELTS to 7.0",

@@ -80,4 +80,26 @@ class ProfileRepositoryTest {
         assertEquals(FactValue.NumberValue(7.0, "band"), saved.facts[FactKey.IELTS_SCORE]?.value)
         assertEquals(1, saved.facts.size)
     }
+
+    @Test
+    fun `clear profile removes every locally stored fact`() = runTest {
+        repository.saveFacts(
+            listOf(
+                ProfileFact(
+                    id = "default:gpa",
+                    key = FactKey.GPA,
+                    value = FactValue.NumberValue(3.6, "4.0 scale"),
+                ),
+                ProfileFact(
+                    id = "default:ielts_score",
+                    key = FactKey.IELTS_SCORE,
+                    value = FactValue.NumberValue(6.5, "band"),
+                ),
+            ),
+        ).getOrThrow()
+
+        assertTrue(repository.clearProfile().isSuccess)
+
+        assertTrue(repository.getProfile().getOrThrow().facts.isEmpty())
+    }
 }

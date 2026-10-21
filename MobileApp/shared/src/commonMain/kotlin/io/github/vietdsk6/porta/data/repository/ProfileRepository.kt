@@ -41,4 +41,11 @@ class ProfileRepository(
         profileFactDao.delete(profileId, key.name)
         Result.success(Unit)
     }
+
+    suspend fun clearProfile(
+        profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
+    ): Result<Unit> = backgroundExecutor.execute {
+        profileFactDao.deleteProfile(profileId)
+        Result.success(Unit)
+    }
 }

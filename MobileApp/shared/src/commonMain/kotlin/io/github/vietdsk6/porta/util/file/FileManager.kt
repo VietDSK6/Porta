@@ -32,6 +32,13 @@ interface FileManager {
 
     suspend fun saveFileByPickingUpLocation(absoluteFilePath: String): Result<Unit>
 
+    /** Saves generated text without first creating an internal temporary file. */
+    suspend fun saveTextByPickingUpLocation(
+        suggestedName: String,
+        extension: String,
+        content: String,
+    ): Result<Boolean>
+
     // Download file from network to internal dir
     // Returns Result containing relative path  to internal directory of saved file
     suspend fun downloadFileFromNetworkToInternalDirectory(

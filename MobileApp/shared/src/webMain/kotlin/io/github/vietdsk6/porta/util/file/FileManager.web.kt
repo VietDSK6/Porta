@@ -91,6 +91,18 @@ class FileManagerImpl(
 
     override suspend fun saveFileByPickingUpLocation(absoluteFilePath: String): Result<Unit> = saveImageToGallery(absoluteFilePath)
 
+    override suspend fun saveTextByPickingUpLocation(
+        suggestedName: String,
+        extension: String,
+        content: String,
+    ): Result<Boolean> = backgroundExecutor.execute {
+        FileKit.download(
+            bytes = content.encodeToByteArray(),
+            fileName = "$suggestedName.$extension",
+        )
+        Result.success(true)
+    }
+
     override suspend fun downloadFileFromNetworkToInternalDirectory(
         url: String,
         fileExtension: String?,

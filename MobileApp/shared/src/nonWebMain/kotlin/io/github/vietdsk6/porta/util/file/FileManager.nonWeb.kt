@@ -15,6 +15,7 @@ import io.github.vinceglb.filekit.saveImageToGallery
 import io.github.vinceglb.filekit.sink
 import io.github.vinceglb.filekit.size
 import io.github.vinceglb.filekit.write
+import io.github.vinceglb.filekit.writeString
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.prepareGet
@@ -81,6 +82,20 @@ class FileManagerImpl(
 
         pickedFileLocationToSave.write(file)
         return Result.success(Unit)
+    }
+
+    override suspend fun saveTextByPickingUpLocation(
+        suggestedName: String,
+        extension: String,
+        content: String,
+    ): Result<Boolean> = runCatching {
+        val destination = FileKit.openFileSaver(
+            suggestedName = suggestedName,
+            defaultExtension = extension,
+            allowedExtensions = setOf(extension),
+        ) ?: return@runCatching false
+        destination.writeString(content)
+        true
     }
 
     override suspend fun saveFileFromNetworkToGalleryByPickingUpLocation(

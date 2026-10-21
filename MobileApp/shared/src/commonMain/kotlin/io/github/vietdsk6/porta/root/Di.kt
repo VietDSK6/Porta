@@ -13,6 +13,7 @@ import io.github.vietdsk6.porta.data.source.ai.ReplicateGenerationProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
+import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.data.source.preferences.PreferencesDataStoreProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferencesImpl
@@ -91,6 +92,7 @@ private val dataModule = module {
     singleOf(::OpportunityPackCodec)
     singleOf(::OpportunityPackValidator)
     singleOf(::OpportunityPackParser)
+    singleOf(::ProfileExportCodec)
 
     // Preferences Source. The DataStore instance stays out of the Koin graph on
     // purpose — generic types erase to `DataStore`, so a second DataStore<T>
