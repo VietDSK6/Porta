@@ -291,8 +291,8 @@ private fun FactSection(
     expandedFactKey: FactKey?,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing)) {
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.verticalListItemSpacingSmall)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacingSmall)) {
             Text(
                 text = section.title,
                 style = AppTheme.typography.h5,
@@ -305,13 +305,15 @@ private fun FactSection(
                 color = AppTheme.colors.text.secondary,
             )
         }
-        section.facts.forEach { fact ->
-            FactCard(
-                fact = fact,
-                expanded = fact.key == expandedFactKey,
-                onToggle = { onUiEvent(StudentProfileUiEvent.ToggleDependencies(fact.key)) },
-                onDelete = { onUiEvent(StudentProfileUiEvent.DeleteFactRequested(fact)) },
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacing)) {
+            section.facts.forEach { fact ->
+                FactCard(
+                    fact = fact,
+                    expanded = fact.key == expandedFactKey,
+                    onToggle = { onUiEvent(StudentProfileUiEvent.ToggleDependencies(fact.key)) },
+                    onDelete = { onUiEvent(StudentProfileUiEvent.DeleteFactRequested(fact)) },
+                )
+            }
         }
     }
 }
@@ -333,7 +335,7 @@ private fun FactCard(
         border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.4f)),
     ) {
         Column(
-            modifier = Modifier.padding(AppTheme.spacing.defaultSpacing),
+            modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
@@ -402,8 +404,8 @@ private fun DependencyDetails(
         shape = RoundedCornerShape(14.dp),
     ) {
         Column(
-            modifier = Modifier.padding(AppTheme.spacing.defaultSpacing),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacingSmall),
         ) {
             Text(
                 text = "RULE DEPENDENCIES",
@@ -523,6 +525,22 @@ private fun StudentProfileScreenPreview() {
     AppTheme {
         StudentProfileScreen(
             uiState = previewState,
+            onUiEvent = {},
+            onEditProfile = {},
+            onOpenPackInspector = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun StudentProfileCollapsedScreenPreview() {
+    AppTheme {
+        StudentProfileScreen(
+            uiState = previewState.copy(
+                isSampleCatalog = false,
+                expandedFactKey = null,
+            ),
             onUiEvent = {},
             onEditProfile = {},
             onOpenPackInspector = {},
