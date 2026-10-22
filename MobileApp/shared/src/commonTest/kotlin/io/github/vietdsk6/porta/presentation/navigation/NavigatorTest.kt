@@ -9,13 +9,13 @@ import kotlin.test.assertFailsWith
 class NavigatorTest {
 
     private fun newState(
-        start: ScreenRoute = HomeScreenRoute,
+        start: ScreenRoute = DoorsScreenRoute,
         topLevel: Set<TopLevelScreenRoute> = setOf(
-            HomeScreenRoute,
-            GalleryScreenRoute,
-            AccountScreenRoute,
+            DoorsScreenRoute,
+            FrontierScreenRoute,
+            StudentProfileScreenRoute,
         ),
-        primary: TopLevelScreenRoute = HomeScreenRoute,
+        primary: TopLevelScreenRoute = DoorsScreenRoute,
     ): NavigationState {
         val topLevelBackStacks: Map<TopLevelScreenRoute, SnapshotStateList<ScreenRoute>> =
             topLevel.associateWith { route -> mutableStateListOf<ScreenRoute>(route) }
@@ -35,89 +35,93 @@ class NavigatorTest {
     @Test
     fun `add pushes onto the current back stack`() {
         val nav = Navigator(newState())
-        nav.add(ProfileScreenRoute)
-        assertEquals(listOf(HomeScreenRoute, ProfileScreenRoute), nav.state.currentBackstack.toList())
+        val detail = OpportunityDetailScreenRoute("aurora")
+        nav.add(detail)
+        assertEquals(listOf(DoorsScreenRoute, detail), nav.state.currentBackstack.toList())
     }
 
     @Test
     fun `navigate pushes a non-top-level route`() {
         val nav = Navigator(newState())
-        nav.navigate(ProfileScreenRoute)
-        assertEquals(ProfileScreenRoute, nav.state.currentBackstack.last())
+        val detail = OpportunityDetailScreenRoute("aurora")
+        nav.navigate(detail)
+        assertEquals(detail, nav.state.currentBackstack.last())
     }
 
     @Test
     fun `navigate to a top-level route switches tab`() {
         val nav = Navigator(newState())
-        nav.navigate(GalleryScreenRoute)
-        assertEquals(GalleryScreenRoute, nav.state.topLevelRoute)
+        nav.navigate(FrontierScreenRoute)
+        assertEquals(FrontierScreenRoute, nav.state.topLevelRoute)
     }
 
     @Test
     fun `each tab keeps its own back stack`() {
         val nav = Navigator(newState())
-        nav.add(ProfileScreenRoute) // Home tab: [Home, Profile]
-        nav.switchToTab(GalleryScreenRoute) // Gallery tab: [Gallery]
-        assertEquals(listOf(GalleryScreenRoute), nav.state.currentBackstack.toList())
+        val detail = OpportunityDetailScreenRoute("aurora")
+        nav.add(detail) // Doors tab: [Doors, OpportunityDetail]
+        nav.switchToTab(FrontierScreenRoute) // Frontier tab: [Frontier]
+        assertEquals(listOf(FrontierScreenRoute), nav.state.currentBackstack.toList())
 
-        nav.switchToTab(HomeScreenRoute) // Home restored with its pushed entry
-        assertEquals(listOf(HomeScreenRoute, ProfileScreenRoute), nav.state.currentBackstack.toList())
+        nav.switchToTab(DoorsScreenRoute) // Doors restored with its pushed entry
+        assertEquals(listOf(DoorsScreenRoute, detail), nav.state.currentBackstack.toList())
     }
 
     @Test
     fun `switching to the active tab is a no-op`() {
         val nav = Navigator(newState())
-        nav.add(ProfileScreenRoute)
-        nav.switchToTab(HomeScreenRoute)
-        assertEquals(listOf(HomeScreenRoute, ProfileScreenRoute), nav.state.currentBackstack.toList())
+        val detail = OpportunityDetailScreenRoute("aurora")
+        nav.add(detail)
+        nav.switchToTab(DoorsScreenRoute)
+        assertEquals(listOf(DoorsScreenRoute, detail), nav.state.currentBackstack.toList())
     }
 
     @Test
     fun `goBack pops when more than one entry`() {
         val nav = Navigator(newState())
-        nav.add(ProfileScreenRoute)
+        nav.add(OpportunityDetailScreenRoute("aurora"))
         nav.goBack()
-        assertEquals(listOf(HomeScreenRoute), nav.state.currentBackstack.toList())
+        assertEquals(listOf(DoorsScreenRoute), nav.state.currentBackstack.toList())
     }
 
     @Test
     fun `goBack from a non-primary tab returns to the primary tab`() {
         val nav = Navigator(newState())
-        nav.switchToTab(GalleryScreenRoute)
+        nav.switchToTab(FrontierScreenRoute)
         nav.goBack()
-        assertEquals(HomeScreenRoute, nav.state.topLevelRoute)
+        assertEquals(DoorsScreenRoute, nav.state.topLevelRoute)
     }
 
     @Test
     fun `goBack on the primary tab root is a no-op`() {
         val nav = Navigator(newState())
         nav.goBack()
-        assertEquals(listOf(HomeScreenRoute), nav.state.currentBackstack.toList())
-        assertEquals(HomeScreenRoute, nav.state.topLevelRoute)
+        assertEquals(listOf(DoorsScreenRoute), nav.state.currentBackstack.toList())
+        assertEquals(DoorsScreenRoute, nav.state.topLevelRoute)
     }
 
     @Test
     fun `set clears the back stack and places the route on top`() {
         val nav = Navigator(newState())
-        nav.add(ProfileScreenRoute)
-        nav.set(SubscriptionsScreenRoute)
-        assertEquals(listOf(SubscriptionsScreenRoute), nav.state.currentBackstack.toList())
+        nav.add(OpportunityDetailScreenRoute("aurora"))
+        nav.set(ActivePlanScreenRoute)
+        assertEquals(listOf(ActivePlanScreenRoute), nav.state.currentBackstack.toList())
     }
 
     @Test
     fun `replace swaps the top entry`() {
         val nav = Navigator(newState())
-        nav.add(ProfileScreenRoute)
-        nav.replace(SubscriptionsScreenRoute)
-        assertEquals(listOf(HomeScreenRoute, SubscriptionsScreenRoute), nav.state.currentBackstack.toList())
+        nav.add(OpportunityDetailScreenRoute("aurora"))
+        nav.replace(PackInspectorScreenRoute)
+        assertEquals(listOf(DoorsScreenRoute, PackInspectorScreenRoute), nav.state.currentBackstack.toList())
     }
 
     @Test
     fun `switching to an unregistered top-level route fails fast`() {
-        // AccountScreenRoute is deliberately left out of the registered tab set.
-        val nav = Navigator(newState(topLevel = setOf(HomeScreenRoute, GalleryScreenRoute)))
+        // StudentProfileScreenRoute is deliberately left out of the registered tab set.
+        val nav = Navigator(newState(topLevel = setOf(DoorsScreenRoute, FrontierScreenRoute)))
         assertFailsWith<IllegalArgumentException> {
-            nav.switchToTab(AccountScreenRoute)
+            nav.switchToTab(StudentProfileScreenRoute)
         }
     }
 }

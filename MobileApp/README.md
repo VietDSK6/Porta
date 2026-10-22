@@ -1,163 +1,158 @@
-# KMPStarterKit — Kotlin + Compose Multiplatform Starter Kit (android, ios, web, desktop)
+# Porta
 
-Compose Multiplatform mobile application targeting Android, iOS, Web (WASM), and JVM Desktop.
+> See which realistic next milestone opens the most verified opportunities—without pretending to predict who wins.
 
-## Module Structure
+Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a sourced offline opportunity
+pack against the student's actual profile, explains every encoded result, and builds an **Action Frontier** of
+controllable milestones ranked by verified marginal opportunity gain, time, effort, and cost.
 
-```
-├── shared/            # Shared KMP library (commonMain, androidMain, iosMain, webMain, jvmMain)
-├── androidApp/        # Android Application entry point
-├── desktopApp/        # JVM Desktop entry point
-├── webApp/            # Wasm/JS browser entry point
-├── designsystem/      # Reusable UI components library
-├── libs/
-│   └── subscription/  # Subscriptions (API + RevenueCat/Adapty implementations)
-├── build-logic/       # Convention plugins for KMP library modules
-├── iosApp/            # Xcode project wrapper
-├── distribution/      # Release assets (keystore, what's new)
-├── scripts/           # Build/release helper scripts
-└── fastlane/          # iOS release automation
-```
+The contest build is completely free and does not require an account, cloud service, API key, or network connection.
+
+## What Porta does
+
+Porta keeps four boundaries visible:
+
+- **Open** — the profile meets every encoded published hard rule.
+- **Has gaps** — at least one encoded hard rule is not currently met.
+- **Verify** — a published rule needs information or a manual source check.
+- **Unknown** — the pack cannot safely represent the provider's condition.
+
+From those receipts, Porta proposes only controllable milestones, such as improving a language score or completing
+a documented project. The What-if view previews the exact doors changed by one milestone. It never writes a
+hypothetical value into the actual profile; the student must confirm a real update separately.
+
+Porta does **not** predict admission or scholarship success, turn soft selection criteria into pass/fail rules, scrape
+providers, submit applications, or use AI to decide eligibility.
+
+## Demo path
+
+1. Finish onboarding with the sample profile or enter six local profile facts.
+2. Open **Doors** to see the current sourced opportunity receipts.
+3. Open **Frontier** and change the time, budget, and effort constraints.
+4. Select an action to compare the Actual profile with its What-if result across all affected doors.
+5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed.
+6. On Desktop, use the wide master-detail Frontier and Pack Inspector to inspect results and source diagnostics.
+
+The bundled catalog currently contains 15 independently encoded records. Its official URLs, interpretation boundary,
+and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md).
+
+## Declared contest targets
+
+The Porta submission promises two runnable targets:
+
+- **Android** — compact, touch-first tracking and profile updates.
+- **JVM Desktop** — wide comparison, inspection, and planning workspace.
+
+The repository inherits iOS and Web wrappers from the starter kit. They remain useful compatibility scaffolding, but
+they are not declared Porta contest targets and are excluded from the submission's runnable-target claim.
 
 ## Prerequisites
 
-- JDK 17 or higher (required by AGP 9)
-- Android Studio, latest stable release (AGP 9 needs a recent one; Google publishes no per-AGP Studio minimum)
-- Android SDK path configured in `local.properties` (`sdk.dir=/path/to/sdk`)
-- For iOS: Xcode installed
-- Optional: Check your system with [KDoctor](https://github.com/Kotlin/kdoctor)
+- JDK 17 or newer; JDK 21 is recommended for the complete local test path.
+- A recent Android Studio installation with an Android SDK.
+- `local.properties` in this directory with the local SDK path:
 
-## Before Running
-
-Add `local.properties` file to this directory with:
 ```properties
-sdk.dir=/path/to/android/sdk
+sdk.dir=/absolute/path/to/Android/sdk
 GOOGLE_WEB_CLIENT_ID=test
 ```
 
-**Firebase config.** The committed [androidApp/google-services.json](androidApp/google-services.json) and
-[iosApp/iosApp/GoogleService-Info.plist](iosApp/iosApp/GoogleService-Info.plist) are placeholder templates —
-the app builds with them, but Firebase features (auth, push, analytics) need real values. Download both
-files for your own Firebase project from the [Firebase console](https://console.firebase.google.com/)
-(Project settings → Your apps) and replace the placeholders. Never commit real Firebase config to a public
-fork — keep secrets in `local.properties` (already gitignored), which CI also uses.
+The committed Firebase configuration files are starter placeholders. Porta's contest flow is offline and does not
+depend on Firebase, authentication, billing, or AI services.
 
-## Android
+## Run Android
 
-To run the application on android device/emulator:
-- Open this directory in Android Studio and run the imported `androidApp` run configuration
+From `MobileApp/`:
 
-To build the application bundle:
-- Run `./gradlew :androidApp:assembleDebug`
-- Find `.apk` file in `androidApp/build/outputs/apk/debug/androidApp-debug.apk`
-
-Useful commands:
 ```bash
-# Debug APK
+./scripts/check_env.sh --phase getting-started
 ./gradlew :androidApp:assembleDebug
-
-# Unit tests (shared module)
-./gradlew :shared:jvmTest
-./gradlew :shared:testAndroidHostTest
-
-# Android UI tests (device required)
-./gradlew :androidApp:connectedDebugAndroidTest
-
-# SHA1 for Firebase
-./gradlew :androidApp:signingReport
 ```
 
-## iOS
+The APK is written to `androidApp/build/outputs/apk/debug/androidApp-debug.apk`. To interact with the app, open this
+directory in Android Studio and run the `androidApp` configuration on an emulator or device.
 
-To run the application on iPhone device/simulator:
-- Open `iosApp/iosApp.xcproject` in Xcode and run standard configuration
-- Or use [Kotlin Multiplatform Mobile plugin](https://plugins.jetbrains.com/plugin/14936-kotlin-multiplatform-mobile) for Android Studio
+## Run JVM Desktop
 
-```bash
-# iOS simulator unit tests
-./gradlew :shared:iosSimulatorArm64Test
-```
-
-## JVM Desktop
-
-Run the full Compose Desktop app:
 ```bash
 ./gradlew :desktopApp:run
 ```
 
-To preview design system components, run `designsystem/src/jvmMain/kotlin/Main.kt` from IDE.
+The Gradle task stays attached while the window is open; stop it with `Ctrl+C` after closing the app.
 
-## Web (Wasm/JS)
+Build the native package for the current operating system with:
 
-Dev server (live reload):
 ```bash
-./gradlew :webApp:wasmJsBrowserDevelopmentRun
+./gradlew :desktopApp:packageDistributionForCurrentOS
 ```
 
-Production bundle:
-```bash
-./gradlew :webApp:wasmJsBrowserDistribution
-# Output: webApp/build/dist/wasmJs/productionExecutable/
+Compose Desktop writes the package below `desktopApp/build/compose/binaries/main/` in the platform-specific
+`dmg`, `msi`, or `deb` directory.
+
+## Architecture
+
+```text
+Android launcher ─┐
+                  ├─ shared Compose UI + Navigation 3
+Desktop launcher ─┘              │
+                                 ├─ profile / plan / pack repositories
+                                 ├─ typed eligibility + scenario engines
+                                 ├─ constrained Action Frontier
+                                 └─ Room + bundled local opportunity pack
 ```
 
-## Screen Generation
+The shared module owns the domain models, deterministic rule graph, evaluation receipts, counterfactual simulation,
+Action Frontier, persistence, ViewModels, and most UI. Platform modules provide launchers and platform services.
+There is no server-authoritative eligibility decision.
 
-Generate boilerplate for a new screen and wire it into navigation + DI in one step (run from `MobileApp/`):
-```bash
-./scripts/generate_screen.sh YourScreenName
-```
-The script creates `*Screen.kt`, `*UiState.kt`, `*ViewModel.kt`, registers the route, inserts the `entry<>` block in `AppNavigation.kt`, and adds `viewModelOf(::YourScreenNameViewModel)` to `root/Di.kt`.
+The core product documents are:
 
-## Refactor Package / App ID
+- [PORTA_PRD.md](PORTA_PRD.md) — scope, trust boundary, and acceptance criteria.
+- [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md) — source register and encoding policy.
+- [CONTEST_SCORECARD.md](CONTEST_SCORECARD.md) — evidence-backed contest readiness; no self-awarded judging score.
 
-Rename the app's package / `applicationId` / iOS bundle ID + display name across the whole project (run from `MobileApp/`):
-```bash
-./scripts/refactor_package.sh --app-id com.example.newapp --app-name NewApp                    # full refactor
-./scripts/refactor_package.sh --app-id com.example.newapp --app-name NewApp --skip-package-rename   # IDs + name only
-```
-`--app-id` / `--app-name` are required. `--skip-package-rename` (default off) keeps Kotlin packages. Edits files in place (commit/back up first; it prompts unless `-y`). See [Scripts docs](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/scripts) for all options.
+## Quality gates
 
-## Quality Gates
-
-PRs are gated by `.github/workflows/pr_checks.yml` (at the repo root, **not** under `MobileApp/`). Run the same checks locally before pushing:
+Run the same scoped checks used by the repository workflow:
 
 ```bash
-# Format / lint (auto-fix locally)
 ./gradlew spotlessApply
 ./gradlew spotlessCheck
-
-# Unit + Compose UI tests (commonTest + jvmTest + androidHostTest)
 ./gradlew :shared:jvmTest :shared:testAndroidHostTest
+./gradlew :androidApp:assembleDebug
 ```
 
-Optional (local only, not part of PR checks): Roborazzi screenshot comparison. Record baselines with `./gradlew :shared:recordRoborazziAndroidHostTest`, compare later runs with `./gradlew :shared:verifyRoborazziAndroidHostTest`. Goldens are not committed.
-
-`@Preview`s under `io.github.vietdsk6.porta.*` are scanned automatically. Use `androidx.compose.ui.tooling.preview.Preview` (multiplatform-aware as of CMP 1.10) — the deprecated `org.jetbrains.compose.ui.tooling.preview.Preview` is **not** discovered.
-
-## Store Screenshot Generation
-
-Render every `@Preview @StoreScreenshot` composable at App Store / Play Store pixel sizes — the screen as it renders, no marketing chrome added (no Fastlane / ImageMagick):
+When shared code changes, these additional compile checks protect the inherited browser source sets without claiming
+them as contest targets:
 
 ```bash
-./scripts/generate_store_screenshots.sh
+./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs
 ```
 
-Output lands at `distribution/store_screenshots/<locale>/<device>/*.png` — pure screen captures at storefront pixel dimensions, upload-ready. Add a new screenshot by writing a `@Preview @StoreScreenshot @Composable` function next to the screen it previews (typically inside `HomeScreen.kt`, `GalleryScreen.kt`, etc.):
+Do not use the aggregate `check`, `build`, or `clean build` tasks for routine validation; they pull in unrelated
+platform work, including iOS.
 
-```kotlin
-import androidx.compose.ui.tooling.preview.Preview
-import io.github.vietdsk6.porta.designsystem.theme.AppTheme
-import io.github.vietdsk6.porta.util.StoreDevice
-import io.github.vietdsk6.porta.util.StoreScreenshot
+## Data and limitations
 
-@Preview
-@StoreScreenshot(device = StoreDevice.IPHONE_6_5, locale = "en", tag = "01-home")
-@Composable
-private fun HomeStoreScreenshot_iPhone_en() {
-    AppTheme {
-        HomeScreen(uiState = HomeUiState(creditBalance = 12), onUiEvent = {})
-    }
-}
-```
+- Results apply only to the rules encoded in the installed pack and its stated verification date.
+- A hard-rule receipt means "meets the encoded eligibility rules," not "competitive" or "will be accepted."
+- Provider-specific, constituency-specific, legal, soft, or ambiguous conditions remain explicit manual checks.
+- Action duration, cost, and effort are Porta planning estimates, not provider claims.
+- TBA and rolling deadlines are never inferred from an older cycle.
+- The contest build has no cloud sync, automatic source refresh, or application submission.
 
-Storefront previews are excluded from regression screenshot tests and only run when the script (or `-PgenerateStoreScreenshots=true`) is set.
+Always confirm the linked official source before acting on an opportunity.
+
+## Provenance and starter-kit boundary
+
+This repository began from the MIT-licensed **KMP Contest Starter Kit (Koko)**. Inherited scaffold includes Gradle
+target configuration, platform launchers, CI/release helpers, the generic design system, and optional auth, billing,
+AI, and media-generation modules. Those optional starter services are not reachable from Porta's navigation graph and
+are not required by its contest flow.
+
+Porta-specific contest work includes the typed opportunity/rule models, deterministic eligibility and scenario
+engines, constrained Pareto Action Frontier, pack schema/validation/import, profile and plan persistence, the Porta
+screen flows and adaptive Desktop workspace, curated source register, tests, and product documentation. Unchanged
+starter code is excluded from Porta's originality and shared-code claims.
+
+The repository license is available at [../LICENSE](../LICENSE).

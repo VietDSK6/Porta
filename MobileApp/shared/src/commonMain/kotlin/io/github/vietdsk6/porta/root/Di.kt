@@ -29,24 +29,16 @@ import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.AiGenerationProvider
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
-import io.github.vietdsk6.porta.presentation.screens.account.AccountViewModel
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
-import io.github.vietdsk6.porta.presentation.screens.creditbalance.CreditBalanceViewModel
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
-import io.github.vietdsk6.porta.presentation.screens.gallery.GalleryViewModel
-import io.github.vietdsk6.porta.presentation.screens.generationresult.GenerationResultViewModel
-import io.github.vietdsk6.porta.presentation.screens.home.HomeViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
-import io.github.vietdsk6.porta.presentation.screens.paywall.PaywallViewModel
-import io.github.vietdsk6.porta.presentation.screens.profile.ProfileViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
-import io.github.vietdsk6.porta.presentation.screens.subscriptions.SubscriptionsViewModel
 import io.github.vietdsk6.porta.subscription.api.MockSubscriptionProvider
 import io.github.vietdsk6.porta.subscription.api.NoOpSubscriptionProviderUi
 import io.github.vietdsk6.porta.subscription.api.SubscriptionProvider
@@ -163,26 +155,9 @@ private val dataModule = module {
     initializeCreditSystem()
 }
 
-// ViewModels, scoped per NavEntry. PaywallViewModel takes a placementId param.
+// Porta ViewModels, scoped per NavEntry.
 private val presentationModule = module {
     viewModelOf(::OnBoardingViewModel)
-    viewModelOf(::HomeViewModel)
-    viewModelOf(::GalleryViewModel)
-    viewModelOf(::ProfileViewModel)
-    viewModel { (placementId: String?) ->
-        PaywallViewModel(
-            placementId = placementId,
-            subscriptionRepository = get(),
-            creditRepository = get(),
-            userRepository = get(),
-            featureFlagManager = get(),
-        )
-    }
-    viewModelOf(::AccountViewModel)
-    viewModelOf(::SubscriptionsViewModel)
-    viewModelOf(::GenerationResultViewModel)
-    viewModelOf(::CreditBalanceViewModel)
-
     viewModelOf(::ProfileSetupViewModel)
     viewModelOf(::DoorsViewModel)
     viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get(), get()) }

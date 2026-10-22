@@ -26,8 +26,8 @@
 | Cross-platform Kotlin project | IN PROGRESS | Product logic, persistence and most UI are shared Kotlin and compile for Android/JVM/JS/Wasm; Android + JVM Desktop remain the contest promise until both exact launch paths are manually confirmed. |
 | GitHub repository submitted | TODO | Create/publish the final repository and verify judge access. |
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
-| Comprehensive README | TODO | Add product story, architecture, data provenance, prerequisites, troubleshooting, and key-feature instructions. |
-| Launch instructions for every declared target | TODO | Decide final declared target set, test each exact command on a fresh setup, and document it. Do not leave broken starter-kit targets ambiguous. |
+| Comprehensive README | IN PROGRESS | `README.md` now covers the product story, demo path, architecture, data provenance, limitations, quality gates and starter-kit boundary; add final media and fresh-setup troubleshooting evidence before submission. |
+| Launch instructions for every declared target | IN PROGRESS | Android and JVM Desktop are explicitly declared with exact build/run commands; verify both from a fresh setup before freezing the README. |
 | 300-word essay | TODO | Draft late enough to reflect the real product; verify exact word count before submission. |
 | Submission form before deadline | TODO | Save the final form link and submission receipt outside the repository. |
 | Truthful and rights-safe submission/media | IN PROGRESS | Source every factual claim and opportunity rule; obtain permission for any identifiable third party in media. |
@@ -36,9 +36,8 @@
 
 Current contest promise: **Android + JVM Desktop**.
 
-Before the end of the first implementation week, decide how the existing iOS and Web starter-kit targets appear in
-the submission. Either keep them working and document them, or clearly scope the submitted product and repository
-so judges are not given unlaunchable targets. Never silently claim a target based only on generated scaffolding.
+The README now identifies iOS and Web as inherited compatibility scaffolding rather than declared Porta contest
+targets. Shared JS/Wasm compile checks may still protect portability, but they do not expand the runnable-target claim.
 
 ## Judging rubric
 
@@ -92,7 +91,7 @@ Required evidence:
 - [x] Manual audit covers organization, filenames, naming, class layout, idioms, and KDoc.
 - [x] Every manual finding is fixed or justified; the large contest-pack file is intentionally one cohesive,
   versioned data manifest rather than mixed application logic.
-- [ ] README documents formatting/test commands.
+- [x] README documents formatting/test commands.
 - [ ] Final audit checks the then-current official convention page.
 
 A green formatter alone must never be recorded as `20/20`.
@@ -103,7 +102,7 @@ A green formatter alone must never be recorded as `20/20`.
 |---|---|---|
 | Product name and visual identity | IN PROGRESS | Product name is Porta; implement the Portal Atlas system consistently across icon and screens, then audit marks/assets. |
 | Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register and two-profile receipt tests; complete an independent second reading before submission. |
-| README | TODO | Reproducible setup, all declared targets, architecture, feature tour, limitations, sources, license. |
+| README | IN PROGRESS | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and fresh-setup verification. |
 | Essay | TODO | Exactly 300 words and consistent with the actual submission. |
 | Screencast | TODO | 3–5 minutes; problem, magic moment, KMP proof, trust boundary, close. |
 | Screenshots/GIFs | TODO | Current UI only; rights-safe and readable. |
@@ -122,5 +121,4 @@ A green formatter alone must never be recorded as `20/20`.
 1. Have a second person re-read all 15 official sources and refresh every TBA deadline before the submission freeze.
 2. Exercise the packaged Desktop build keyboard-only and capture the rail, comparison matrix and pack inspector for
    the contest screencast.
-3. Remove obsolete starter image-generation/gallery/credits/account routes, then document the final target and
-   provenance boundary in the README.
+3. Measure shared Porta code with generated/vendor/unchanged starter code separated, then record the method and result.
