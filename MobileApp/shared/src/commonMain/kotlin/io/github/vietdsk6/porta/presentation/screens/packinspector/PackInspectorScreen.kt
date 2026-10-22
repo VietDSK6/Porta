@@ -733,7 +733,7 @@ private fun PackInspectorScreenPreview() {
     }
 }
 
-@Preview(widthDp = 1200, heightDp = 800)
+@Preview(device = "spec:width=1200dp,height=800dp,dpi=160")
 @Composable
 private fun PackInspectorDesktopPreview() {
     AppTheme {

@@ -73,7 +73,10 @@ Required evidence:
 - [x] Android quick-update/tracking flow completes a local plan, requires explicit actual-fact confirmation,
   persists optional evidence metadata and refreshes Doors reactively; covered by ViewModel/UI tests and the
   Android debug build.
-- [ ] Desktop comparison/authoring flow works.
+- [x] Desktop comparison/inspection flow works: wide windows use a navigation rail, Frontier becomes a
+  selectable master-detail workspace with an Actual-versus-What-if door matrix, and Pack inspector keeps its
+  read-only master-detail diagnostics. Compact Android behavior remains one-column with bottom navigation;
+  adaptive UI tests, 1280×800 preview evidence, JVM tests and the JVM Desktop launch path cover the slice.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
 - [ ] Shared-code metric documented with generated/vendor/template code excluded or separately disclosed.
 
@@ -117,6 +120,7 @@ A green formatter alone must never be recorded as `20/20`.
 ## Next three contest actions
 
 1. Have a second person re-read all 15 official sources and refresh every TBA deadline before the submission freeze.
-2. Finish and manually exercise the adaptive Desktop rail/master-detail path while preserving Android's compact flow.
+2. Exercise the packaged Desktop build keyboard-only and capture the rail, comparison matrix and pack inspector for
+   the contest screencast.
 3. Remove obsolete starter image-generation/gallery/credits/account routes, then document the final target and
    provenance boundary in the README.

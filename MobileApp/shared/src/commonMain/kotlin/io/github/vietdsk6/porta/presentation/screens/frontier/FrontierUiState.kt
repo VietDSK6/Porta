@@ -7,6 +7,7 @@ data class FrontierUiState(
     val horizonDays: Int = 90,
     val activePlan: ActivePlanSummaryUiState? = null,
     val actions: List<FrontierActionUiState> = emptyList(),
+    val selectedActionId: String? = null,
 )
 
 data class ActivePlanSummaryUiState(
@@ -17,6 +18,7 @@ data class ActivePlanSummaryUiState(
 data class FrontierActionUiState(
     val id: String,
     val title: String,
+    val currentLabel: String = "Not set",
     val targetLabel: String,
     val newlyOpenCount: Int,
     val improvedCount: Int = newlyOpenCount,
@@ -27,8 +29,21 @@ data class FrontierActionUiState(
     val costLabel: String,
     val explanation: String,
     val doorTitles: List<String>,
+    val doorComparisons: List<FrontierDoorComparisonUiState> = emptyList(),
+)
+
+data class FrontierDoorComparisonUiState(
+    val id: String,
+    val title: String,
+    val actualStateLabel: String,
+    val previewStateLabel: String,
+    val isNewlyOpen: Boolean,
+    val isSaved: Boolean,
+    val requiresDeadlineCheck: Boolean,
 )
 
 sealed interface FrontierUiEvent {
     data class HorizonChanged(val days: Int) : FrontierUiEvent
+
+    data class ActionSelected(val actionId: String) : FrontierUiEvent
 }

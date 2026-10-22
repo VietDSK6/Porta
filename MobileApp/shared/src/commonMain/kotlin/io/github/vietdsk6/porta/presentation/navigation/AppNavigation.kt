@@ -1,16 +1,10 @@
 package io.github.vietdsk6.porta.presentation.navigation
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -22,7 +16,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import io.github.vietdsk6.porta.data.source.featureflag.FeatureFlagManager
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavItem
-import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavigationBar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_gallery
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_home
@@ -89,7 +82,7 @@ private val noAnimationMetadata =
         NavDisplay.popTransitionSpec { noAnimationTransition } +
         NavDisplay.predictivePopTransitionSpec { noAnimationTransition }
 
-// Bottom-nav tabs, in display order. The keys are the routes; the values render the nav bar.
+// Top-level destinations in display order. Values render either the compact bar or wide rail.
 private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMapOf(
     DoorsScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_home,
@@ -107,8 +100,9 @@ private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMa
 
 /**
  * The single nav host: owns the [Navigator], renders the current back stack via [NavDisplay],
- * and shows the bottom nav bar only at a tab root (hidden on pushed screens and when the keyboard
- * is open). Starts on onboarding.
+ * and shows adaptive top-level navigation only at a tab root (hidden on pushed screens and when
+ * the keyboard is open). Compact windows use a bottom bar; wide windows use a rail. Starts on
+ * onboarding.
  */
 @Composable
 fun AppNavigation() {
@@ -125,26 +119,24 @@ fun AppNavigation() {
     val activeTopLevel = navigationState.topLevelRoute
     val selectedTopLevelIndex = TOP_LEVEL_ROUTES.keys.indexOf(activeTopLevel).coerceAtLeast(0)
     val bottomNavItems = remember { TOP_LEVEL_ROUTES.values.toList() }
-    val isBottomNavVisible = isAtRoot && activeTopLevel != null && !isKeyboardOpen()
+    val isTopLevelNavigationVisible = isAtRoot && activeTopLevel != null && !isKeyboardOpen()
 
     CompositionLocalProvider(LocalNavigator provides navigator) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(1f)) {
+        AdaptiveAppScaffold(
+            items = bottomNavItems,
+            selectedIndex = selectedTopLevelIndex,
+            navigationVisible = isTopLevelNavigationVisible,
+            onClickItem = { clickedItem ->
+                val targetRoute = TOP_LEVEL_ROUTES.entries
+                    .firstOrNull { it.value === clickedItem }?.key ?: return@AdaptiveAppScaffold
+                navigator.navigate(targetRoute)
+            },
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 NavDisplay(
                     entries = navigationState.toDecoratedEntries(entryProvider),
                     onBack = { navigator.goBack() },
                 )
-            }
-            AnimatedVisibility(isBottomNavVisible, enter = fadeIn(snap()), exit = fadeOut(snap())) {
-                BottomNavigationBar(
-                    modifier = Modifier.fillMaxWidth(),
-                    items = bottomNavItems,
-                    selectedIndex = selectedTopLevelIndex,
-                ) { clickedItem ->
-                    val targetRoute = TOP_LEVEL_ROUTES.entries
-                        .firstOrNull { it.value === clickedItem }?.key ?: return@BottomNavigationBar
-                    navigator.navigate(targetRoute)
-                }
             }
         }
     }

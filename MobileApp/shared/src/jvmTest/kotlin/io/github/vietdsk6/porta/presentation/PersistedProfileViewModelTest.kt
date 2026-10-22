@@ -210,6 +210,9 @@ class PersistedProfileViewModelTest {
 
         assertFalse(frontier.uiState.value.isSampleMode)
         val action = frontier.uiState.value.actions.first()
+        assertEquals("6.5 band", action.currentLabel)
+        assertEquals(action.id, frontier.uiState.value.selectedActionId)
+        assertTrue(action.doorComparisons.any { it.previewStateLabel == "Open" })
         val scenario = ScenarioPreviewViewModel(
             actionId = action.id,
             scenarioEvaluator = scenarioEvaluator,

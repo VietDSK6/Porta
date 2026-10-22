@@ -1,5 +1,8 @@
 package io.github.vietdsk6.porta.presentation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -16,6 +19,7 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorCardUiState
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierActionUiState
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierDoorComparisonUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiState
@@ -88,6 +92,31 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithText("30 days").performClick()
         assertTrue(events.contains(FrontierUiEvent.HorizonChanged(30)))
+    }
+
+    @Test
+    fun `wide frontier shows actual versus preview workspace and selects milestones`() = runComposeUiTest {
+        val events = mutableListOf<FrontierUiEvent>()
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 1200.dp, height = 800.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(selectedActionId = "raise-ielts"),
+                        onUiEvent = { events += it },
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("frontier-desktop-workspace").assertExists()
+        onNodeWithText("ACTUAL VS WHAT-IF").assertExists()
+        onNodeWithText("6.5 band").assertExists()
+        onNodeWithText("7.0 band").assertExists()
+        onNodeWithText("Aurora Scholars").assertExists()
+        onNodeWithTag("frontier-action-raise-ielts").performClick()
+        assertTrue(events.contains(FrontierUiEvent.ActionSelected("raise-ielts")))
     }
 
     @Test
@@ -176,6 +205,7 @@ class PortaVerticalSliceUiTest {
             FrontierActionUiState(
                 id = "raise-ielts",
                 title = "Raise IELTS from 6.5 to 7.0",
+                currentLabel = "6.5 band",
                 targetLabel = "7.0 band",
                 newlyOpenCount = 4,
                 savedDoorCount = 2,
@@ -184,6 +214,17 @@ class PortaVerticalSliceUiTest {
                 costLabel = "Low",
                 explanation = "Opens four synthetic doors before their deadlines.",
                 doorTitles = listOf("Aurora", "Forge", "Horizon", "Spark"),
+                doorComparisons = listOf(
+                    FrontierDoorComparisonUiState(
+                        id = "aurora",
+                        title = "Aurora Scholars",
+                        actualStateLabel = "Has gaps",
+                        previewStateLabel = "Open",
+                        isNewlyOpen = true,
+                        isSaved = true,
+                        requiresDeadlineCheck = false,
+                    ),
+                ),
             ),
         ),
     )
