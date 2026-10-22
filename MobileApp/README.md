@@ -109,7 +109,20 @@ The core product documents are:
 
 - [PORTA_PRD.md](PORTA_PRD.md) — scope, trust boundary, and acceptance criteria.
 - [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md) — source register and encoding policy.
+- [KMP_EVIDENCE.md](KMP_EVIDENCE.md) — reproducible shared-Kotlin measurement and exclusions.
 - [CONTEST_SCORECARD.md](CONTEST_SCORECARD.md) — evidence-backed contest readiness; no self-awarded judging score.
+
+### Shared Kotlin evidence
+
+The conservative contest-period measurement currently finds 8,409 NCLOC across 57 newly added, explicitly
+allowlisted Porta production files, all in `commonMain`. Static opportunity/sample data, tests, integration files with
+mixed starter provenance, generated/build/vendor code, package-only renames, and unchanged scaffold are excluded or
+reported separately. This is an internal provenance check—not an official contest formula or a claim that the whole
+repository is 100% shared. Reproduce it with:
+
+```bash
+./scripts/measure_porta_kmp_evidence.sh
+```
 
 ## Quality gates
 

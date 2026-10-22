@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 22 October 2026
+> Last updated: 23 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -77,7 +77,9 @@ Required evidence:
   read-only master-detail diagnostics. Compact Android behavior remains one-column with bottom navigation;
   adaptive UI tests, 1280×800 preview evidence, JVM tests and the JVM Desktop launch path cover the slice.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
-- [ ] Shared-code metric documented with generated/vendor/template code excluded or separately disclosed.
+- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement: 8,409 NCLOC across 57 explicitly
+  allowlisted Porta production files in `commonMain`; tests and Kotlin data are reported separately, while
+  generated/vendor/unchanged starter code, package-only renames and mixed-provenance integration files are excluded.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
 
@@ -121,4 +123,5 @@ A green formatter alone must never be recorded as `20/20`.
 1. Have a second person re-read all 15 official sources and refresh every TBA deadline before the submission freeze.
 2. Exercise the packaged Desktop build keyboard-only and capture the rail, comparison matrix and pack inspector for
    the contest screencast.
-3. Measure shared Porta code with generated/vendor/unchanged starter code separated, then record the method and result.
+3. Verify the documented Android and Desktop judge path from a fresh setup, then add only the troubleshooting notes
+   actually encountered.
