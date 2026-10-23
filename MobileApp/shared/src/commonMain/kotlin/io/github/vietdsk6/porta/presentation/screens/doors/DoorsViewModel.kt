@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.domain.model.Deadline
@@ -11,19 +12,26 @@ import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class DoorsViewModel(
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val profileRepository: ProfileRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
+    private val savedOpportunityRepository: SavedOpportunityRepository,
+    private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
-    private val savedIds = PortaSampleData.savedOpportunityIds.toMutableSet()
+    private var persistedSavedIds: Set<String> = emptySet()
+    private val pendingSavedStates = mutableMapOf<String, Boolean>()
+    private val savedMutationMutex = Mutex()
     private var isSampleProfile = true
     private var isSampleCatalog = true
     private var activeProfile = PortaSampleData.profile
@@ -37,8 +45,13 @@ class DoorsViewModel(
             combine(
                 profileRepository.observeProfile(),
                 opportunityPackRepository.observeActive(),
-            ) { profile, packResult -> profile to packResult.getOrNull() }
-                .collect { (profile, pack) ->
+                savedOpportunityRepository.observeSavedIds(),
+            ) { profile, packResult, savedIds -> Triple(profile, packResult.getOrNull(), savedIds) }
+                .collect { (profile, pack, savedIds) ->
+                    persistedSavedIds = savedIds
+                    pendingSavedStates.entries.removeAll { (opportunityId, isSaved) ->
+                        (opportunityId in savedIds) == isSaved
+                    }
                     isSampleProfile = profile.facts.isEmpty()
                     activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
                     activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
@@ -54,38 +67,54 @@ class DoorsViewModel(
     fun onUiEvent(event: DoorsUiEvent) {
         when (event) {
             is DoorsUiEvent.FilterChanged -> _uiState.value = buildState(event.filter)
+            is DoorsUiEvent.SavedChanged -> persistSavedChange(event.opportunityId)
+        }
+    }
 
-            is DoorsUiEvent.SavedChanged -> {
-                if (!savedIds.add(event.opportunityId)) savedIds.remove(event.opportunityId)
+    private fun persistSavedChange(opportunityId: String) {
+        val shouldSave = opportunityId !in effectiveSavedIds()
+        pendingSavedStates[opportunityId] = shouldSave
+        _uiState.update { current -> buildState(current.selectedFilter) }
+
+        viewModelScope.launch {
+            val result = savedMutationMutex.withLock {
+                savedOpportunityRepository.setSaved(opportunityId = opportunityId, isSaved = shouldSave)
+            }
+            if (result.isFailure && pendingSavedStates[opportunityId] == shouldSave) {
+                pendingSavedStates.remove(opportunityId)
                 _uiState.update { current -> buildState(current.selectedFilter) }
             }
         }
     }
 
-    private fun evaluateDoors(): List<DoorCardUiState> = activeOpportunities.map { opportunity ->
-        val receipt = eligibilityEvaluator.evaluate(
-            profile = activeProfile,
-            opportunity = opportunity,
-            today = PortaSampleData.referenceDate,
-        )
-        DoorCardUiState(
-            id = opportunity.id,
-            title = opportunity.title,
-            provider = opportunity.provider,
-            state = receipt.state,
-            deadlineLabel = opportunity.deadline.label(),
-            checkedLabel = "Checked ${opportunity.lastCheckedOn}",
-            isSaved = opportunity.id in savedIds,
-            primaryReason = receipt.rules
-                .firstOrNull { it.result == RuleResult.FAIL }
-                ?.explanation
-                ?: receipt.rules.firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
+    private fun evaluateDoors(): List<DoorCardUiState> {
+        val today = currentLocalDateProvider.today()
+        return activeOpportunities.map { opportunity ->
+            val receipt = eligibilityEvaluator.evaluate(
+                profile = activeProfile,
+                opportunity = opportunity,
+                today = today,
+            )
+            DoorCardUiState(
+                id = opportunity.id,
+                title = opportunity.title,
+                provider = opportunity.provider,
+                state = receipt.state,
+                deadlineLabel = opportunity.deadline.label(),
+                checkedLabel = "Checked ${opportunity.lastCheckedOn}",
+                isSaved = opportunity.id in effectiveSavedIds(),
+                primaryReason = receipt.rules
+                    .firstOrNull { it.result == RuleResult.FAIL }
                     ?.explanation
-                ?: receipt.rules.firstOrNull()?.explanation.orEmpty(),
-        )
+                    ?: receipt.rules.firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
+                        ?.explanation
+                    ?: receipt.rules.firstOrNull()?.explanation.orEmpty(),
+            )
+        }
     }
 
     private fun buildState(filter: DoorFilter): DoorsUiState {
+        val savedIds = effectiveSavedIds()
         val refreshed = allDoors.map { it.copy(isSaved = it.id in savedIds) }
         val filtered = refreshed.filter { door ->
             when (filter) {
@@ -106,6 +135,13 @@ class DoorsViewModel(
             gapCount = refreshed.count { it.state == EligibilityState.HAS_GAPS },
             needsInfoCount = refreshed.count { it.state == EligibilityState.NEEDS_INFO },
         )
+    }
+
+    private fun effectiveSavedIds(): Set<String> = buildSet {
+        addAll(persistedSavedIds)
+        pendingSavedStates.forEach { (opportunityId, isSaved) ->
+            if (isSaved) add(opportunityId) else remove(opportunityId)
+        }
     }
 
     private fun Deadline.label(): String = when (this) {

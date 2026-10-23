@@ -43,7 +43,8 @@
 - [x] **ProfileSetup** — minimal local-first facts, validation, Room persistence, nav callbacks, preview + UI/repository tests
 - [x] **Doors** *(tab)* — Portal Atlas cards, states/filters/saves, receipt navigation, preview + UI test
 - [x] **OpportunityDetail** — rule receipt, actual/required/source limits, scenario navigation, preview + UI test
-- [x] **Frontier** *(tab)* — horizon constraint, Pareto action card, scenario navigation, preview + UI test
+- [x] **Frontier** *(tab)* — persisted horizon/effort/cost/saved-door controls, Pareto actions, impact map,
+  exclusion diagnostics, responsive comparison workspace, scenario navigation, previews + UI tests
 - [x] **ScenarioPreview** — persistent WHAT-IF, before/after and deltas, explicit commit/discard, preview + UI test
 - [x] **ActivePlan** — single local milestone, progress/pause/complete, evidence + impact, explicit profile boundary, preview + tests
 - [x] **StudentProfile** *(tab)* — real local facts, dependencies, export/delete controls, preview + tests, nav callbacks
@@ -60,7 +61,7 @@
 
 - [x] Onboarding completed
 - [x] Selected opportunity goal
-- [ ] Planning horizon, maximum effort, maximum cost, and saved-door priority
+- [x] Planning horizon, maximum effort, maximum cost, and saved-door priority
 
 ## Acceptance tests
 
@@ -76,7 +77,8 @@
 ## Validation
 
 - [ ] Every P0 screen has a pure composable test and `@Preview`
-- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, ActivePlan, StudentProfile, and PackInspector inspected
+- [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, Frontier mobile/desktop,
+  ActivePlan, StudentProfile, and PackInspector inspected
 - [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
 - [ ] Developer ran Android or Desktop and confirmed the vertical slice behaves correctly
 

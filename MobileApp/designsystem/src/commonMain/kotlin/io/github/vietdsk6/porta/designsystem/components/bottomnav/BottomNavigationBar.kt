@@ -41,9 +41,10 @@ fun BottomNavigationBar(
     ) {
         items.forEachIndexed { index, item ->
             val isSelected = selectedIndex == index
+            val icon = if (isSelected) item.selectedIcon ?: item.icon else item.icon
             NavigationBarItem(
                 icon = {
-                    item.icon?.let {
+                    icon?.let {
                         Icon(
                             modifier = Modifier.size(24.dp),
                             painter = painterResource(it),
@@ -67,7 +68,7 @@ fun BottomNavigationBar(
                     unselectedTextColor = AppTheme.colors.bottomNav.unselectedTextIcon,
                 ),
                 selected = isSelected,
-                enabled = item.icon != null,
+                enabled = item.icon != null || item.selectedIcon != null,
                 onClick = { onClickItem(item) },
             )
         }

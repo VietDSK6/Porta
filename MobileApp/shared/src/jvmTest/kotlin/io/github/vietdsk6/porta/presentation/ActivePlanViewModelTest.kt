@@ -8,6 +8,7 @@ import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
@@ -24,6 +25,7 @@ import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanStatusUi
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanUiEvent
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -84,6 +86,7 @@ class ActivePlanViewModelTest {
             profileRepository = profileRepository,
             opportunityPackRepository = opportunityPackRepository,
             scenarioEvaluator = ScenarioEvaluator(EligibilityEvaluator()),
+            currentLocalDateProvider = CurrentLocalDateProvider { PortaSampleData.referenceDate },
         )
         advanceUntilIdle()
 

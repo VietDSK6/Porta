@@ -7,6 +7,7 @@ import io.github.vietdsk6.porta.data.repository.GenerationRepository
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
 import io.github.vietdsk6.porta.data.source.ai.ReplicateGenerationProvider
@@ -53,6 +54,7 @@ import io.github.vietdsk6.porta.util.logging.Logger
 import io.github.vietdsk6.porta.util.logging.NapierLogger
 import io.github.vietdsk6.porta.util.logging.TelegramLogger
 import io.github.vietdsk6.porta.util.platformModule
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -81,6 +83,7 @@ private val domainModule = module {
 // providers (selected via Constants), repositories, loggers, AI provider, and the credit system.
 private val dataModule = module {
     singleOf(::ApplicationScope)
+    single { CurrentLocalDateProvider() }
     factory { defaultAsyncDispatcher } bind CoroutineContext::class
     factory { BackgroundExecutor.IO } bind BackgroundExecutor::class
     // Use the codec's intentionally configured default Json instance. Constructor DSL would try
@@ -144,6 +147,7 @@ private val dataModule = module {
     singleOf(::OpportunityPackRepository)
     singleOf(::PlanRepository)
     singleOf(::ProfileRepository)
+    singleOf(::SavedOpportunityRepository)
 
     // Loggers
     factory { TelegramLogger(get(), get(), get()) } bind Logger::class
@@ -160,9 +164,9 @@ private val presentationModule = module {
     viewModelOf(::OnBoardingViewModel)
     viewModelOf(::ProfileSetupViewModel)
     viewModelOf(::DoorsViewModel)
-    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get(), get()) }
+    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get(), get(), get()) }
     viewModelOf(::FrontierViewModel)
-    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get(), get(), get()) }
+    viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get(), get(), get(), get()) }
     viewModelOf(::ActivePlanViewModel)
     viewModelOf(::StudentProfileViewModel)
     viewModelOf(::PackInspectorViewModel)

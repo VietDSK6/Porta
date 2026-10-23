@@ -10,18 +10,23 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavItem
-import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_gallery
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_home
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_profile
+import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavigationBar
+import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_gallery
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_home
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_profile
+import io.github.vietdsk6.porta.generated.resources.ic_doors
+import io.github.vietdsk6.porta.generated.resources.ic_doors_selected
+import io.github.vietdsk6.porta.generated.resources.ic_frontier
+import io.github.vietdsk6.porta.generated.resources.ic_frontier_selected
+import io.github.vietdsk6.porta.generated.resources.ic_student_profile
+import io.github.vietdsk6.porta.generated.resources.ic_student_profile_selected
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanScreen
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateScreen
@@ -62,17 +67,49 @@ private val noAnimationMetadata =
 private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMapOf(
     DoorsScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_home,
-        icon = UiRes.drawable.ic_home,
+        icon = Res.drawable.ic_doors,
+        selectedIcon = Res.drawable.ic_doors_selected,
     ),
     FrontierScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_gallery,
-        icon = UiRes.drawable.ic_gallery,
+        icon = Res.drawable.ic_frontier,
+        selectedIcon = Res.drawable.ic_frontier_selected,
     ),
     StudentProfileScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_profile,
-        icon = UiRes.drawable.ic_profile,
+        icon = Res.drawable.ic_student_profile,
+        selectedIcon = Res.drawable.ic_student_profile_selected,
     ),
 )
+
+@Preview(name = "Doors selected", widthDp = 390)
+@Composable
+private fun PortaBottomNavigationDoorsPreview() {
+    PortaBottomNavigationPreview(selectedIndex = 0)
+}
+
+@Preview(name = "Frontier selected", widthDp = 390)
+@Composable
+private fun PortaBottomNavigationFrontierPreview() {
+    PortaBottomNavigationPreview(selectedIndex = 1)
+}
+
+@Preview(name = "Profile selected", widthDp = 390)
+@Composable
+private fun PortaBottomNavigationProfilePreview() {
+    PortaBottomNavigationPreview(selectedIndex = 2)
+}
+
+@Composable
+private fun PortaBottomNavigationPreview(selectedIndex: Int) {
+    AppTheme {
+        BottomNavigationBar(
+            items = TOP_LEVEL_ROUTES.values.toList(),
+            selectedIndex = selectedIndex,
+            onClickItem = {},
+        )
+    }
+}
 
 /**
  * The single nav host: owns the [Navigator], renders the current back stack via [NavDisplay],

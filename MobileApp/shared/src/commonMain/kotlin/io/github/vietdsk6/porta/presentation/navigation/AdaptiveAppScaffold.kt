@@ -100,16 +100,17 @@ private fun PortaNavigationRail(
     ) {
         items.forEachIndexed { index, item ->
             val isSelected = index == selectedIndex
+            val icon = if (isSelected) item.selectedIcon ?: item.icon else item.icon
             NavigationRailItem(
                 selected = isSelected,
-                enabled = item.icon != null,
+                enabled = item.icon != null || item.selectedIcon != null,
                 alwaysShowLabel = true,
                 onClick = { onClickItem(item) },
                 icon = {
-                    item.icon?.let { icon ->
+                    icon?.let {
                         Icon(
                             modifier = Modifier.size(24.dp),
-                            painter = painterResource(icon),
+                            painter = painterResource(it),
                             contentDescription = stringResource(item.label),
                         )
                     }

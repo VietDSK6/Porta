@@ -8,6 +8,7 @@ import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
@@ -92,7 +93,7 @@ class ActionFrontierEngineTest {
             ),
         )
 
-        val frontier = engine.build(
+        val evaluation = engine.evaluate(
             profile = profile,
             opportunities = opportunities,
             savedOpportunityIds = emptySet(),
@@ -100,11 +101,12 @@ class ActionFrontierEngineTest {
             today = today,
         )
 
-        assertTrue(frontier.isEmpty())
+        assertTrue(evaluation.actions.isEmpty())
+        assertTrue(evaluation.exclusions.isEmpty())
     }
 
     @Test
-    fun `constraints and deadline feasibility exclude impossible milestones`() {
+    fun `all violated user constraints are diagnosed together`() {
         val expensive = template(
             id = "ielts-expensive",
             key = FactKey.IELTS_SCORE,
@@ -113,21 +115,18 @@ class ActionFrontierEngineTest {
             effort = EffortLevel.HIGH,
             cost = CostBand.HIGH,
         )
-        val opportunities = listOf(
-            opportunity(
-                id = "deadline-too-close",
-                key = FactKey.IELTS_SCORE,
-                required = FactValue.NumberValue(7.0, "band"),
-                actualOperator = Operator.GREATER_THAN_OR_EQUAL,
-                template = expensive,
-                deadline = Deadline.Known(LocalDate(2026, 11, 1)),
-            ),
+        val opportunity = opportunity(
+            id = "expensive-door",
+            key = FactKey.IELTS_SCORE,
+            required = FactValue.NumberValue(7.0, "band"),
+            actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+            template = expensive,
         )
         val profile = profile(FactKey.IELTS_SCORE, FactValue.NumberValue(6.5, "band"))
 
-        val strictFrontier = engine.build(
+        val evaluation = engine.evaluate(
             profile = profile,
-            opportunities = opportunities,
+            opportunities = listOf(opportunity),
             savedOpportunityIds = emptySet(),
             constraints = PlanningConstraints(
                 horizonDays = 30,
@@ -136,16 +135,314 @@ class ActionFrontierEngineTest {
             ),
             today = today,
         )
-        val permissiveFrontier = engine.build(
-            profile = profile,
-            opportunities = opportunities,
+
+        assertTrue(evaluation.actions.isEmpty())
+        assertEquals(
+            setOf(
+                FrontierExclusionReason.BEYOND_HORIZON,
+                FrontierExclusionReason.ABOVE_MAX_EFFORT,
+                FrontierExclusionReason.ABOVE_MAX_COST,
+            ),
+            evaluation.exclusions.single().reasons,
+        )
+    }
+
+    @Test
+    fun `known deadline accepts exact duration boundary and diagnoses one day short`() {
+        val exact = template(
+            id = "exact-boundary",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+            durationDays = 30,
+        )
+        val tooLate = template(
+            id = "one-day-too-late",
+            key = FactKey.GPA,
+            target = FactValue.NumberValue(4.0, "4.0 scale"),
+            durationDays = 30,
+        )
+
+        val evaluation = engine.evaluate(
+            profile = profileOf(
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+                FactKey.GPA to FactValue.NumberValue(3.5, "4.0 scale"),
+            ),
+            opportunities = listOf(
+                opportunity(
+                    id = "exact-door",
+                    key = FactKey.IELTS_SCORE,
+                    required = FactValue.NumberValue(7.0, "band"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = exact,
+                    deadline = Deadline.Known(LocalDate(2026, 11, 19)),
+                ),
+                opportunity(
+                    id = "missed-door",
+                    key = FactKey.GPA,
+                    required = FactValue.NumberValue(4.0, "4.0 scale"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = tooLate,
+                    deadline = Deadline.Known(LocalDate(2026, 11, 18)),
+                ),
+            ),
             savedOpportunityIds = emptySet(),
             constraints = permissiveConstraints,
             today = today,
         )
 
-        assertTrue(strictFrontier.isEmpty())
-        assertTrue(permissiveFrontier.isEmpty())
+        assertEquals(listOf("exact-boundary"), evaluation.actions.map { it.template.id })
+        assertEquals(
+            setOf(FrontierExclusionReason.MISSES_KNOWN_DEADLINES),
+            evaluation.exclusions.single().reasons,
+        )
+    }
+
+    @Test
+    fun `template that does not resolve its encoded gap has no verified impact`() {
+        val insufficientTarget = template(
+            id = "insufficient-ielts",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+        )
+
+        val evaluation = engine.evaluate(
+            profile = profile(FactKey.IELTS_SCORE, FactValue.NumberValue(6.5, "band")),
+            opportunities = listOf(
+                opportunity(
+                    id = "ielts-eight",
+                    key = FactKey.IELTS_SCORE,
+                    required = FactValue.NumberValue(8.0, "band"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = insufficientTarget,
+                ),
+            ),
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints,
+            today = today,
+        )
+
+        assertTrue(evaluation.actions.isEmpty())
+        assertEquals(
+            setOf(FrontierExclusionReason.NO_VERIFIED_IMPACT),
+            evaluation.exclusions.single().reasons,
+        )
+    }
+
+    @Test
+    fun `feasible candidate dominated on impact and resources is diagnosed`() {
+        val dominant = template(
+            id = "dominant-action",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+            durationDays = 10,
+            effort = EffortLevel.LOW,
+            cost = CostBand.FREE,
+        )
+        val dominated = template(
+            id = "dominated-action",
+            key = FactKey.GPA,
+            target = FactValue.NumberValue(4.0, "4.0 scale"),
+            durationDays = 20,
+            effort = EffortLevel.MEDIUM,
+            cost = CostBand.LOW,
+        )
+
+        val evaluation = engine.evaluate(
+            profile = profileOf(
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+                FactKey.GPA to FactValue.NumberValue(3.5, "4.0 scale"),
+            ),
+            opportunities = listOf(
+                opportunity(
+                    id = "language-a",
+                    key = FactKey.IELTS_SCORE,
+                    required = FactValue.NumberValue(7.0, "band"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = dominant,
+                ),
+                opportunity(
+                    id = "language-b",
+                    key = FactKey.IELTS_SCORE,
+                    required = FactValue.NumberValue(7.0, "band"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = dominant.copy(id = "dominant-copy"),
+                ),
+                opportunity(
+                    id = "academic",
+                    key = FactKey.GPA,
+                    required = FactValue.NumberValue(4.0, "4.0 scale"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = dominated,
+                ),
+            ),
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints.copy(prioritizeSaved = false),
+            today = today,
+        )
+
+        assertEquals(listOf("dominant-action"), evaluation.actions.map { it.template.id })
+        assertEquals("dominated-action", evaluation.exclusions.single().template.id)
+        assertEquals(
+            setOf(FrontierExclusionReason.DOMINATED),
+            evaluation.exclusions.single().reasons,
+        )
+    }
+
+    @Test
+    fun `saved metrics affect dominance only when saved priority is enabled`() {
+        val broad = template(
+            id = "broad-action",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+        )
+        val saved = template(
+            id = "saved-action",
+            key = FactKey.GPA,
+            target = FactValue.NumberValue(4.0, "4.0 scale"),
+        )
+        val opportunities = listOf(
+            opportunity(
+                id = "broad-a",
+                key = FactKey.IELTS_SCORE,
+                required = FactValue.NumberValue(7.0, "band"),
+                actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                template = broad,
+            ),
+            opportunity(
+                id = "broad-b",
+                key = FactKey.IELTS_SCORE,
+                required = FactValue.NumberValue(7.0, "band"),
+                actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                template = broad.copy(id = "broad-copy"),
+            ),
+            opportunity(
+                id = "saved-door",
+                key = FactKey.GPA,
+                required = FactValue.NumberValue(4.0, "4.0 scale"),
+                actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                template = saved,
+            ),
+        )
+        val profile = profileOf(
+            FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+            FactKey.GPA to FactValue.NumberValue(3.5, "4.0 scale"),
+        )
+
+        val prioritized = engine.evaluate(
+            profile = profile,
+            opportunities = opportunities,
+            savedOpportunityIds = setOf("saved-door"),
+            constraints = permissiveConstraints.copy(prioritizeSaved = true),
+            today = today,
+        )
+        val unprioritized = engine.evaluate(
+            profile = profile,
+            opportunities = opportunities,
+            savedOpportunityIds = setOf("saved-door"),
+            constraints = permissiveConstraints.copy(prioritizeSaved = false),
+            today = today,
+        )
+
+        assertEquals(listOf("saved-action", "broad-action"), prioritized.actions.map { it.template.id })
+        assertTrue(prioritized.exclusions.isEmpty())
+        assertEquals(listOf("broad-action"), unprioritized.actions.map { it.template.id })
+        assertEquals("saved-action", unprioritized.exclusions.single().template.id)
+        assertEquals(
+            setOf(FrontierExclusionReason.DOMINATED),
+            unprioritized.exclusions.single().reasons,
+        )
+    }
+
+    @Test
+    fun `ranking prefers newly open doors before total improvements`() {
+        val opensDoor = template(
+            id = "opens-one",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+        )
+        val improvesDoors = template(
+            id = "improves-two",
+            key = FactKey.EXPERIENCE_MONTHS,
+            target = FactValue.NumberValue(12.0, "months"),
+        )
+
+        val evaluation = engine.evaluate(
+            profile = profileOf(
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+                FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(6.0, "months"),
+            ),
+            opportunities = listOf(
+                opportunity(
+                    id = "opens",
+                    key = FactKey.IELTS_SCORE,
+                    required = FactValue.NumberValue(7.0, "band"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = opensDoor,
+                ),
+                reviewOpportunity(
+                    id = "improves-a",
+                    key = FactKey.EXPERIENCE_MONTHS,
+                    required = FactValue.NumberValue(12.0, "months"),
+                    template = improvesDoors,
+                ),
+                reviewOpportunity(
+                    id = "improves-b",
+                    key = FactKey.EXPERIENCE_MONTHS,
+                    required = FactValue.NumberValue(12.0, "months"),
+                    template = improvesDoors,
+                ),
+            ),
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints.copy(prioritizeSaved = false),
+            today = today,
+        )
+
+        assertEquals(listOf("opens-one", "improves-two"), evaluation.actions.map { it.template.id })
+        assertEquals(listOf(1, 0), evaluation.actions.map { it.newlyOpenOpportunityIds.size })
+        assertEquals(listOf(1, 2), evaluation.actions.map { it.improvedOpportunityIds.size })
+    }
+
+    @Test
+    fun `equivalent candidates use stable template id ordering`() {
+        val zAction = template(
+            id = "z-action",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+        )
+        val aAction = template(
+            id = "a-action",
+            key = FactKey.GPA,
+            target = FactValue.NumberValue(4.0, "4.0 scale"),
+        )
+
+        val evaluation = engine.evaluate(
+            profile = profileOf(
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+                FactKey.GPA to FactValue.NumberValue(3.5, "4.0 scale"),
+            ),
+            opportunities = listOf(
+                opportunity(
+                    id = "z-door",
+                    key = FactKey.IELTS_SCORE,
+                    required = FactValue.NumberValue(7.0, "band"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = zAction,
+                ),
+                opportunity(
+                    id = "a-door",
+                    key = FactKey.GPA,
+                    required = FactValue.NumberValue(4.0, "4.0 scale"),
+                    actualOperator = Operator.GREATER_THAN_OR_EQUAL,
+                    template = aAction,
+                ),
+            ),
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints.copy(prioritizeSaved = false),
+            today = today,
+        )
+
+        assertEquals(listOf("a-action", "z-action"), evaluation.actions.map { it.template.id })
+        assertTrue(evaluation.exclusions.isEmpty())
     }
 
     private val permissiveConstraints = PlanningConstraints(
@@ -198,6 +495,41 @@ class ActionFrontierEngineTest {
         actionTemplates = listOf(template),
     )
 
+    private fun reviewOpportunity(
+        id: String,
+        key: FactKey,
+        required: FactValue,
+        template: ActionTemplate,
+    ): Opportunity = Opportunity(
+        id = id,
+        title = "Synthetic $id",
+        provider = "Test provider",
+        category = OpportunityCategory.SCHOLARSHIP,
+        cycle = "test-only",
+        sourceUrl = "https://example.invalid/$id",
+        lastCheckedOn = today,
+        deadline = Deadline.Known(LocalDate(2027, 6, 1)),
+        eligibilityRule = RuleNode.All(
+            id = "$id-all",
+            children = listOf(
+                RuleNode.Atomic(
+                    id = "$id-rule",
+                    factKey = key,
+                    operator = Operator.GREATER_THAN_OR_EQUAL,
+                    expected = required,
+                    explanation = "Synthetic test rule.",
+                    actionability = template.targetActionability,
+                    actionTemplateId = template.id,
+                ),
+                RuleNode.ManualCheck(
+                    id = "$id-review",
+                    explanation = "Provider review is required.",
+                ),
+            ),
+        ),
+        actionTemplates = listOf(template),
+    )
+
     private fun template(
         id: String,
         key: FactKey,
@@ -219,6 +551,10 @@ class ActionFrontierEngineTest {
 
     private fun profile(key: FactKey, value: FactValue): ProfileSnapshot = ProfileSnapshot(
         facts = mapOf(key to fact(key, value)),
+    )
+
+    private fun profileOf(vararg values: Pair<FactKey, FactValue>): ProfileSnapshot = ProfileSnapshot(
+        facts = values.associate { (key, value) -> key to fact(key, value) },
     )
 
     private fun fact(key: FactKey, value: FactValue): ProfileFact = ProfileFact(

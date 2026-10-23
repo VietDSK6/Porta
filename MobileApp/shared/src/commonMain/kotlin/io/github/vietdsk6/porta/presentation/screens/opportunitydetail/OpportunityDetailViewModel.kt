@@ -11,6 +11,7 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,7 @@ class OpportunityDetailViewModel(
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val profileRepository: ProfileRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
+    private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         buildState(
@@ -69,7 +71,7 @@ class OpportunityDetailViewModel(
             val receipt = eligibilityEvaluator.evaluate(
                 profile,
                 opportunity,
-                PortaSampleData.referenceDate,
+                currentLocalDateProvider.today(),
             )
             OpportunityDetailUiState(
                 id = opportunity.id,

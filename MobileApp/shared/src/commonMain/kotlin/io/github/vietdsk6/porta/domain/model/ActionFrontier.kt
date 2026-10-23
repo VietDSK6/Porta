@@ -62,6 +62,40 @@ data class FrontierAction(
     val explanation: String,
 )
 
+data class ActionFrontierEvaluation(
+    val actions: List<FrontierAction>,
+    val exclusions: List<FrontierExclusion>,
+)
+
+data class FrontierExclusion(
+    val template: ActionTemplate,
+    val reasons: Set<FrontierExclusionReason>,
+)
+
+enum class FrontierExclusionReason {
+    BEYOND_HORIZON,
+    ABOVE_MAX_EFFORT,
+    ABOVE_MAX_COST,
+    MISSES_KNOWN_DEADLINES,
+    NO_VERIFIED_IMPACT,
+    DOMINATED,
+}
+
+/**
+ * Returns whether an action with [minimumDurationDays] can finish by a published deadline.
+ * Unknown deadlines remain feasible for comparison, but callers must keep them visibly unverified.
+ */
+fun Opportunity.isFeasibleForPlanning(
+    today: LocalDate,
+    minimumDurationDays: Int,
+): Boolean = when (val publishedDeadline = deadline) {
+    is Deadline.Known -> publishedDeadline.date.toEpochDays() - today.toEpochDays() >= minimumDurationDays
+
+    Deadline.Missing,
+    Deadline.Tba,
+    -> true
+}
+
 /**
  * Returns opportunities where the scenario resolves a failed encoded rule for [targetFactKey].
  * The door may still need a manual source check, so this is intentionally broader than "open".

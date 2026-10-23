@@ -12,9 +12,11 @@ import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.util.extensions.asFormattedDate
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +29,7 @@ class ActivePlanViewModel(
     profileRepository: ProfileRepository,
     opportunityPackRepository: OpportunityPackRepository,
     private val scenarioEvaluator: ScenarioEvaluator,
+    private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
     private val operation = MutableStateFlow(OperationState())
 
@@ -85,12 +88,21 @@ class ActivePlanViewModel(
         val affectedDoors = if (profile.facts.isEmpty()) {
             emptyList()
         } else {
+            val today = currentLocalDateProvider.today()
             scenarioEvaluator.evaluate(
                 profile = profile,
                 overrides = mapOf(targetFactKey to targetValue),
                 opportunities = opportunities,
-                today = PortaSampleData.referenceDate,
+                today = today,
             ).resolvedHardGapOpportunityIds(targetFactKey)
+                .filter { opportunityId ->
+                    opportunities.firstOrNull { it.id == opportunityId }
+                        ?.isFeasibleForPlanning(
+                            today = today,
+                            minimumDurationDays = expectedDurationDays ?: action?.minimumDurationDays ?: 0,
+                        )
+                        ?: false
+                }
                 .mapNotNull { opportunityId ->
                     opportunities.firstOrNull { it.id == opportunityId }?.title
                 }

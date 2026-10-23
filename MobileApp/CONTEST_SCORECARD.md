@@ -54,7 +54,9 @@ Current evidence:
 - [x] Competitor boundary documented; What-if is treated as the visualization, not the sole novelty claim.
 - [x] Working Action Frontier over the bundled 15-record sourced dataset, with hard-gap resolution kept distinct
   from fully open eligibility and unverified deadlines.
-- [x] Constraint-aware Action Frontier, Pareto ranking and deterministic tests are implemented over the synthetic demonstration fixture.
+- [x] Constraint-aware Action Frontier now persists time/effort/cost/saved-door priorities, reacts to Room-backed
+  saves, diagnoses excluded milestones, and exposes a selectable impact map; domain, ViewModel and Compose UI tests
+  cover the ranking and disclosure behavior.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 

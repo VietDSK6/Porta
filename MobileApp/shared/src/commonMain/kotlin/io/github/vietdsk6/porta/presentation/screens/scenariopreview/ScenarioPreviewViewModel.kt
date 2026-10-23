@@ -12,9 +12,11 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +29,7 @@ class ScenarioPreviewViewModel(
     private val profileRepository: ProfileRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
     private val planRepository: PlanRepository,
+    private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
     private var activeProfile = PortaSampleData.profile
     private var activeOpportunities: List<Opportunity> = PortaSampleData.opportunities
@@ -121,14 +124,24 @@ class ScenarioPreviewViewModel(
                 isSampleProfile = isSampleProfile,
                 error = "Your profile is missing ${action.targetFactKey.readable()}.",
             )
+        val today = currentLocalDateProvider.today()
         val scenario = scenarioEvaluator.evaluate(
             profile = profile,
             overrides = mapOf(action.targetFactKey to action.targetValue),
             opportunities = activeOpportunities,
-            today = PortaSampleData.referenceDate,
+            today = today,
         )
         val opportunitiesById = activeOpportunities.associateBy { it.id }
-        val improvedIds = scenario.resolvedHardGapOpportunityIds(action.targetFactKey).toSet()
+        val improvedIds = scenario.resolvedHardGapOpportunityIds(action.targetFactKey)
+            .filter { opportunityId ->
+                opportunitiesById[opportunityId]
+                    ?.isFeasibleForPlanning(
+                        today = today,
+                        minimumDurationDays = action.minimumDurationDays,
+                    )
+                    ?: false
+            }
+            .toSet()
         val opened = scenario.deltas
             .filter {
                 it.opportunityId in improvedIds &&

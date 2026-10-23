@@ -7,12 +7,17 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorCardUiState
@@ -20,6 +25,7 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierActionUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierDoorComparisonUiState
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierExcludedActionUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiState
@@ -81,17 +87,67 @@ class PortaVerticalSliceUiTest {
         val events = mutableListOf<FrontierUiEvent>()
         setContent {
             AppTheme {
-                FrontierScreen(
-                    uiState = frontierState,
-                    onUiEvent = { events += it },
-                    onPreviewScenario = {},
-                    onOpenActivePlan = {},
-                )
+                Box(Modifier.size(width = 700.dp, height = 900.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState,
+                        onUiEvent = { events += it },
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
             }
         }
 
-        onNodeWithText("30 days").performClick()
+        onNodeWithText("Adjust").performClick()
+        onNodeWithTag("frontier-horizon-30").performClick()
         assertTrue(events.contains(FrontierUiEvent.HorizonChanged(30)))
+    }
+
+    @Test
+    fun `frontier emits effort cost and saved priority constraints`() = runComposeUiTest {
+        val events = mutableListOf<FrontierUiEvent>()
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 700.dp, height = 2200.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState,
+                        onUiEvent = { events += it },
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("Adjust").performClick()
+        onNodeWithTag("frontier-effort-MEDIUM").performScrollTo().performClick()
+        onNodeWithTag("frontier-cost-LOW").performScrollTo().performClick()
+        onNodeWithTag("frontier-prioritize-saved").performScrollTo().performClick()
+
+        assertTrue(events.contains(FrontierUiEvent.MaxEffortChanged(EffortLevel.MEDIUM)))
+        assertTrue(events.contains(FrontierUiEvent.MaxCostChanged(CostBand.LOW)))
+        assertTrue(events.contains(FrontierUiEvent.PrioritizeSavedChanged(false)))
+    }
+
+    @Test
+    fun `frontier explains excluded actions and exposes an accessible impact map`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 700.dp, height = 2200.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState,
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithContentDescription("Action impact map", substring = true).assertExists()
+        onNodeWithTag("frontier-compact-content").performScrollToIndex(7)
+        onNodeWithTag("frontier-exclusions").assertExists()
+        onNodeWithText("Above your cost limit", substring = true).assertExists()
     }
 
     @Test
@@ -115,7 +171,8 @@ class PortaVerticalSliceUiTest {
         onNodeWithText("6.5 band").assertExists()
         onNodeWithText("7.0 band").assertExists()
         onNodeWithText("Aurora Scholars").assertExists()
-        onNodeWithTag("frontier-action-raise-ielts").performClick()
+        onNodeWithTag("frontier-impact-map").assertExists()
+        onNodeWithTag("frontier-plot-point-raise-ielts").performClick()
         assertTrue(events.contains(FrontierUiEvent.ActionSelected("raise-ielts")))
     }
 
@@ -209,6 +266,9 @@ class PortaVerticalSliceUiTest {
                 targetLabel = "7.0 band",
                 newlyOpenCount = 4,
                 savedDoorCount = 2,
+                durationDays = 45,
+                effort = EffortLevel.MEDIUM,
+                cost = CostBand.LOW,
                 durationLabel = "45 days",
                 effortLabel = "Medium",
                 costLabel = "Low",
@@ -225,6 +285,47 @@ class PortaVerticalSliceUiTest {
                         requiresDeadlineCheck = false,
                     ),
                 ),
+            ),
+            FrontierActionUiState(
+                id = "verify-enrollment",
+                title = "Verify current enrollment",
+                currentLabel = "Self-reported",
+                targetLabel = "Evidence attached",
+                newlyOpenCount = 1,
+                improvedCount = 2,
+                savedDoorCount = 1,
+                durationDays = 7,
+                effort = EffortLevel.LOW,
+                cost = CostBand.FREE,
+                durationLabel = "7 days",
+                effortLabel = "Low",
+                costLabel = "Free",
+                explanation = "Moves two doors forward.",
+                doorTitles = listOf("Kotlin Student Coding Competition", "Aurora"),
+            ),
+            FrontierActionUiState(
+                id = "community-project",
+                title = "Complete an evidenced community project",
+                currentLabel = "Not set",
+                targetLabel = "Completed",
+                newlyOpenCount = 1,
+                improvedCount = 3,
+                savedDoorCount = 0,
+                durationDays = 90,
+                effort = EffortLevel.HIGH,
+                cost = CostBand.MEDIUM,
+                durationLabel = "90 days",
+                effortLabel = "High",
+                costLabel = "Medium",
+                explanation = "Moves three doors forward.",
+                doorTitles = listOf("Impact", "Civic", "Change"),
+            ),
+        ),
+        exclusions = listOf(
+            FrontierExcludedActionUiState(
+                id = "costly-certificate",
+                title = "Complete an advanced certificate",
+                reasons = listOf("Above your cost limit"),
             ),
         ),
     )

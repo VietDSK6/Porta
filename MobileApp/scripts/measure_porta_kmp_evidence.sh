@@ -43,6 +43,7 @@ SHARED_PRODUCTION_EXACT_PATHS=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/OpportunityPackRepository.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/PlanRepository.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/ProfileRepository.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/SavedOpportunityRepository.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/dao/OpportunityPackDao.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/dao/PlanItemDao.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/dao/ProfileFactDao.kt"

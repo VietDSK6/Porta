@@ -14,14 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.EffortLevel
 
 @Composable
 fun FrontierScreen(
@@ -102,12 +102,29 @@ private fun CompactFrontierContent(
         modifier = Modifier.fillMaxSize().testTag("frontier-compact-content"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { FrontierIntroduction(uiState = uiState, onUiEvent = onUiEvent) }
+        item { FrontierIntroduction(uiState = uiState) }
+        item {
+            FrontierControls(
+                uiState = uiState,
+                onUiEvent = onUiEvent,
+                collapsible = true,
+            )
+        }
+        if (uiState.actions.isNotEmpty()) {
+            item {
+                FrontierPlot(
+                    actions = uiState.actions,
+                    horizonDays = uiState.horizonDays,
+                    selectedActionId = uiState.selectedActionId,
+                    onActionSelected = { onUiEvent(FrontierUiEvent.ActionSelected(it)) },
+                )
+            }
+        }
         uiState.activePlan?.let { plan ->
             item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
         }
         if (uiState.actions.isEmpty()) {
-            item { NoFeasibleActionCard() }
+            item { NoFeasibleActionCard(uiState.exclusions) }
         } else {
             items(uiState.actions, key = FrontierActionUiState::id) { action ->
                 FrontierCard(
@@ -119,6 +136,9 @@ private fun CompactFrontierContent(
                     onPreview = { onPreviewScenario(action.id) },
                 )
             }
+        }
+        if (uiState.exclusions.isNotEmpty()) {
+            item { ExcludedActionsCard(uiState.exclusions) }
         }
         item { Spacer(Modifier.height(8.dp)) }
     }
@@ -149,12 +169,19 @@ private fun WideFrontierContent(
                 modifier = Modifier.fillMaxHeight().weight(0.4f).testTag("frontier-master-list"),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                item { FrontierIntroduction(uiState = uiState, onUiEvent = onUiEvent) }
+                item { FrontierIntroduction(uiState = uiState) }
+                item {
+                    FrontierControls(
+                        uiState = uiState,
+                        onUiEvent = onUiEvent,
+                        collapsible = false,
+                    )
+                }
                 uiState.activePlan?.let { plan ->
                     item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
                 }
                 if (uiState.actions.isEmpty()) {
-                    item { NoFeasibleActionCard() }
+                    item { NoFeasibleActionCard(uiState.exclusions) }
                 } else {
                     items(uiState.actions, key = FrontierActionUiState::id) { action ->
                         FrontierCard(
@@ -167,6 +194,9 @@ private fun WideFrontierContent(
                         )
                     }
                 }
+                if (uiState.exclusions.isNotEmpty()) {
+                    item { ExcludedActionsCard(uiState.exclusions) }
+                }
                 item { Spacer(Modifier.height(8.dp)) }
             }
 
@@ -177,6 +207,14 @@ private fun WideFrontierContent(
                 if (selectedAction == null) {
                     item { NoSelectionCard() }
                 } else {
+                    item {
+                        FrontierPlot(
+                            actions = uiState.actions,
+                            horizonDays = uiState.horizonDays,
+                            selectedActionId = selectedAction.id,
+                            onActionSelected = { onUiEvent(FrontierUiEvent.ActionSelected(it)) },
+                        )
+                    }
                     item {
                         FrontierComparisonPanel(
                             action = selectedAction,
@@ -193,7 +231,6 @@ private fun WideFrontierContent(
 @Composable
 private fun FrontierIntroduction(
     uiState: FrontierUiState,
-    onUiEvent: (FrontierUiEvent) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -207,11 +244,10 @@ private fun FrontierIntroduction(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Only non-dominated, controllable milestones appear here.",
+            text = "Choose limits you can honor. Porta shows what fits and explains what does not.",
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyLarge,
         )
-        ConstraintCard(uiState.horizonDays, onUiEvent)
     }
 }
 
@@ -230,35 +266,6 @@ private fun ActivePlanPinnedCard(plan: ActivePlanSummaryUiState, onOpen: () -> U
             Text("ACTIVE PLAN · ${plan.statusLabel.uppercase()}", color = PORTA_TEAL, fontWeight = FontWeight.Bold)
             Text(plan.title, color = AppTheme.colors.onAlternative, style = AppTheme.typography.h6)
             Button(modifier = Modifier.fillMaxWidth(), onClick = onOpen) { Text("Open plan") }
-        }
-    }
-}
-
-@Composable
-private fun ConstraintCard(horizonDays: Int, onUiEvent: (FrontierUiEvent) -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        shape = RoundedCornerShape(20.dp),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Planning horizon", style = AppTheme.typography.h6)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(listOf(30, 90, 180, 365)) { days ->
-                    FilterChip(
-                        selected = horizonDays == days,
-                        onClick = { onUiEvent(FrontierUiEvent.HorizonChanged(days)) },
-                        label = { Text(if (days < 365) "$days days" else "1 year") },
-                    )
-                }
-            }
-            Text(
-                text = "Up to very-high effort and unknown cost.",
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodySmall,
-            )
         }
     }
 }
@@ -569,18 +576,64 @@ private fun MetricPill(label: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun NoFeasibleActionCard() {
+private fun NoFeasibleActionCard(exclusions: List<FrontierExcludedActionUiState>) {
     Card(
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
         shape = RoundedCornerShape(20.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("No feasible milestone in this horizon", style = AppTheme.typography.h6)
             Text(
-                text = "Try a longer horizon. Porta will not pretend a 45-day milestone fits into 30 days.",
+                text = if (exclusions.isEmpty()) "No verified next step yet" else "Nothing fits these limits",
+                style = AppTheme.typography.h6,
+            )
+            Text(
+                text = if (exclusions.isEmpty()) {
+                    "No encoded hard gap currently maps to a controllable milestone. Check your profile facts and pack."
+                } else {
+                    "Porta did not silently hide the candidates. Review the reasons below or widen one limit."
+                },
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyLarge,
             )
+        }
+    }
+}
+
+@Composable
+private fun ExcludedActionsCard(exclusions: List<FrontierExcludedActionUiState>) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-exclusions"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("What did not fit · ${exclusions.size}", style = AppTheme.typography.h6)
+                Text(
+                    text = "These are candidates, not recommendations under your current limits.",
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+            }
+            exclusions.forEach { exclusion ->
+                Column(
+                    modifier = Modifier.fillMaxWidth().testTag("frontier-exclusion-${exclusion.id}"),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(exclusion.title, fontWeight = FontWeight.SemiBold)
+                    exclusion.reasons.forEach { reason ->
+                        Text(
+                            text = "• $reason",
+                            color = AppTheme.colors.text.secondary,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -598,7 +651,7 @@ private fun NoSelectionCard() {
         ) {
             Text("No milestone to compare", style = AppTheme.typography.h5)
             Text(
-                text = "Adjust the planning horizon to find a feasible next step.",
+                text = "Adjust time, effort or cost to find a feasible next step.",
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyLarge,
             )
@@ -636,9 +689,9 @@ private fun FrontierDesktopPreview() {
 }
 
 private val previewState = FrontierUiState(
-    isSampleMode = false,
-    isSampleCatalog = false,
-    catalogDoorCount = 15,
+    isSampleMode = true,
+    isSampleCatalog = true,
+    catalogDoorCount = 5,
     actions = listOf(
         FrontierActionUiState(
             id = "raise-ielts",
@@ -649,6 +702,9 @@ private val previewState = FrontierUiState(
             improvedCount = 4,
             savedDoorCount = 1,
             timingUnverifiedCount = 1,
+            durationDays = 45,
+            effort = EffortLevel.MEDIUM,
+            cost = CostBand.LOW,
             durationLabel = "45 days",
             effortLabel = "Medium",
             costLabel = "Low",
@@ -674,6 +730,47 @@ private val previewState = FrontierUiState(
                     requiresDeadlineCheck = true,
                 ),
             ),
+        ),
+        FrontierActionUiState(
+            id = "verify-enrollment",
+            title = "Verify current enrollment",
+            currentLabel = "Self-reported",
+            targetLabel = "Evidence attached",
+            newlyOpenCount = 1,
+            improvedCount = 2,
+            savedDoorCount = 2,
+            durationDays = 7,
+            effort = EffortLevel.LOW,
+            cost = CostBand.FREE,
+            durationLabel = "7 days",
+            effortLabel = "Low",
+            costLabel = "Free",
+            explanation = "Resolves enrollment evidence gaps in two saved opportunities.",
+            doorTitles = listOf("Kotlin Student Coding Competition", "Global Student Challenge"),
+        ),
+        FrontierActionUiState(
+            id = "community-project",
+            title = "Complete an evidenced community project",
+            currentLabel = "Not set",
+            targetLabel = "Completed",
+            newlyOpenCount = 1,
+            improvedCount = 3,
+            savedDoorCount = 0,
+            durationDays = 90,
+            effort = EffortLevel.HIGH,
+            cost = CostBand.MEDIUM,
+            durationLabel = "90 days",
+            effortLabel = "High",
+            costLabel = "Medium",
+            explanation = "Resolves a published project requirement in three opportunities.",
+            doorTitles = listOf("Impact Fellows", "Civic Builders", "Student Changemakers"),
+        ),
+    ),
+    exclusions = listOf(
+        FrontierExcludedActionUiState(
+            id = "internship-year",
+            title = "Build 12 months of experience",
+            reasons = listOf("Needs more time than your horizon"),
         ),
     ),
 )

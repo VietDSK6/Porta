@@ -8,6 +8,8 @@ import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
+import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
@@ -25,6 +27,7 @@ import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateUiEvent
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -44,6 +47,7 @@ class ActualProfileUpdateViewModelTest {
     private lateinit var database: AppDatabase
     private lateinit var planRepository: PlanRepository
     private lateinit var profileRepository: ProfileRepository
+    private lateinit var savedOpportunityRepository: SavedOpportunityRepository
     private lateinit var opportunityPackRepository: OpportunityPackRepository
 
     @BeforeTest
@@ -56,6 +60,7 @@ class ActualProfileUpdateViewModelTest {
         val backgroundExecutor = BackgroundExecutor(dispatcher)
         planRepository = PlanRepository(database.planItemDao(), backgroundExecutor)
         profileRepository = ProfileRepository(database.profileFactDao(), backgroundExecutor)
+        savedOpportunityRepository = SavedOpportunityRepository(database.savedOpportunityDao(), backgroundExecutor)
         opportunityPackRepository = OpportunityPackRepository(
             database.opportunityPackDao(),
             OpportunityPackParser(OpportunityPackCodec(), OpportunityPackValidator()),
@@ -90,7 +95,13 @@ class ActualProfileUpdateViewModelTest {
     fun `confirmed achieved value updates doors immediately without recreating the doors view model`() = runTest(dispatcher) {
         saveIelts(6.5)
         planRepository.replaceCurrentPlan(ieltsPlan()).getOrThrow()
-        val doors = DoorsViewModel(EligibilityEvaluator(), profileRepository, opportunityPackRepository)
+        val doors = DoorsViewModel(
+            EligibilityEvaluator(),
+            profileRepository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            CurrentLocalDateProvider { PortaSampleData.referenceDate },
+        )
         val update = ActualProfileUpdateViewModel(planRepository, profileRepository)
         advanceUntilIdle()
 

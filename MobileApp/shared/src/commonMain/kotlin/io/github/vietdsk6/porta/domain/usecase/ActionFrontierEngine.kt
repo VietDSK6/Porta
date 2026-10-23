@@ -1,15 +1,19 @@
 package io.github.vietdsk6.porta.domain.usecase
 
+import io.github.vietdsk6.porta.domain.model.ActionFrontierEvaluation
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FrontierAction
+import io.github.vietdsk6.porta.domain.model.FrontierExclusion
+import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import kotlinx.datetime.LocalDate
 
@@ -23,7 +27,21 @@ class ActionFrontierEngine(
         savedOpportunityIds: Set<String>,
         constraints: PlanningConstraints,
         today: LocalDate,
-    ): List<FrontierAction> {
+    ): List<FrontierAction> = evaluate(
+        profile = profile,
+        opportunities = opportunities,
+        savedOpportunityIds = savedOpportunityIds,
+        constraints = constraints,
+        today = today,
+    ).actions
+
+    fun evaluate(
+        profile: ProfileSnapshot,
+        opportunities: List<Opportunity>,
+        savedOpportunityIds: Set<String>,
+        constraints: PlanningConstraints,
+        today: LocalDate,
+    ): ActionFrontierEvaluation {
         val opportunityById = opportunities.associateBy(Opportunity::id)
         val baseline = opportunities.associate { opportunity ->
             opportunity.id to eligibilityEvaluator.evaluate(profile, opportunity, today)
@@ -47,26 +65,44 @@ class ActionFrontierEngine(
                 )
             }
             .filter { it.isEthicallyActionable() }
-            .filter { it.minimumDurationDays <= constraints.horizonDays }
-            .filter { it.effort.rank <= constraints.maxEffort.rank }
-            .filter { it.costBand.rank <= constraints.maxCost.rank }
-
+        val exclusions = mutableListOf<FrontierExclusion>()
         val impacted = candidates.mapNotNull { template ->
+            val reasons = linkedSetOf<FrontierExclusionReason>()
+            if (template.minimumDurationDays > constraints.horizonDays) {
+                reasons += FrontierExclusionReason.BEYOND_HORIZON
+            }
+            if (template.effort.rank > constraints.maxEffort.rank) {
+                reasons += FrontierExclusionReason.ABOVE_MAX_EFFORT
+            }
+            if (template.costBand.rank > constraints.maxCost.rank) {
+                reasons += FrontierExclusionReason.ABOVE_MAX_COST
+            }
+
             val scenario = scenarioEvaluator.evaluate(
                 profile = profile,
                 overrides = mapOf(template.targetFactKey to template.targetValue),
                 opportunities = opportunities,
                 today = today,
             )
-            val improved = scenario.resolvedHardGapOpportunityIds(template.targetFactKey)
+            val resolvedHardGaps = scenario.resolvedHardGapOpportunityIds(template.targetFactKey)
+            val improved = resolvedHardGaps
                 .filter { opportunityId ->
                     opportunityById[opportunityId]
-                        ?.let { isFeasibleForPlanning(it, today, template.minimumDurationDays) }
+                        ?.isFeasibleForPlanning(today, template.minimumDurationDays)
                         ?: false
                 }
-            if (improved.isEmpty()) {
+
+            if (resolvedHardGaps.isEmpty()) {
+                reasons += FrontierExclusionReason.NO_VERIFIED_IMPACT
+            } else if (improved.isEmpty()) {
+                reasons += FrontierExclusionReason.MISSES_KNOWN_DEADLINES
+            }
+
+            if (reasons.isNotEmpty()) {
+                exclusions += FrontierExclusion(template = template, reasons = reasons)
                 return@mapNotNull null
             }
+
             val improvedSet = improved.toSet()
             val newlyOpen = scenario.deltas
                 .filter { delta ->
@@ -105,55 +141,74 @@ class ActionFrontierEngine(
             )
         }
 
-        val frontier = impacted.filter { candidate ->
-            impacted.none { other -> other !== candidate && dominates(other, candidate) }
-        }
-
-        return frontier.sortedWith(
-            compareByDescending<FrontierAction> {
-                if (constraints.prioritizeSaved) it.improvedSavedOpportunityIds.size else 0
+        val dominated = impacted.filter { candidate ->
+            impacted.any { other ->
+                other !== candidate && dominates(
+                    a = other,
+                    b = candidate,
+                    prioritizeSaved = constraints.prioritizeSaved,
+                )
             }
-                .thenByDescending { it.improvedOpportunityIds.size }
+        }
+        exclusions += dominated.map { action ->
+            FrontierExclusion(
+                template = action.template,
+                reasons = setOf(FrontierExclusionReason.DOMINATED),
+            )
+        }
+        val frontier = impacted.filter { candidate -> dominated.none { it === candidate } }
+
+        val ranked = frontier.sortedWith(
+            compareByDescending<FrontierAction> {
+                if (constraints.prioritizeSaved) it.newlyOpenSavedOpportunityIds.size else 0
+            }
+                .thenByDescending {
+                    if (constraints.prioritizeSaved) it.improvedSavedOpportunityIds.size else 0
+                }
                 .thenByDescending { it.newlyOpenOpportunityIds.size }
+                .thenByDescending { it.improvedOpportunityIds.size }
                 .thenBy { it.earliestAffectedDeadline?.toEpochDays() ?: Int.MAX_VALUE }
                 .thenBy { it.template.minimumDurationDays }
                 .thenBy { it.template.effort.rank }
                 .thenBy { it.template.costBand.rank }
                 .thenBy { it.template.id },
         )
+        return ActionFrontierEvaluation(
+            actions = ranked,
+            exclusions = exclusions.sortedBy { it.template.id },
+        )
     }
 
-    private fun dominates(a: FrontierAction, b: FrontierAction): Boolean {
+    private fun dominates(
+        a: FrontierAction,
+        b: FrontierAction,
+        prioritizeSaved: Boolean,
+    ): Boolean {
+        val savedNoWorse = !prioritizeSaved ||
+            (
+                a.newlyOpenSavedOpportunityIds.size >= b.newlyOpenSavedOpportunityIds.size &&
+                    a.improvedSavedOpportunityIds.size >= b.improvedSavedOpportunityIds.size
+                )
+        val savedStrictlyBetter = prioritizeSaved &&
+            (
+                a.newlyOpenSavedOpportunityIds.size > b.newlyOpenSavedOpportunityIds.size ||
+                    a.improvedSavedOpportunityIds.size > b.improvedSavedOpportunityIds.size
+                )
         val noWorse =
-            a.improvedSavedOpportunityIds.size >= b.improvedSavedOpportunityIds.size &&
+            savedNoWorse &&
+                a.newlyOpenOpportunityIds.size >= b.newlyOpenOpportunityIds.size &&
                 a.improvedOpportunityIds.size >= b.improvedOpportunityIds.size &&
                 a.template.minimumDurationDays <= b.template.minimumDurationDays &&
                 a.template.effort.rank <= b.template.effort.rank &&
                 a.template.costBand.rank <= b.template.costBand.rank
         val strictlyBetter =
-            a.improvedSavedOpportunityIds.size > b.improvedSavedOpportunityIds.size ||
+            savedStrictlyBetter ||
+                a.newlyOpenOpportunityIds.size > b.newlyOpenOpportunityIds.size ||
                 a.improvedOpportunityIds.size > b.improvedOpportunityIds.size ||
                 a.template.minimumDurationDays < b.template.minimumDurationDays ||
                 a.template.effort.rank < b.template.effort.rank ||
                 a.template.costBand.rank < b.template.costBand.rank
         return noWorse && strictlyBetter
-    }
-
-    /**
-     * Known deadlines must leave enough time. TBA and missing deadlines remain eligible for
-     * comparison, but are carried in [FrontierAction.timingUnverifiedOpportunityIds] so the UI
-     * never claims that the milestone fits a date the provider has not published.
-     */
-    private fun isFeasibleForPlanning(
-        opportunity: Opportunity,
-        today: LocalDate,
-        minimumDurationDays: Int,
-    ): Boolean = when (val deadline = opportunity.deadline) {
-        is Deadline.Known -> deadline.date.toEpochDays() - today.toEpochDays() >= minimumDurationDays
-
-        Deadline.Missing,
-        Deadline.Tba,
-        -> true
     }
 
     private fun explanationFor(

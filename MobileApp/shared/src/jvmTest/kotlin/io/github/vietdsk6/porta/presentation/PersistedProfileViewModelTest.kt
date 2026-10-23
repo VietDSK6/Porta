@@ -8,19 +8,28 @@ import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
+import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
+import io.github.vietdsk6.porta.data.source.preferences.FakeUserPreferences
+import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiEvent
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupUiEvent
@@ -28,6 +37,7 @@ import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupVi
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.StudyLevelOption
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiEvent
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -35,6 +45,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -48,9 +59,12 @@ class PersistedProfileViewModelTest {
     private lateinit var database: AppDatabase
     private lateinit var repository: ProfileRepository
     private lateinit var planRepository: PlanRepository
+    private lateinit var savedOpportunityRepository: SavedOpportunityRepository
     private lateinit var opportunityPackRepository: OpportunityPackRepository
+    private lateinit var userPreferences: FakeUserPreferences
     private val eligibilityEvaluator = EligibilityEvaluator()
     private val scenarioEvaluator = ScenarioEvaluator(eligibilityEvaluator)
+    private val currentLocalDateProvider = CurrentLocalDateProvider { PortaSampleData.referenceDate }
 
     @BeforeTest
     fun setUp() {
@@ -67,11 +81,16 @@ class PersistedProfileViewModelTest {
             planItemDao = database.planItemDao(),
             backgroundExecutor = BackgroundExecutor(dispatcher),
         )
+        savedOpportunityRepository = SavedOpportunityRepository(
+            savedOpportunityDao = database.savedOpportunityDao(),
+            backgroundExecutor = BackgroundExecutor(dispatcher),
+        )
         opportunityPackRepository = OpportunityPackRepository(
             opportunityPackDao = database.opportunityPackDao(),
             parser = OpportunityPackParser(OpportunityPackCodec(), OpportunityPackValidator()),
             backgroundExecutor = BackgroundExecutor(dispatcher),
         )
+        userPreferences = FakeUserPreferences()
     }
 
     @AfterTest
@@ -84,7 +103,13 @@ class PersistedProfileViewModelTest {
     fun `doors switch from sample facts to the persisted profile`() = runTest(dispatcher) {
         saveIelts(7.0)
 
-        val viewModel = DoorsViewModel(eligibilityEvaluator, repository, opportunityPackRepository)
+        val viewModel = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            currentLocalDateProvider,
+        )
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isSampleMode)
@@ -94,7 +119,13 @@ class PersistedProfileViewModelTest {
     @Test
     fun `doors react when the persisted profile changes`() = runTest(dispatcher) {
         saveIelts(6.5)
-        val viewModel = DoorsViewModel(eligibilityEvaluator, repository, opportunityPackRepository)
+        val viewModel = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            currentLocalDateProvider,
+        )
         advanceUntilIdle()
 
         assertEquals(1, viewModel.uiState.value.openCount)
@@ -109,7 +140,13 @@ class PersistedProfileViewModelTest {
     @Test
     fun `doors return to sample mode when the profile is cleared`() = runTest(dispatcher) {
         saveIelts(7.0)
-        val viewModel = DoorsViewModel(eligibilityEvaluator, repository, opportunityPackRepository)
+        val viewModel = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            currentLocalDateProvider,
+        )
         advanceUntilIdle()
 
         repository.clearProfile().getOrThrow()
@@ -120,18 +157,45 @@ class PersistedProfileViewModelTest {
     }
 
     @Test
+    fun `doors evaluate deadlines against the injected current local date`() = runTest(dispatcher) {
+        saveIelts(7.0)
+        val afterSampleDeadlines = CurrentLocalDateProvider { LocalDate(2027, 6, 2) }
+
+        val viewModel = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            afterSampleDeadlines,
+        )
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.uiState.value.openCount)
+        assertTrue(viewModel.uiState.value.doors.all { it.state == EligibilityState.CLOSED })
+    }
+
+    @Test
     fun `doors and frontier use the sourced bundled catalog`() = runTest(dispatcher) {
         opportunityPackRepository.importPack(
             BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson(),
         ).getOrThrow()
         savePlanningProfile()
 
-        val doors = DoorsViewModel(eligibilityEvaluator, repository, opportunityPackRepository)
+        val doors = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            currentLocalDateProvider,
+        )
         val frontier = FrontierViewModel(
             actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
             profileRepository = repository,
             opportunityPackRepository = opportunityPackRepository,
+            savedOpportunityRepository = savedOpportunityRepository,
+            userPreferences = userPreferences,
             planRepository = planRepository,
+            currentLocalDateProvider = currentLocalDateProvider,
         )
         advanceUntilIdle()
 
@@ -190,6 +254,7 @@ class PersistedProfileViewModelTest {
             eligibilityEvaluator = eligibilityEvaluator,
             profileRepository = repository,
             opportunityPackRepository = opportunityPackRepository,
+            currentLocalDateProvider = currentLocalDateProvider,
         )
         advanceUntilIdle()
 
@@ -200,12 +265,7 @@ class PersistedProfileViewModelTest {
     @Test
     fun `frontier and scenario use persisted facts without mutating them`() = runTest(dispatcher) {
         saveIelts(6.5)
-        val frontier = FrontierViewModel(
-            actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
-            profileRepository = repository,
-            opportunityPackRepository = opportunityPackRepository,
-            planRepository = planRepository,
-        )
+        val frontier = createFrontierViewModel()
         advanceUntilIdle()
 
         assertFalse(frontier.uiState.value.isSampleMode)
@@ -219,6 +279,7 @@ class PersistedProfileViewModelTest {
             profileRepository = repository,
             opportunityPackRepository = opportunityPackRepository,
             planRepository = planRepository,
+            currentLocalDateProvider = currentLocalDateProvider,
         )
         advanceUntilIdle()
 
@@ -232,6 +293,103 @@ class PersistedProfileViewModelTest {
     }
 
     @Test
+    fun `scenario never claims doors excluded by frontier deadline feasibility`() = runTest(dispatcher) {
+        saveIelts(6.5)
+        val tooLateForSampleActions = CurrentLocalDateProvider { LocalDate(2027, 5, 1) }
+        val frontier = FrontierViewModel(
+            actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
+            profileRepository = repository,
+            opportunityPackRepository = opportunityPackRepository,
+            savedOpportunityRepository = savedOpportunityRepository,
+            userPreferences = userPreferences,
+            planRepository = planRepository,
+            currentLocalDateProvider = tooLateForSampleActions,
+        )
+        val scenario = ScenarioPreviewViewModel(
+            actionId = "raise-ielts-aurora",
+            scenarioEvaluator = scenarioEvaluator,
+            profileRepository = repository,
+            opportunityPackRepository = opportunityPackRepository,
+            planRepository = planRepository,
+            currentLocalDateProvider = tooLateForSampleActions,
+        )
+        advanceUntilIdle()
+
+        assertTrue(frontier.uiState.value.actions.isEmpty())
+        assertTrue(frontier.uiState.value.exclusions.isNotEmpty())
+        assertTrue(scenario.uiState.value.openedDoors.isEmpty())
+        assertTrue(scenario.uiState.value.progressedDoors.isEmpty())
+        assertEquals(5, scenario.uiState.value.unchangedDoors.size)
+    }
+
+    @Test
+    fun `frontier restores and persists all planning constraints`() = runTest(dispatcher) {
+        userPreferences.putInt(UserPreferences.KEY_FRONTIER_HORIZON_DAYS, 180)
+        userPreferences.putString(UserPreferences.KEY_FRONTIER_MAX_EFFORT, EffortLevel.HIGH.name)
+        userPreferences.putString(UserPreferences.KEY_FRONTIER_MAX_COST, CostBand.MEDIUM.name)
+        userPreferences.putBoolean(UserPreferences.KEY_FRONTIER_PRIORITIZE_SAVED, false)
+
+        val restored = createFrontierViewModel()
+        advanceUntilIdle()
+
+        assertEquals(180, restored.uiState.value.horizonDays)
+        assertEquals(EffortLevel.HIGH, restored.uiState.value.maxEffort)
+        assertEquals(CostBand.MEDIUM, restored.uiState.value.maxCost)
+        assertFalse(restored.uiState.value.prioritizeSaved)
+
+        restored.onUiEvent(FrontierUiEvent.HorizonChanged(30))
+        restored.onUiEvent(FrontierUiEvent.MaxEffortChanged(EffortLevel.LOW))
+        restored.onUiEvent(FrontierUiEvent.MaxCostChanged(CostBand.FREE))
+        restored.onUiEvent(FrontierUiEvent.PrioritizeSavedChanged(true))
+        advanceUntilIdle()
+
+        val recreated = createFrontierViewModel()
+        advanceUntilIdle()
+
+        assertEquals(30, recreated.uiState.value.horizonDays)
+        assertEquals(EffortLevel.LOW, recreated.uiState.value.maxEffort)
+        assertEquals(CostBand.FREE, recreated.uiState.value.maxCost)
+        assertTrue(recreated.uiState.value.prioritizeSaved)
+    }
+
+    @Test
+    fun `frontier falls back safely when stored constraints are invalid`() = runTest(dispatcher) {
+        userPreferences.putInt(UserPreferences.KEY_FRONTIER_HORIZON_DAYS, 17)
+        userPreferences.putString(UserPreferences.KEY_FRONTIER_MAX_EFFORT, "IMPOSSIBLE")
+        userPreferences.putString(UserPreferences.KEY_FRONTIER_MAX_COST, "UNBOUNDED")
+
+        val frontier = createFrontierViewModel()
+        advanceUntilIdle()
+
+        assertEquals(90, frontier.uiState.value.horizonDays)
+        assertEquals(EffortLevel.VERY_HIGH, frontier.uiState.value.maxEffort)
+        assertEquals(CostBand.UNKNOWN, frontier.uiState.value.maxCost)
+        assertTrue(frontier.uiState.value.prioritizeSaved)
+    }
+
+    @Test
+    fun `saving a door updates frontier priority data reactively`() = runTest(dispatcher) {
+        saveIelts(6.5)
+        val doors = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            currentLocalDateProvider,
+        )
+        val frontier = createFrontierViewModel()
+        advanceUntilIdle()
+
+        assertEquals(0, frontier.uiState.value.actions.single().savedDoorCount)
+
+        doors.onUiEvent(DoorsUiEvent.SavedChanged("aurora"))
+        advanceUntilIdle()
+
+        assertTrue(doors.uiState.value.doors.single { it.id == "aurora" }.isSaved)
+        assertEquals(1, frontier.uiState.value.actions.single().savedDoorCount)
+    }
+
+    @Test
     fun `real profile scenario saves one local plan`() = runTest(dispatcher) {
         saveIelts(6.5)
         val scenario = ScenarioPreviewViewModel(
@@ -240,6 +398,7 @@ class PersistedProfileViewModelTest {
             profileRepository = repository,
             opportunityPackRepository = opportunityPackRepository,
             planRepository = planRepository,
+            currentLocalDateProvider = currentLocalDateProvider,
         )
         advanceUntilIdle()
 
@@ -249,6 +408,16 @@ class PersistedProfileViewModelTest {
         assertTrue(scenario.uiState.value.isSaved)
         assertEquals("raise-ielts-aurora", planRepository.observeCurrentPlan().first()?.actionTemplateId)
     }
+
+    private fun createFrontierViewModel(): FrontierViewModel = FrontierViewModel(
+        actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
+        profileRepository = repository,
+        opportunityPackRepository = opportunityPackRepository,
+        savedOpportunityRepository = savedOpportunityRepository,
+        userPreferences = userPreferences,
+        planRepository = planRepository,
+        currentLocalDateProvider = currentLocalDateProvider,
+    )
 
     private suspend fun saveIelts(value: Double) {
         assertTrue(
