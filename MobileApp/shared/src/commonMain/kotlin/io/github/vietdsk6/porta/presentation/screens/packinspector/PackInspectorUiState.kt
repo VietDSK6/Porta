@@ -18,7 +18,7 @@ data class ActivePackUiState(
     val schemaLabel: String,
     val recordCountLabel: String,
     val checkedLabel: String,
-    val verificationRangeLabel: String,
+    val sourceReviewRangeLabel: String,
     val importedLabel: String,
     val sourceUrl: String?,
     val isBundledPack: Boolean,

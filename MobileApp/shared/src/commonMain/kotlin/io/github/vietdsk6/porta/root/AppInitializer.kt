@@ -47,22 +47,26 @@ object AppInitializer {
     }
 
     private fun KoinApplication.onApplicationStart() {
-        onApplicationStartPlatformSpecific()
+        onApplicationStartPlatformSpecific(
+            enableRemoteNotifications = AppConfiguration.OPTIONAL_ONLINE_SERVICES_ENABLED,
+        )
         // Add common application start functions below
 
         // initialize logging
         AppLogger.initialize(isDebug = isDebug)
 
         initializeBundledOpportunityPack()
-        refreshFeatureFlags()
-        initializeAnalytics()
-        initializeNotification()
-        initializeAuthentication()
-        initializeInAppPurchase()
-        initializeAds()
+        if (AppConfiguration.OPTIONAL_ONLINE_SERVICES_ENABLED) {
+            refreshFeatureFlags()
+            initializeAnalytics()
+            initializeNotification()
+            initializeAuthentication()
+            initializeAds()
 
-        val userRepository by this.koin.inject<UserRepository>()
-        userRepository.signInAnonymouslyIfNecessary()
+            val userRepository by this.koin.inject<UserRepository>()
+            userRepository.signInAnonymouslyIfNecessary()
+        }
+        initializeInAppPurchase()
     }
 }
 

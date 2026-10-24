@@ -166,9 +166,9 @@ private fun StateSummary(uiState: DoorsUiState) {
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SummaryItem(uiState.openCount, "CURRENT CHECKS PASSED", PORTA_TEAL)
+            SummaryItem(uiState.openCount, "ASSESSED RULES PASSED", PORTA_TEAL)
             SummaryItem(uiState.gapCount, "NEEDS ACTION", PORTA_AMBER)
-            SummaryItem(uiState.needsInfoCount, "NEEDS VERIFICATION", AppTheme.colors.primary)
+            SummaryItem(uiState.needsInfoCount, "NEEDS INFORMATION", AppTheme.colors.primary)
             if (uiState.notAvailableCount > 0) {
                 SummaryItem(uiState.notAvailableCount, "NOT AVAILABLE THIS CYCLE", PORTA_CORAL)
             }
@@ -247,7 +247,7 @@ private fun DoorCard(
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
-                        door.state.label(),
+                        door.stateLabel,
                         color = stateColor,
                         fontWeight = FontWeight.Bold,
                         style = AppTheme.typography.bodySmall,
@@ -309,14 +309,6 @@ private fun DoorCard(
     }
 }
 
-private fun EligibilityState.label(): String = when (this) {
-    EligibilityState.OPEN -> "CURRENT CHECKS PASSED"
-    EligibilityState.HAS_GAPS -> "NEEDS ACTION"
-    EligibilityState.NEEDS_INFO -> "NEEDS VERIFICATION"
-    EligibilityState.NOT_ACTIONABLE -> "NOT AVAILABLE THIS CYCLE"
-    EligibilityState.CLOSED -> "CLOSED"
-}
-
 @Composable
 private fun EligibilityState.color(): Color = when (this) {
     EligibilityState.OPEN -> PORTA_TEAL
@@ -351,6 +343,7 @@ private fun DoorsScreenPreview() {
                         provider = "Kotlin Foundation",
                         categoryLabel = "Student contest",
                         state = EligibilityState.NEEDS_INFO,
+                        stateLabel = "NEEDS INFORMATION",
                         deadlineLabel = "Due 2026-12-07",
                         checkedLabel = "Checked 2026-10-21",
                         isSaved = true,

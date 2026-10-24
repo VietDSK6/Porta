@@ -121,7 +121,8 @@ class ActivePlanViewModel(
             targetLabel = targetValue.displayValue(),
             status = status.toUiStatus(),
             statusLabel = status.label(),
-            durationLabel = expectedDurationDays?.let { "$it-day working window" } ?: "Duration needs review",
+            durationLabel = expectedDurationDays?.let { "Est. $it days · Porta assumption" }
+                ?: "Time estimate unavailable",
             effortLabel = effort.name.lowercase().replaceFirstChar(Char::uppercaseChar),
             costLabel = costBand.name.lowercase().replaceFirstChar(Char::uppercaseChar),
             evidenceLabel = action?.completionEvidenceTypes?.joinToString()?.replaceFirstChar(Char::uppercaseChar)

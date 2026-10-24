@@ -13,6 +13,14 @@ import io.github.vietdsk6.porta.subscription.config.activeSubscriptionProviderFa
  */
 object AppConfiguration {
 
+    /**
+     * Enables inherited background services such as Remote Config, analytics, push, ads and
+     * anonymous authentication. Porta's core planning journey is local-first and does not need
+     * these services, so the contest build keeps them off. Purposeful online features such as
+     * opening an official source or a future catalog refresh are separate from this switch.
+     */
+    const val OPTIONAL_ONLINE_SERVICES_ENABLED = false
+
     // TODO(publish): your live privacy policy URL — stores reject placeholders (`publishing` skill).
     const val URL_PRIVACY_POLICY = ""
 

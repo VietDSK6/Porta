@@ -22,6 +22,7 @@ data class DoorCardUiState(
     val provider: String,
     val categoryLabel: String = "",
     val state: EligibilityState,
+    val stateLabel: String,
     val deadlineLabel: String,
     val checkedLabel: String,
     val isSaved: Boolean,
@@ -30,9 +31,9 @@ data class DoorCardUiState(
 
 enum class DoorFilter(val label: String) {
     ALL("ALL"),
-    OPEN("CURRENT CHECKS PASSED"),
+    OPEN("ASSESSED RULES PASSED"),
     GAPS("NEEDS ACTION"),
-    VERIFY("NEEDS VERIFICATION"),
+    VERIFY("NEEDS INFORMATION"),
     NOT_AVAILABLE("NOT AVAILABLE THIS CYCLE"),
     CLOSED("CLOSED"),
     SAVED("SAVED"),

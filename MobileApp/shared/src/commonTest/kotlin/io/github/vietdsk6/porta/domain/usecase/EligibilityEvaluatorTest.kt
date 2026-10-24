@@ -142,6 +142,79 @@ class EligibilityEvaluatorTest {
     }
 
     @Test
+    fun `actionable failure remains visible beside immutable failure`() {
+        val opportunity = opportunity(
+            rule = RuleNode.All(
+                id = "mixed-failures",
+                children = listOf(
+                    atomic(
+                        id = "citizenship",
+                        key = FactKey.NATIONALITY,
+                        operator = Operator.EQUALS,
+                        expected = FactValue.TextValue("eligible-country"),
+                        actionability = Actionability.IMMUTABLE,
+                    ),
+                    atomic(
+                        id = "ielts",
+                        key = FactKey.IELTS_SCORE,
+                        operator = Operator.GREATER_THAN_OR_EQUAL,
+                        expected = FactValue.NumberValue(7.0, "band"),
+                    ),
+                ),
+            ),
+        )
+
+        val receipt = evaluator.evaluate(
+            profile = profile(
+                FactKey.NATIONALITY to FactValue.TextValue("other-country"),
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+            ),
+            opportunity = opportunity,
+            today = today,
+        )
+
+        assertEquals(RuleResult.FAIL, receipt.rootResult)
+        assertEquals(EligibilityState.HAS_GAPS, receipt.state)
+    }
+
+    @Test
+    fun `manual review with missing deadline stays information needed`() {
+        val receipt = evaluator.evaluate(
+            profile = profile(),
+            opportunity = opportunity(
+                rule = RuleNode.ManualCheck("manual", "Confirm the provider-specific condition."),
+                deadline = Deadline.Missing,
+            ),
+            today = today,
+        )
+
+        assertEquals(RuleResult.REVIEW, receipt.rootResult)
+        assertEquals(EligibilityState.NEEDS_INFO, receipt.state)
+    }
+
+    @Test
+    fun `soft criteria never change deterministic assessment`() {
+        val rule = atomic(
+            id = "enrolled",
+            key = FactKey.ENROLLED,
+            operator = Operator.EQUALS,
+            expected = FactValue.BooleanValue(true),
+        )
+        val opportunity = opportunity(rule).copy(
+            softCriteria = listOf("Leadership potential", "Competitive portfolio"),
+        )
+
+        val receipt = evaluator.evaluate(
+            profile = profile(FactKey.ENROLLED to FactValue.BooleanValue(true)),
+            opportunity = opportunity,
+            today = today,
+        )
+
+        assertEquals(RuleResult.PASS, receipt.rootResult)
+        assertEquals(EligibilityState.OPEN, receipt.state)
+    }
+
+    @Test
     fun `deadline is open through its date and closed afterward`() {
         val rule = atomic(
             id = "enrolled",
@@ -273,13 +346,14 @@ class EligibilityEvaluatorTest {
         key: FactKey,
         operator: Operator,
         expected: FactValue,
+        actionability: Actionability = Actionability.CONTROLLABLE,
     ): RuleNode.Atomic = RuleNode.Atomic(
         id = id,
         factKey = key,
         operator = operator,
         expected = expected,
         explanation = "Synthetic test rule.",
-        actionability = Actionability.CONTROLLABLE,
+        actionability = actionability,
     )
 
     private fun opportunity(

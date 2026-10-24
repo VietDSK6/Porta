@@ -97,6 +97,25 @@ class OpportunityPackParserTest {
     }
 
     @Test
+    fun `action IDs must be unique across the whole pack`() {
+        val pack = validPack()
+        val firstOpportunity = pack.opportunities.single()
+        val secondOpportunity = firstOpportunity.copy(
+            id = "second-scholarship",
+            title = "Second synthetic scholarship",
+            sourceUrl = "https://example.invalid/second-opportunity",
+        )
+
+        val result = parser.parse(
+            codec.encode(pack.copy(opportunities = listOf(firstOpportunity, secondOpportunity))),
+        )
+
+        assertFalse(result.isValid)
+        assertTrue(result.diagnostics.any { it.code == "duplicate_action_id_across_pack" })
+        assertTrue(result.document == null)
+    }
+
+    @Test
     fun `v1 availability action upgrades to its single referenced rule`() {
         val opportunity = validPack().opportunities.single()
         val availabilityRule = (opportunity.eligibilityRule as RuleNodeDto.Atomic).copy(

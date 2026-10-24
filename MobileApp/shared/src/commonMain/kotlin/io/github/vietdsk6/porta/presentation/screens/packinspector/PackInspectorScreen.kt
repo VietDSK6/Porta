@@ -327,7 +327,7 @@ private fun PackSummaryCard(
             }
             Text(pack.checkedLabel, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
             Text(
-                pack.verificationRangeLabel,
+                pack.sourceReviewRangeLabel,
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyMedium,
             )
@@ -757,7 +757,7 @@ private val previewState = PackInspectorUiState(
         schemaLabel = "Schema 1",
         recordCountLabel = "15 records",
         checkedLabel = "Pack checked 2026-10-21",
-        verificationRangeLabel = "Records checked 2026-10-21",
+        sourceReviewRangeLabel = "Source records reviewed on 2026-10-21",
         importedLabel = "Imported Oct 21, 2026",
         sourceUrl = null,
         isBundledPack = true,

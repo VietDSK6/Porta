@@ -630,7 +630,7 @@ private fun DoorComparisonRow(door: FrontierDoorComparisonUiState) {
             Text(
                 text = buildList {
                     if (door.isSaved) add("Saved door")
-                    if (door.requiresDeadlineCheck) add("Deadline needs verification")
+                    if (door.requiresDeadlineCheck) add("Deadline needs confirmation")
                 }.joinToString(" · "),
                 style = AppTheme.typography.bodySmall,
                 color = if (door.requiresDeadlineCheck) {
@@ -824,7 +824,7 @@ private val previewState = FrontierUiState(
                     id = "aurora",
                     title = "Aurora Scholars",
                     actualStateLabel = "Needs action",
-                    previewStateLabel = "Current checks passed",
+                    previewStateLabel = "Assessed rules passed",
                     isNewlyOpen = true,
                     isSaved = true,
                     requiresDeadlineCheck = false,
@@ -833,7 +833,7 @@ private val previewState = FrontierUiState(
                     id = "erasmus",
                     title = "Erasmus Mundus Joint Masters",
                     actualStateLabel = "Needs action",
-                    previewStateLabel = "Needs verification",
+                    previewStateLabel = "Needs information",
                     isNewlyOpen = false,
                     isSaved = false,
                     requiresDeadlineCheck = true,

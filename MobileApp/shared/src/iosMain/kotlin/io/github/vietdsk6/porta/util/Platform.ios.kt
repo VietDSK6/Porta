@@ -40,7 +40,8 @@ internal fun swiftLibDependenciesModule(factory: SwiftLibDependencyFactory): Mod
     single { factory.provideIosAdsDisplayer() } bind IosAdsDisplayer::class
 }
 
-internal actual fun onApplicationStartPlatformSpecific() {
+internal actual fun onApplicationStartPlatformSpecific(enableRemoteNotifications: Boolean) {
+    if (!enableRemoteNotifications) return
     KMPNotifier.initialize(NotificationPlatformConfiguration.Ios(askNotificationPermissionOnStart = false), FirebasePush)
 }
 

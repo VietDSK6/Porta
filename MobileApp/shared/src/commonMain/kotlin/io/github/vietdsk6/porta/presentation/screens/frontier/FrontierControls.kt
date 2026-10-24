@@ -119,7 +119,7 @@ internal fun FrontierControls(
 
                 ConstraintLabel(
                     title = "Maximum cost",
-                    description = "Choose Any to keep actions whose price still needs verification.",
+                    description = "Choose Any to keep actions whose cost estimate is unavailable.",
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

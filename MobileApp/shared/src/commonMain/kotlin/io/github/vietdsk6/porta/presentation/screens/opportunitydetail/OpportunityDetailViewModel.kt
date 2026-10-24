@@ -7,11 +7,13 @@ import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.domain.model.Deadline
-import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.presentation.components.requirementAssessmentLabel
+import io.github.vietdsk6.porta.presentation.components.timingLabel
+import io.github.vietdsk6.porta.presentation.components.trustSummary
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,10 +80,12 @@ class OpportunityDetailViewModel(
                 id = opportunity.id,
                 title = opportunity.title,
                 provider = opportunity.provider,
-                stateLabel = receipt.state.label(),
-                conclusionSummary = receipt.state.summary(),
+                state = receipt.state,
+                stateLabel = receipt.requirementAssessmentLabel().uppercase(),
+                conclusionSummary = receipt.trustSummary(),
+                timingLabel = receipt.timingLabel(),
                 deadlineLabel = opportunity.deadline.label(),
-                checkedLabel = "Checked ${opportunity.lastCheckedOn}",
+                checkedLabel = "Source reviewed on ${opportunity.lastCheckedOn}",
                 sourceUrl = opportunity.sourceUrl,
                 sourceSection = opportunity.sourceSection.orEmpty(),
                 disclaimer = opportunity.disclaimer,
@@ -90,8 +94,8 @@ class OpportunityDetailViewModel(
                         id = rule.ruleId,
                         result = rule.result,
                         explanation = rule.explanation,
-                        actualLabel = rule.actual?.displayValue() ?: "Unknown",
-                        expectedLabel = rule.expected?.displayValue() ?: "Review source",
+                        actualLabel = rule.actual?.displayValue() ?: "Not provided",
+                        expectedLabel = rule.expected?.displayValue() ?: "Manual source review",
                         sourceNote = rule.sourceNote.orEmpty(),
                     )
                 },
@@ -106,27 +110,5 @@ class OpportunityDetailViewModel(
         is Deadline.Known -> "Deadline $date"
         Deadline.Missing -> "Deadline missing"
         Deadline.Tba -> "Deadline TBA"
-    }
-
-    private fun EligibilityState.label(): String = when (this) {
-        EligibilityState.OPEN -> "CURRENT CHECKS PASSED"
-        EligibilityState.HAS_GAPS -> "NEEDS ACTION"
-        EligibilityState.NEEDS_INFO -> "NEEDS VERIFICATION"
-        EligibilityState.NOT_ACTIONABLE -> "NOT AVAILABLE THIS CYCLE"
-        EligibilityState.CLOSED -> "CLOSED"
-    }
-
-    private fun EligibilityState.summary(): String = when (this) {
-        EligibilityState.OPEN -> {
-            "Your current profile passes Porta's encoded checks. This does not predict selection."
-        }
-
-        EligibilityState.HAS_GAPS -> "At least one published check needs a change in your profile."
-
-        EligibilityState.NEEDS_INFO -> "Porta needs more information or an official-source review."
-
-        EligibilityState.NOT_ACTIONABLE -> "A current-cycle requirement cannot be addressed through a profile update."
-
-        EligibilityState.CLOSED -> "The application window is closed for the current cycle."
     }
 }

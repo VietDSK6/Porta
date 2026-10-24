@@ -1,20 +1,22 @@
 # Porta
 
-> See which realistic next milestone creates the most verified progress—without pretending to predict who wins.
+> See which realistic next milestone creates the most assessed progress—without pretending to predict who wins.
 
-Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a sourced offline opportunity
+Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a bundled opportunity
 pack against the student's actual profile, explains every published-check conclusion, and builds an **Action Frontier** of
-controllable milestones ranked by verified marginal opportunity gain, time, effort, and cost.
+controllable milestones ranked by assessed marginal opportunity gain, time, effort, and cost.
 
-The contest build is completely free and does not require an account, cloud service, API key, or network connection.
+The contest build is completely free. Core profile, rule assessment, simulation, and planning work without an account,
+cloud service, API key, or network connection. Opening official sources requires the network, and a future catalog refresh
+may use it deliberately.
 
 ## What Porta does
 
 Porta keeps five conclusions visible:
 
-- **Current checks passed** — every deterministic check Porta can evaluate currently passes.
+- **Assessed rules passed** — every published rule Porta can deterministically assess currently passes.
 - **Needs action** — a published check fails and has a controllable or time-dependent path.
-- **Needs verification** — information or an official-source review is still required.
+- **Needs information** — a fact is missing or an official-source review is still required.
 - **Not available this cycle** — a current-cycle requirement cannot be addressed through a profile update.
 - **Closed** — the published application window has ended.
 
@@ -61,8 +63,8 @@ sdk.dir=/absolute/path/to/Android/sdk
 GOOGLE_WEB_CLIENT_ID=test
 ```
 
-The committed Firebase configuration files are starter placeholders. Porta's contest flow is offline and does not
-depend on Firebase, authentication, billing, or AI services.
+The committed Firebase configuration files are starter placeholders. Porta's core contest flow does not depend on
+Firebase, authentication, billing, or AI services; inherited background online services are disabled in this build.
 
 ## Run Android
 
@@ -152,7 +154,8 @@ platform work, including iOS.
 ## Data and limitations
 
 - Results apply only to the rules encoded in the installed pack and its stated verification date.
-- `Current checks passed` means only that Porta's current deterministic checks pass; it never means competitive,
+- `Assessed rules passed` means only that Porta's current deterministic assessment passes; it never means fully eligible,
+  competitive,
   selected, funded, or accepted.
 - Programme-scoped assertions apply only when opportunity ID, rule ID, and rule fingerprint all still match.
 - Completing a plan changes plan status only. A separate evidence-aware confirmation updates the actual profile.

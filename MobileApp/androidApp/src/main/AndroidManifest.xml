@@ -47,6 +47,18 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admobAppId"/>
 
+        <!-- Porta's contest journey is local-first. Keep inherited Firebase background collection
+             disabled unless a deliberate online product capability is enabled and reviewed. -->
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+
         <!-- Set custom default icon. This is used when no icon is set for incoming notification messages.
         See README(https://goo.gl/l4GJaQ) for more. -->
         <meta-data

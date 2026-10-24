@@ -12,7 +12,6 @@ import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
-import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanStatus
@@ -20,6 +19,7 @@ import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
+import io.github.vietdsk6.porta.presentation.components.trustLabel
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -192,7 +192,11 @@ class FrontierViewModel(
                 durationDays = action.template.minimumDurationDays,
                 effort = action.template.effort,
                 cost = action.template.costBand,
-                durationLabel = "${action.template.minimumDurationDays} days",
+                durationLabel = if (action.template.sourceNote?.contains("Porta planning estimates") == true) {
+                    "Est. ${action.template.minimumDurationDays} days · Porta assumption"
+                } else {
+                    "${action.template.minimumDurationDays} days"
+                },
                 effortLabel = action.template.effort.readable(),
                 costLabel = action.template.costBand.readable(),
                 explanation = buildString {
@@ -264,14 +268,6 @@ class FrontierViewModel(
             exclusions = exclusions,
             selectedActionId = selectedActionId,
         )
-    }
-
-    private fun EligibilityState.trustLabel(): String = when (this) {
-        EligibilityState.OPEN -> "Current checks passed"
-        EligibilityState.HAS_GAPS -> "Needs action"
-        EligibilityState.NEEDS_INFO -> "Needs verification"
-        EligibilityState.NOT_ACTIONABLE -> "Not available this cycle"
-        EligibilityState.CLOSED -> "Closed"
     }
 
     private fun EffortLevel.readable(): String = name.readableEnumName()

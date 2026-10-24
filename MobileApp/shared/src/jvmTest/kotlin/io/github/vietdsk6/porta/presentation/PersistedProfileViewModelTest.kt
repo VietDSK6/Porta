@@ -214,11 +214,9 @@ class PersistedProfileViewModelTest {
         assertFalse(frontier.uiState.value.isSampleCatalog)
         assertEquals(4, frontier.uiState.value.actions.size)
         assertTrue(frontier.uiState.value.actions.all { it.improvedCount == 1 })
-        assertTrue(
-            frontier.uiState.value.actions.all {
-                it.title == "Reserve the full required programme period"
-            },
-        )
+        assertEquals(4, frontier.uiState.value.actions.map { it.title }.distinct().size)
+        assertTrue(frontier.uiState.value.actions.all { it.title.startsWith("Confirm full-period availability for ") })
+        assertTrue(frontier.uiState.value.actions.all { "Porta assumption" in it.durationLabel })
     }
 
     @Test
@@ -298,7 +296,7 @@ class PersistedProfileViewModelTest {
         val action = frontier.uiState.value.actions.first()
         assertEquals("6.5 band", action.currentLabel)
         assertEquals(action.id, frontier.uiState.value.selectedActionId)
-        assertTrue(action.doorComparisons.any { it.previewStateLabel == "Current checks passed" })
+        assertTrue(action.doorComparisons.any { it.previewStateLabel == "Assessed rules passed" })
         val scenario = ScenarioPreviewViewModel(
             actionId = action.id,
             scenarioEvaluator = scenarioEvaluator,
@@ -364,6 +362,10 @@ class PersistedProfileViewModelTest {
         )
         advanceUntilIdle()
 
+        assertEquals(
+            "Confirm full-period availability for OECD Internship Programme",
+            scenario.uiState.value.title,
+        )
         assertEquals(
             "Would satisfy this programme-specific check if confirmed.",
             scenario.uiState.value.scopeNotice,

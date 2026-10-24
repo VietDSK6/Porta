@@ -261,11 +261,11 @@ class PackInspectorViewModel(
             versionLabel = "Version ${metadata.version}",
             schemaLabel = "Schema ${metadata.schemaVersion}",
             recordCountLabel = "${opportunities.size} records",
-            checkedLabel = "Pack checked ${metadata.lastCheckedOn}",
-            verificationRangeLabel = when {
-                dates.isEmpty() -> "No opportunity verification dates"
-                dates.first() == dates.last() -> "Records checked ${dates.first()}"
-                else -> "Records checked ${dates.first()} – ${dates.last()}"
+            checkedLabel = "Pack source reviewed on ${metadata.lastCheckedOn}",
+            sourceReviewRangeLabel = when {
+                dates.isEmpty() -> "No source review dates"
+                dates.first() == dates.last() -> "Source records reviewed on ${dates.first()}"
+                else -> "Source records reviewed ${dates.first()} – ${dates.last()}"
             },
             importedLabel = "Imported ${metadata.importedAtEpochMillis.asFormattedDate()}",
             sourceUrl = metadata.sourceUrl,
@@ -280,7 +280,7 @@ class PackInspectorViewModel(
         title = title,
         provider = provider,
         categoryLabel = category.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar),
-        checkedLabel = "Checked $lastCheckedOn",
+        checkedLabel = "Source reviewed on $lastCheckedOn",
         sourceUrl = sourceUrl,
         sourceSection = sourceSection,
         ruleNodes = eligibilityRule.flatten(),

@@ -23,7 +23,8 @@ data class Opportunity(
 ) {
     companion object {
         const val DEFAULT_DISCLAIMER =
-            "Meets only the encoded published rules. Confirm with the official provider."
+            "Porta compares only the published rules encoded in this source pack. " +
+                "Confirm every requirement and deadline with the official provider."
     }
 }
 

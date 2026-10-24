@@ -14,6 +14,7 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.presentation.components.headlineLabel
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -125,12 +126,13 @@ class DoorsViewModel(
                 provider = opportunity.provider,
                 categoryLabel = opportunity.category.label(),
                 state = receipt.state,
+                stateLabel = receipt.headlineLabel().uppercase(),
                 deadlineLabel = opportunity.deadline.label(),
-                checkedLabel = "Checked ${opportunity.lastCheckedOn}",
+                checkedLabel = "Source reviewed on ${opportunity.lastCheckedOn}",
                 isSaved = opportunity.id in effectiveSavedIds(),
                 primaryReason = when (receipt.state) {
                     EligibilityState.OPEN -> {
-                        "All currently encoded checks passed. Selection may still be competitive."
+                        "The published rules Porta can assess currently pass. Selection may still be competitive."
                     }
 
                     EligibilityState.CLOSED -> "This opportunity is closed for the current cycle."
@@ -139,10 +141,13 @@ class DoorsViewModel(
                     EligibilityState.NOT_ACTIONABLE,
                     -> receipt.rules.firstOrNull { it.result == RuleResult.FAIL }?.explanation
 
-                    EligibilityState.NEEDS_INFO ->
+                    EligibilityState.NEEDS_INFO -> if (receipt.rootResult == RuleResult.PASS) {
+                        "The assessed rules pass, but the current deadline or application window is not confirmed."
+                    } else {
                         receipt.rules
                             .firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
                             ?.explanation
+                    }
                 }.orEmpty(),
             )
         }

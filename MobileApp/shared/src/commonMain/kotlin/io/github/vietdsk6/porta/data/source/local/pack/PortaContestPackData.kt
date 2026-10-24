@@ -16,7 +16,7 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
  * inventing an equivalence. Estimates on action templates are Porta planning aids, not provider data.
  */
 internal object PortaContestPackData {
-    const val VERIFIED_ON = "2026-10-21"
+    const val REVIEWED_ON = "2026-10-21"
 
     fun create(): OpportunityPackDto = OpportunityPackDto(
         schemaVersion = OpportunityPackCodec.CURRENT_SCHEMA_VERSION,
@@ -24,7 +24,7 @@ internal object PortaContestPackData {
         name = "Porta curated opportunity pack",
         publisher = "Porta · independently curated from official sources",
         version = BundledOpportunityPackProvider.PACK_VERSION,
-        lastCheckedOn = VERIFIED_ON,
+        lastCheckedOn = REVIEWED_ON,
         opportunities = listOf(
             kotlinStudentContest(),
             erasmusMundus(),
@@ -412,7 +412,12 @@ internal object PortaContestPackData {
     private fun oecdInternship(): OpportunityDto {
         val source = "https://www.oecd.org/en/about/careers/internships.html"
         val enrollmentAction = enrollmentAction("oecd", source)
-        val availabilityAction = availabilityAction("oecd", "oecd-availability", source)
+        val availabilityAction = availabilityAction(
+            id = "oecd",
+            programmeTitle = "OECD Internship Programme",
+            targetRuleId = "oecd-availability",
+            source = source,
+        )
         return opportunity(
             id = "oecd-internship-rolling",
             title = "OECD Internship Programme",
@@ -513,9 +518,10 @@ internal object PortaContestPackData {
         val source = "https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers"
         val enrollmentAction = enrollmentAction("world-bank-treasury", source)
         val availabilityAction = availabilityAction(
-            "world-bank-treasury",
-            "world-bank-treasury-availability",
-            source,
+            id = "world-bank-treasury",
+            programmeTitle = "World Bank Treasury Summer Internship",
+            targetRuleId = "world-bank-treasury-availability",
+            source = source,
         )
         return opportunity(
             id = "world-bank-treasury-summer-internship-2027",
@@ -564,7 +570,12 @@ internal object PortaContestPackData {
     private fun esaInternship(): OpportunityDto {
         val source = "https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2"
         val enrollmentAction = enrollmentAction("esa", source)
-        val availabilityAction = availabilityAction("esa", "esa-availability", source)
+        val availabilityAction = availabilityAction(
+            id = "esa",
+            programmeTitle = "ESA Student Internships",
+            targetRuleId = "esa-availability",
+            source = source,
+        )
         return opportunity(
             id = "esa-student-internships",
             title = "ESA Student Internships",
@@ -611,7 +622,12 @@ internal object PortaContestPackData {
     private fun cernOpenlab(): OpportunityDto {
         val source = "https://openlab.web.cern.ch/cern-openlab-summer-student-programme/"
         val enrollmentAction = enrollmentAction("cern-openlab", source)
-        val availabilityAction = availabilityAction("cern-openlab", "cern-openlab-availability", source)
+        val availabilityAction = availabilityAction(
+            id = "cern-openlab",
+            programmeTitle = "CERN openlab Summer Student Programme",
+            targetRuleId = "cern-openlab-availability",
+            source = source,
+        )
         return opportunity(
             id = "cern-openlab-summer-student-2027",
             title = "CERN openlab Summer Student Programme",
@@ -771,7 +787,7 @@ internal object PortaContestPackData {
         cycle = cycle,
         sourceUrl = sourceUrl,
         sourceSection = sourceSection,
-        lastCheckedOn = VERIFIED_ON,
+        lastCheckedOn = REVIEWED_ON,
         deadline = deadline,
         eligibilityRule = rule,
         softCriteria = softCriteria,
@@ -843,11 +859,12 @@ internal object PortaContestPackData {
 
     private fun availabilityAction(
         id: String,
+        programmeTitle: String,
         targetRuleId: String,
         source: String,
     ): ActionTemplateDto = action(
         id = "$id-full-period-availability",
-        title = "Reserve the full required programme period",
+        title = "Confirm full-period availability for $programmeTitle",
         targetFactKey = FactKey.AVAILABLE_FULL_PERIOD,
         targetValue = bool(true),
         targetScope = ActionTargetScope.RULE,
@@ -857,7 +874,8 @@ internal object PortaContestPackData {
         effort = EffortLevel.LOW,
         costBand = CostBand.FREE,
         evidence = setOf("calendar plan", "study or employer approval"),
-        sourceNote = planningNote(source),
+        sourceNote = planningNote(source) +
+            " The 14-day confirmation lead time is a Porta assumption, not the programme duration or a provider commitment.",
     )
 
     private fun experienceAction(
@@ -909,7 +927,7 @@ internal object PortaContestPackData {
 
     private fun number(amount: Double, unit: String): FactValueDto = FactValueDto.NumberValue(amount, unit)
 
-    private fun checked(source: String, section: String): String = "$section on the official provider page ($source), checked $VERIFIED_ON."
+    private fun checked(source: String, section: String): String = "$section on the official provider page ($source), reviewed $REVIEWED_ON."
 
     private fun planningNote(
         source: String,

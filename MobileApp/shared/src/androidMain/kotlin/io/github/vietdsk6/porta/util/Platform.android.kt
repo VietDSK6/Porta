@@ -53,7 +53,8 @@ internal actual val platformModule: Module = module {
     singleOf(::AdsManagerImpl) bind AdsManager::class
 }
 
-internal actual fun onApplicationStartPlatformSpecific() {
+internal actual fun onApplicationStartPlatformSpecific(enableRemoteNotifications: Boolean) {
+    if (!enableRemoteNotifications) return
     KMPNotifier.initialize(
         NotificationPlatformConfiguration.Android(
             notificationIconResId = R.drawable.ic_notification,

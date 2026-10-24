@@ -1,13 +1,16 @@
 package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
 
+import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.RuleResult
 
 data class OpportunityDetailUiState(
     val id: String = "",
     val title: String = "",
     val provider: String = "",
+    val state: EligibilityState? = null,
     val stateLabel: String = "",
     val conclusionSummary: String = "",
+    val timingLabel: String = "",
     val deadlineLabel: String = "",
     val checkedLabel: String = "",
     val sourceUrl: String = "",

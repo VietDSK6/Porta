@@ -37,7 +37,7 @@ class BundledOpportunityPackProviderTest {
         assertEquals(15, opportunities.size)
         assertTrue(opportunities.all { it.eligibilityRule.id.isNotBlank() })
         assertTrue(opportunities.all { it.sourceUrl.startsWith("https://") })
-        assertTrue(opportunities.all { it.lastCheckedOn.toString() == PortaContestPackData.VERIFIED_ON })
+        assertTrue(opportunities.all { it.lastCheckedOn.toString() == PortaContestPackData.REVIEWED_ON })
         assertFalse(opportunities.any { "example.invalid" in it.sourceUrl })
         assertTrue(opportunities.count { it.softCriteria.isNotEmpty() } >= 3)
         assertTrue(opportunities.sumOf { it.actionTemplates.size } >= 5)
@@ -60,9 +60,15 @@ class BundledOpportunityPackProviderTest {
             .flatMap { it.actionTemplates }
             .mapNotNull { it.target as? ActionTarget.OpportunityRuleTarget }
             .filter { it.factKey == FactKey.AVAILABLE_FULL_PERIOD }
+        val availabilityActions = opportunities
+            .flatMap { it.actionTemplates }
+            .filter { it.targetFactKey == FactKey.AVAILABLE_FULL_PERIOD }
         assertEquals(4, availabilityTargets.size)
         assertEquals(4, availabilityTargets.map { it.opportunityId to it.ruleId }.distinct().size)
         assertTrue(availabilityTargets.all { it.ruleFingerprint.isNotBlank() })
+        assertEquals(4, availabilityActions.map { it.title }.distinct().size)
+        assertTrue(availabilityActions.all { it.title.startsWith("Confirm full-period availability for ") })
+        assertTrue(availabilityActions.all { "14-day confirmation lead time is a Porta assumption" in it.sourceNote.orEmpty() })
     }
 
     @Test

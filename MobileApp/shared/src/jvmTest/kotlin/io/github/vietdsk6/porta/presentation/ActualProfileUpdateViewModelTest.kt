@@ -243,7 +243,7 @@ class ActualProfileUpdateViewModelTest {
     private fun availabilityPlan(): PlanItem = PlanItem(
         id = "default:availability",
         actionTemplateId = "confirm-full-period",
-        title = "Reserve the full required programme period",
+        title = "Confirm full-period availability for OECD Internship Programme",
         targetFactKey = FactKey.AVAILABLE_FULL_PERIOD,
         targetValue = FactValue.BooleanValue(true),
         status = PlanStatus.COMPLETED,

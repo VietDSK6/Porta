@@ -86,6 +86,33 @@ class OpportunityPackRepositoryTest {
         assertEquals(bundledJson, dao.getActive()?.rawJson)
     }
 
+    @Test
+    fun `pack with cross-opportunity action collision cannot replace active pack`() = runTest {
+        val dao = FakeOpportunityPackDao()
+        val repository = repository(dao)
+        val validJson = codec.encode(validPack())
+        repository.importPack(validJson, importedAtEpochMillis = 10L).getOrThrow()
+
+        val pack = validPack().copy(id = "collision-pack")
+        val firstOpportunity = pack.opportunities.single()
+        val collisionPack = pack.copy(
+            opportunities = listOf(
+                firstOpportunity,
+                firstOpportunity.copy(
+                    id = "second-door",
+                    title = "Second synthetic door",
+                    sourceUrl = "https://example.invalid/second-door",
+                ),
+            ),
+        )
+
+        val result = repository.importPack(codec.encode(collisionPack), importedAtEpochMillis = 20L)
+
+        assertTrue(result.isFailure)
+        assertEquals(1, dao.upsertCount)
+        assertEquals(validJson, dao.getActive()?.rawJson)
+    }
+
     private fun repository(dao: OpportunityPackDao): OpportunityPackRepository = OpportunityPackRepository(
         opportunityPackDao = dao,
         parser = OpportunityPackParser(codec, OpportunityPackValidator()),

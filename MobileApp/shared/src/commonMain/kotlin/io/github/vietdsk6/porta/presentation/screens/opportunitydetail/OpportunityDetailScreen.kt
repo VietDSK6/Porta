@@ -26,6 +26,7 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.RuleResult
 
 @Composable
@@ -98,7 +99,7 @@ fun OpportunityDetailScreen(
             }
             item {
                 RuleSection(
-                    title = "Needs verification",
+                    title = "Needs information or source review",
                     emptyMessage = "No checks currently need more information.",
                     rules = uiState.rules.filter { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) },
                     accent = AppTheme.colors.primary,
@@ -155,6 +156,7 @@ private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
                 style = AppTheme.typography.bodySmall,
             )
             Text(uiState.conclusionSummary, color = AppTheme.colors.text.primary)
+            Text(uiState.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }
@@ -230,11 +232,17 @@ private fun SourceDetails(uiState: OpportunityDetailUiState) {
 }
 
 @Composable
-private fun OpportunityDetailUiState.stateColor(): Color = when (stateLabel) {
-    "CURRENT CHECKS PASSED" -> PORTA_TEAL
-    "NEEDS ACTION" -> PORTA_AMBER
-    "NEEDS VERIFICATION" -> AppTheme.colors.primary
-    else -> PORTA_CORAL
+private fun OpportunityDetailUiState.stateColor(): Color = when (state) {
+    EligibilityState.OPEN -> PORTA_TEAL
+
+    EligibilityState.HAS_GAPS -> PORTA_AMBER
+
+    EligibilityState.NEEDS_INFO -> AppTheme.colors.primary
+
+    EligibilityState.NOT_ACTIONABLE,
+    EligibilityState.CLOSED,
+    null,
+    -> PORTA_CORAL
 }
 
 private val PORTA_TEAL = Color(0xFF167D73)
@@ -250,8 +258,10 @@ private fun OpportunityDetailScreenPreview() {
                 id = "aurora",
                 title = "Aurora Scholars",
                 provider = "Northstar Foundation",
+                state = EligibilityState.HAS_GAPS,
                 stateLabel = "NEEDS ACTION",
                 conclusionSummary = "At least one published check needs a change in your profile.",
+                timingLabel = "Timing: published deadline 2027-06-01",
                 deadlineLabel = "Deadline 2027-06-01",
                 checkedLabel = "Checked 2026-10-20",
                 sourceUrl = "https://example.invalid/porta-sample/aurora",

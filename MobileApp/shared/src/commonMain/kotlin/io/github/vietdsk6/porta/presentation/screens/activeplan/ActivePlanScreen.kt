@@ -280,10 +280,10 @@ private fun EvidenceAndImpactCard(plan: ActivePlanCardUiState) {
         ) {
             Text("Completion evidence", style = AppTheme.typography.h6)
             Text(plan.evidenceLabel, color = AppTheme.colors.text.secondary)
-            Text("Affected sample doors", style = AppTheme.typography.h6)
+            Text("Affected doors", style = AppTheme.typography.h6)
             Text(
                 plan.affectedDoorTitles.takeIf { it.isNotEmpty() }?.joinToString(separator = " · ")
-                    ?: "No door-state change is currently verified for this profile.",
+                    ?: "No assessed door-state change is shown for this profile.",
                 color = AppTheme.colors.text.secondary,
             )
         }

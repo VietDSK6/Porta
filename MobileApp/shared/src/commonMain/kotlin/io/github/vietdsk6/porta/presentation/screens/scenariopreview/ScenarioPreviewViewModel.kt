@@ -18,6 +18,7 @@ import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
+import io.github.vietdsk6.porta.presentation.components.trustLabel
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,11 +88,7 @@ class ScenarioPreviewViewModel(
             id = "${activeProfile.id}:${action.id}",
             profileId = activeProfile.id,
             actionTemplateId = action.id,
-            title = if (action.target is ActionTarget.OpportunityRuleTarget) {
-                "${action.title} · ${opportunity.title}"
-            } else {
-                action.title
-            },
+            title = action.title,
             target = action.target,
             targetDateEpochDays = timestamp / MILLIS_PER_DAY + action.minimumDurationDays,
             note = action.sourceNote,
@@ -181,7 +178,7 @@ class ScenarioPreviewViewModel(
                     val before = scenario.baseline.getValue(opportunityId).state
                     val after = scenario.simulated.getValue(opportunityId).state
                     val outcome = if (after == EligibilityState.NEEDS_INFO) {
-                        "Still needs verification"
+                        "Still needs information or source review"
                     } else {
                         "Would address one checked requirement"
                     }
@@ -226,14 +223,6 @@ class ScenarioPreviewViewModel(
     private fun FactKey.readable(): String = when (this) {
         FactKey.IELTS_SCORE -> "IELTS"
         else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
-    }
-
-    private fun EligibilityState.trustLabel(): String = when (this) {
-        EligibilityState.OPEN -> "Current checks passed"
-        EligibilityState.HAS_GAPS -> "Needs action"
-        EligibilityState.NEEDS_INFO -> "Needs verification"
-        EligibilityState.NOT_ACTIONABLE -> "Not available this cycle"
-        EligibilityState.CLOSED -> "Closed"
     }
 
     private companion object {

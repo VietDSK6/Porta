@@ -34,7 +34,8 @@ internal actual val platformModule: Module = module {
     single { NoImplAdsManager } bind AdsManager::class
 }
 
-internal actual fun onApplicationStartPlatformSpecific() {
+internal actual fun onApplicationStartPlatformSpecific(enableRemoteNotifications: Boolean) {
+    if (!enableRemoteNotifications) return
     KMPNotifier.initialize(
         NotificationPlatformConfiguration.Web(askNotificationPermissionOnStart = false),
         LocalNotifications,

@@ -54,6 +54,26 @@ class OpportunityPackValidator {
                 )
             }
 
+        pack.opportunities
+            .flatMap { opportunity ->
+                opportunity.actionTemplates.map { action ->
+                    action.id to opportunity.id
+                }
+            }
+            .groupBy { (actionId) -> actionId }
+            .filterValues { occurrences -> occurrences.map { (_, opportunityId) -> opportunityId }.distinct().size > 1 }
+            .forEach { (actionId, occurrences) ->
+                val opportunityIds = occurrences
+                    .map { (_, opportunityId) -> opportunityId }
+                    .distinct()
+                    .joinToString()
+                error(
+                    code = "duplicate_action_id_across_pack",
+                    message = "Action ID '$actionId' is reused across opportunities: $opportunityIds.",
+                    path = "opportunities",
+                )
+            }
+
         pack.opportunities.forEachIndexed { index, opportunity ->
             validateOpportunity(opportunity, index, ::error)
         }

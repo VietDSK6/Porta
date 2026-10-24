@@ -36,8 +36,10 @@ internal actual val platformModule: Module = module {
     single { NoImplAdsManager } bind AdsManager::class
 }
 
-internal actual fun onApplicationStartPlatformSpecific() {
-    KMPNotifier.initialize(NotificationPlatformConfiguration.Desktop(), FirebasePush)
+internal actual fun onApplicationStartPlatformSpecific(enableRemoteNotifications: Boolean) {
+    if (enableRemoteNotifications) {
+        KMPNotifier.initialize(NotificationPlatformConfiguration.Desktop(), FirebasePush)
+    }
     FileKit.init("io.github.vietdsk6.porta")
 }
 
