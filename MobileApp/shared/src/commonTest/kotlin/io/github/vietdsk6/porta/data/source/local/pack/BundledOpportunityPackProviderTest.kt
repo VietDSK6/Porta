@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.data.source.local.pack
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
@@ -29,7 +30,7 @@ class BundledOpportunityPackProviderTest {
             importedAtEpochMillis = 42L,
         )
 
-        assertTrue(result.isValid)
+        assertTrue(result.isValid, result.diagnostics.joinToString())
         val document = assertNotNull(result.document)
         val opportunities = document.opportunities
         assertEquals(BundledOpportunityPackProvider.PACK_ID, document.metadata.id)
@@ -48,11 +49,20 @@ class BundledOpportunityPackProviderTest {
                 .count { it.actionability == Actionability.IMMUTABLE } >= 3,
         )
 
-        val sharedActionSignatures = opportunities
+        val sharedProfileActionSignatures = opportunities
             .flatMap { it.actionTemplates }
+            .filter { it.target is ActionTarget.ProfileFactTarget }
             .groupBy { "${it.targetFactKey}:${it.targetValue}" }
             .count { (_, actions) -> actions.size > 1 }
-        assertTrue(sharedActionSignatures >= 3)
+        assertTrue(sharedProfileActionSignatures >= 2)
+
+        val availabilityTargets = opportunities
+            .flatMap { it.actionTemplates }
+            .mapNotNull { it.target as? ActionTarget.OpportunityRuleTarget }
+            .filter { it.factKey == FactKey.AVAILABLE_FULL_PERIOD }
+        assertEquals(4, availabilityTargets.size)
+        assertEquals(4, availabilityTargets.map { it.opportunityId to it.ruleId }.distinct().size)
+        assertTrue(availabilityTargets.all { it.ruleFingerprint.isNotBlank() })
     }
 
     @Test
@@ -123,16 +133,23 @@ class BundledOpportunityPackProviderTest {
                 horizonDays = 90,
                 maxEffort = EffortLevel.VERY_HIGH,
                 maxCost = CostBand.UNKNOWN,
+                prioritizeSaved = false,
             ),
             today = LocalDate(2026, 10, 21),
         )
 
-        val availability = frontier.single()
-        assertEquals(FactKey.AVAILABLE_FULL_PERIOD, availability.template.targetFactKey)
-        assertEquals(4, availability.improvedOpportunityIds.size)
-        assertEquals(2, availability.improvedSavedOpportunityIds.size)
-        assertEquals(4, availability.timingUnverifiedOpportunityIds.size)
-        assertTrue(availability.newlyOpenOpportunityIds.isEmpty())
+        val availability = frontier.filter { action ->
+            action.template.target is ActionTarget.OpportunityRuleTarget &&
+                action.template.targetFactKey == FactKey.AVAILABLE_FULL_PERIOD
+        }
+        assertEquals(4, availability.size)
+        availability.forEach { action ->
+            val target = assertNotNull(action.template.target as? ActionTarget.OpportunityRuleTarget)
+            assertEquals(listOf(target.opportunityId), action.improvedOpportunityIds)
+            assertEquals(listOf(target.opportunityId), action.timingUnverifiedOpportunityIds)
+            assertTrue(action.newlyOpenOpportunityIds.isEmpty())
+        }
+        assertEquals(2, availability.sumOf { it.improvedSavedOpportunityIds.size })
     }
 }
 

@@ -1,5 +1,9 @@
 package io.github.vietdsk6.porta.presentation.screens.scenariopreview
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,10 +18,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -76,45 +84,37 @@ fun ScenarioPreviewScreen(
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        if (uiState.isSampleProfile) "WHAT-IF · SAMPLE" else "WHAT-IF · REAL PROFILE",
-                        color = AppTheme.colors.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "Nothing here changes your actual profile. Confirm every result on the linked official source.",
-                        color = AppTheme.colors.text.secondary,
-                        style = AppTheme.typography.bodyLarge,
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    SimulationBanner()
                     BeforeAfterCard(uiState)
                 }
             }
             item {
-                Text(
-                    buildString {
-                        val resolvedCount = uiState.openedDoors.size + uiState.progressedDoors.size
-                        append("$resolvedCount hard ${if (resolvedCount == 1) "gap" else "gaps"} resolved")
-                        if (uiState.openedDoors.isNotEmpty()) append(" · ${uiState.openedDoors.size} open")
-                    },
-                    color = PORTA_TEAL,
-                    style = AppTheme.typography.h5,
-                )
+                val affectedCount = uiState.openedDoors.size + uiState.progressedDoors.size
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Changed doors", style = AppTheme.typography.h5)
+                    Text(
+                        text = if (affectedCount == 1) {
+                            "1 door is affected by this simulation."
+                        } else {
+                            "$affectedCount doors are affected by this simulation."
+                        },
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodyMedium,
+                    )
+                }
             }
             items(uiState.openedDoors, key = ScenarioDoorUiState::id) { door ->
-                ScenarioDoorCard(door = door, changed = true)
+                ScenarioDoorCard(door = door)
             }
             items(uiState.progressedDoors, key = ScenarioDoorUiState::id) { door ->
-                ScenarioDoorCard(door = door, changed = true)
+                ScenarioDoorCard(door = door)
             }
-            if (uiState.unchangedDoors.isNotEmpty()) {
-                item { Text("Unchanged", style = AppTheme.typography.h6) }
-                items(uiState.unchangedDoors, key = ScenarioDoorUiState::id) { door ->
-                    ScenarioDoorCard(door = door, changed = false)
-                }
+            if (uiState.openedDoors.isEmpty() && uiState.progressedDoors.isEmpty()) {
+                item { NoChangedDoorsCard() }
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -150,17 +150,51 @@ fun ScenarioPreviewScreen(
 }
 
 @Composable
+private fun SimulationBanner() {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("scenario-simulation-banner"),
+        color = AppTheme.colors.alternative,
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "Simulation — your saved profile is unchanged.",
+                color = AppTheme.colors.onAlternative,
+                fontWeight = FontWeight.Bold,
+                style = AppTheme.typography.bodyMedium,
+            )
+            Text(
+                text = "Check every conclusion against the linked official source.",
+                color = AppTheme.colors.onAlternative.copy(alpha = 0.74f),
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
 private fun BeforeAfterCard(uiState: ScenarioPreviewUiState) {
     Card(
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, AppTheme.colors.primary),
-        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(uiState.title, style = AppTheme.typography.h5)
+            uiState.scopeNotice?.let { notice ->
+                Text(
+                    text = notice,
+                    color = AppTheme.colors.primary,
+                    style = AppTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ValueCell("Actual", uiState.beforeLabel, Modifier.weight(1f))
                 ValueCell("Scenario", uiState.afterLabel, Modifier.weight(1f))
@@ -184,27 +218,78 @@ private fun ValueCell(label: String, value: String, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun ScenarioDoorCard(door: ScenarioDoorUiState, changed: Boolean) {
-    val accent = if (changed) PORTA_TEAL else AppTheme.colors.outline
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, accent),
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 14.dp, bottomEnd = 14.dp),
+private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
+    var visible by remember(door.id) { mutableStateOf(false) }
+    LaunchedEffect(door.id) { visible = true }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(DOOR_TRANSITION_DURATION_MILLIS)) +
+            slideInVertically(tween(DOOR_TRANSITION_DURATION_MILLIS)) { height -> height / 12 },
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+            border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = door.title,
+                    modifier = Modifier.fillMaxWidth().testTag("scenario-door-title-${door.id}"),
+                    style = AppTheme.typography.h6,
+                )
+                ScenarioStateTransition(door)
+                Text(door.stateLabel, color = PORTA_TEAL, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScenarioStateTransition(door: ScenarioDoorUiState) {
+    val actual = door.actualStateLabel.ifBlank { "Current state" }
+    val simulated = door.simulatedStateLabel.ifBlank { door.stateLabel }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StateCell(label = "Actual", value = actual, modifier = Modifier.weight(1f))
+        Text(
+            text = "→",
+            modifier = Modifier.padding(top = 24.dp),
+            color = AppTheme.colors.text.secondary,
+            fontWeight = FontWeight.Bold,
+        )
+        StateCell(label = "Simulated", value = simulated, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun StateCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        Text(value, style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun NoChangedDoorsCard() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            Text("No door status changes", fontWeight = FontWeight.SemiBold)
             Text(
-                text = door.title,
-                modifier = Modifier.fillMaxWidth().testTag("scenario-door-title-${door.id}"),
-                style = AppTheme.typography.h6,
-            )
-            Text(
-                text = door.stateLabel,
-                modifier = Modifier.fillMaxWidth(),
-                color = accent,
-                fontWeight = FontWeight.Bold,
+                text = "This step may still help your profile, but it does not change any published-check conclusion yet.",
+                color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyMedium,
             )
         }
@@ -220,7 +305,8 @@ private fun ErrorState(message: String, onNavigateBack: () -> Unit) {
     }
 }
 
-private val PORTA_TEAL = Color(0xFF2DD4BF)
+private val PORTA_TEAL = Color(0xFF167D73)
+private const val DOOR_TRANSITION_DURATION_MILLIS = 220
 
 @Preview
 @Composable
@@ -233,14 +319,28 @@ private fun ScenarioPreviewScreenPreview() {
                 beforeLabel = "6.5 band",
                 afterLabel = "7.0 band",
                 openedDoors = listOf(
-                    ScenarioDoorUiState("aurora", "Aurora Scholars", "Opens"),
-                    ScenarioDoorUiState("forge", "Forge Student Lab", "Opens"),
+                    ScenarioDoorUiState(
+                        id = "aurora",
+                        title = "Aurora Scholars",
+                        stateLabel = "Would pass current checks",
+                        actualStateLabel = "Needs action",
+                        simulatedStateLabel = "Current checks passed",
+                    ),
+                    ScenarioDoorUiState(
+                        id = "forge",
+                        title = "Forge Student Lab",
+                        stateLabel = "Would pass current checks",
+                        actualStateLabel = "Needs action",
+                        simulatedStateLabel = "Current checks passed",
+                    ),
                 ),
                 progressedDoors = listOf(
                     ScenarioDoorUiState(
                         id = "erasmus-mundus",
                         title = "Erasmus Mundus Joint Masters",
-                        stateLabel = "Hard gap resolved · verify remaining rules",
+                        stateLabel = "Still needs verification",
+                        actualStateLabel = "Needs action",
+                        simulatedStateLabel = "Needs verification",
                     ),
                 ),
             ),

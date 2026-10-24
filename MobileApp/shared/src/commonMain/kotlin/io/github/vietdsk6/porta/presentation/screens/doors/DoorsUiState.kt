@@ -11,12 +11,16 @@ data class DoorsUiState(
     val openCount: Int = 0,
     val gapCount: Int = 0,
     val needsInfoCount: Int = 0,
+    val notAvailableCount: Int = 0,
+    val closedCount: Int = 0,
+    val highlightedDoorIds: Set<String> = emptySet(),
 )
 
 data class DoorCardUiState(
     val id: String,
     val title: String,
     val provider: String,
+    val categoryLabel: String = "",
     val state: EligibilityState,
     val deadlineLabel: String,
     val checkedLabel: String,
@@ -25,15 +29,19 @@ data class DoorCardUiState(
 )
 
 enum class DoorFilter(val label: String) {
-    ALL("All"),
-    OPEN("Open"),
-    GAPS("Has gaps"),
-    VERIFY("Verify"),
-    SAVED("Saved"),
+    ALL("ALL"),
+    OPEN("CURRENT CHECKS PASSED"),
+    GAPS("NEEDS ACTION"),
+    VERIFY("NEEDS VERIFICATION"),
+    NOT_AVAILABLE("NOT AVAILABLE THIS CYCLE"),
+    CLOSED("CLOSED"),
+    SAVED("SAVED"),
 }
 
 sealed interface DoorsUiEvent {
     data class FilterChanged(val filter: DoorFilter) : DoorsUiEvent
 
     data class SavedChanged(val opportunityId: String) : DoorsUiEvent
+
+    data object DismissHighlights : DoorsUiEvent
 }

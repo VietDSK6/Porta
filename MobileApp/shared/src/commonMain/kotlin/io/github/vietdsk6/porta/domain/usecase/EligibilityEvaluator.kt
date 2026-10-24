@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.domain.usecase
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityReceipt
@@ -10,7 +11,9 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.RuleReceipt
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 
 class EligibilityEvaluator {
@@ -19,7 +22,7 @@ class EligibilityEvaluator {
         opportunity: Opportunity,
         today: LocalDate,
     ): EligibilityReceipt {
-        val evaluation = evaluateRule(profile, opportunity.eligibilityRule)
+        val evaluation = evaluateRule(profile, opportunity, opportunity.eligibilityRule)
         val state = when {
             opportunity.deadline is Deadline.Known && opportunity.deadline.date < today -> {
                 EligibilityState.CLOSED
@@ -53,9 +56,13 @@ class EligibilityEvaluator {
         )
     }
 
-    private fun evaluateRule(profile: ProfileSnapshot, rule: RuleNode): Evaluation = when (rule) {
+    private fun evaluateRule(
+        profile: ProfileSnapshot,
+        opportunity: Opportunity,
+        rule: RuleNode,
+    ): Evaluation = when (rule) {
         is RuleNode.All -> {
-            val children = rule.children.map { evaluateRule(profile, it) }
+            val children = rule.children.map { evaluateRule(profile, opportunity, it) }
             Evaluation(
                 result = aggregateAll(children.map(Evaluation::result)),
                 receipts = children.flatMap(Evaluation::receipts),
@@ -63,14 +70,14 @@ class EligibilityEvaluator {
         }
 
         is RuleNode.Any -> {
-            val children = rule.children.map { evaluateRule(profile, it) }
+            val children = rule.children.map { evaluateRule(profile, opportunity, it) }
             Evaluation(
                 result = aggregateAny(children.map(Evaluation::result)),
                 receipts = children.flatMap(Evaluation::receipts),
             )
         }
 
-        is RuleNode.Atomic -> evaluateAtomic(profile, rule)
+        is RuleNode.Atomic -> evaluateAtomic(profile, opportunity, rule)
 
         is RuleNode.ManualCheck -> Evaluation(
             result = RuleResult.REVIEW,
@@ -85,8 +92,27 @@ class EligibilityEvaluator {
         )
     }
 
-    private fun evaluateAtomic(profile: ProfileSnapshot, rule: RuleNode.Atomic): Evaluation {
-        val actual = profile.facts[rule.factKey]?.value
+    private fun evaluateAtomic(
+        profile: ProfileSnapshot,
+        opportunity: Opportunity,
+        rule: RuleNode.Atomic,
+    ): Evaluation {
+        val ruleRef = RuleRef(opportunityId = opportunity.id, ruleId = rule.id)
+        val assertion = profile.ruleAssertions[ruleRef]
+            ?.takeIf { candidate ->
+                candidate.profileId == profile.id &&
+                    candidate.factKey == rule.factKey &&
+                    candidate.ruleFingerprint == rule.fingerprint()
+            }
+        val requiresScopedAssertion = opportunity.actionTemplates.any { template ->
+            val target = template.target
+            target is ActionTarget.OpportunityRuleTarget &&
+                target.opportunityId == opportunity.id &&
+                target.ruleId == rule.id
+        }
+        val actual = assertion?.value ?: profile.facts[rule.factKey]?.value?.takeUnless {
+            requiresScopedAssertion
+        }
         val result = when {
             rule.operator == Operator.EXISTS -> if (actual == null) RuleResult.UNKNOWN else RuleResult.PASS
 

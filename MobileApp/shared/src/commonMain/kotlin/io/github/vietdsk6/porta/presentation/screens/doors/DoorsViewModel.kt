@@ -10,6 +10,8 @@ import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackPro
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.Opportunity
+import io.github.vietdsk6.porta.domain.model.OpportunityCategory
+import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
@@ -37,6 +39,8 @@ class DoorsViewModel(
     private var activeProfile = PortaSampleData.profile
     private var activeOpportunities = PortaSampleData.opportunities
     private var allDoors = evaluateDoors()
+    private var lastObservedProfile: ProfileSnapshot? = null
+    private var highlightedDoorIds: Set<String> = emptySet()
     private val _uiState = MutableStateFlow(buildState(DoorFilter.ALL))
     val uiState: StateFlow<DoorsUiState> = _uiState.asStateFlow()
 
@@ -48,6 +52,8 @@ class DoorsViewModel(
                 savedOpportunityRepository.observeSavedIds(),
             ) { profile, packResult, savedIds -> Triple(profile, packResult.getOrNull(), savedIds) }
                 .collect { (profile, pack, savedIds) ->
+                    val previousProfile = lastObservedProfile
+                    val previousDoors = allDoors.associateBy(DoorCardUiState::id)
                     persistedSavedIds = savedIds
                     pendingSavedStates.entries.removeAll { (opportunityId, isSaved) ->
                         (opportunityId in savedIds) == isSaved
@@ -59,6 +65,18 @@ class DoorsViewModel(
                     isSampleCatalog = pack == null ||
                         pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
                     allDoors = evaluateDoors()
+                    highlightedDoorIds = when {
+                        previousProfile == null -> emptySet()
+
+                        previousProfile != profile -> allDoors.filter { door ->
+                            previousDoors[door.id]?.let { previous ->
+                                previous.state != door.state || previous.primaryReason != door.primaryReason
+                            } == true
+                        }.mapTo(mutableSetOf(), DoorCardUiState::id)
+
+                        else -> highlightedDoorIds
+                    }
+                    lastObservedProfile = profile
                     _uiState.update { current -> buildState(current.selectedFilter) }
                 }
         }
@@ -67,7 +85,13 @@ class DoorsViewModel(
     fun onUiEvent(event: DoorsUiEvent) {
         when (event) {
             is DoorsUiEvent.FilterChanged -> _uiState.value = buildState(event.filter)
+
             is DoorsUiEvent.SavedChanged -> persistSavedChange(event.opportunityId)
+
+            DoorsUiEvent.DismissHighlights -> {
+                highlightedDoorIds = emptySet()
+                _uiState.update { current -> buildState(current.selectedFilter) }
+            }
         }
     }
 
@@ -99,16 +123,27 @@ class DoorsViewModel(
                 id = opportunity.id,
                 title = opportunity.title,
                 provider = opportunity.provider,
+                categoryLabel = opportunity.category.label(),
                 state = receipt.state,
                 deadlineLabel = opportunity.deadline.label(),
                 checkedLabel = "Checked ${opportunity.lastCheckedOn}",
                 isSaved = opportunity.id in effectiveSavedIds(),
-                primaryReason = receipt.rules
-                    .firstOrNull { it.result == RuleResult.FAIL }
-                    ?.explanation
-                    ?: receipt.rules.firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
-                        ?.explanation
-                    ?: receipt.rules.firstOrNull()?.explanation.orEmpty(),
+                primaryReason = when (receipt.state) {
+                    EligibilityState.OPEN -> {
+                        "All currently encoded checks passed. Selection may still be competitive."
+                    }
+
+                    EligibilityState.CLOSED -> "This opportunity is closed for the current cycle."
+
+                    EligibilityState.HAS_GAPS,
+                    EligibilityState.NOT_ACTIONABLE,
+                    -> receipt.rules.firstOrNull { it.result == RuleResult.FAIL }?.explanation
+
+                    EligibilityState.NEEDS_INFO ->
+                        receipt.rules
+                            .firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
+                            ?.explanation
+                }.orEmpty(),
             )
         }
     }
@@ -122,6 +157,8 @@ class DoorsViewModel(
                 DoorFilter.OPEN -> door.state == EligibilityState.OPEN
                 DoorFilter.GAPS -> door.state == EligibilityState.HAS_GAPS
                 DoorFilter.VERIFY -> door.state == EligibilityState.NEEDS_INFO
+                DoorFilter.NOT_AVAILABLE -> door.state == EligibilityState.NOT_ACTIONABLE
+                DoorFilter.CLOSED -> door.state == EligibilityState.CLOSED
                 DoorFilter.SAVED -> door.isSaved
             }
         }
@@ -134,6 +171,9 @@ class DoorsViewModel(
             openCount = refreshed.count { it.state == EligibilityState.OPEN },
             gapCount = refreshed.count { it.state == EligibilityState.HAS_GAPS },
             needsInfoCount = refreshed.count { it.state == EligibilityState.NEEDS_INFO },
+            notAvailableCount = refreshed.count { it.state == EligibilityState.NOT_ACTIONABLE },
+            closedCount = refreshed.count { it.state == EligibilityState.CLOSED },
+            highlightedDoorIds = highlightedDoorIds,
         )
     }
 
@@ -148,5 +188,13 @@ class DoorsViewModel(
         is Deadline.Known -> "Due $date"
         Deadline.Missing -> "Deadline missing"
         Deadline.Tba -> "Deadline TBA"
+    }
+
+    private fun OpportunityCategory.label(): String = when (this) {
+        OpportunityCategory.SCHOLARSHIP -> "Scholarship"
+        OpportunityCategory.INTERNSHIP -> "Internship"
+        OpportunityCategory.ACADEMIC_PROGRAM -> "Academic programme"
+        OpportunityCategory.STUDENT_CONTEST -> "Student contest"
+        OpportunityCategory.FELLOWSHIP -> "Fellowship"
     }
 }

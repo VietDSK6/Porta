@@ -20,6 +20,7 @@ data class ProfileFact(
 data class ProfileSnapshot(
     val id: String = ProfileFact.DEFAULT_PROFILE_ID,
     val facts: Map<FactKey, ProfileFact> = emptyMap(),
+    val ruleAssertions: Map<RuleRef, RuleAssertion> = emptyMap(),
 ) {
     fun withOverrides(overrides: Map<FactKey, FactValue>): ProfileSnapshot = copy(
         facts = facts + overrides.mapValues { (key, value) ->
@@ -32,7 +33,52 @@ data class ProfileSnapshot(
             )
         },
     )
+
+    fun withOverrides(
+        overrides: ScenarioOverrides,
+        scopedRules: Map<RuleRef, RuleNode.Atomic> = emptyMap(),
+    ): ProfileSnapshot {
+        val profileWithFactOverrides = withOverrides(overrides.profileFacts)
+        val overriddenAssertions = overrides.ruleAssertions.mapValues { (ruleRef, value) ->
+            val existing = ruleAssertions[ruleRef]
+            val scopedRule = scopedRules[ruleRef]
+            RuleAssertion(
+                profileId = id,
+                ruleRef = ruleRef,
+                ruleFingerprint = scopedRule?.fingerprint() ?: existing?.ruleFingerprint.orEmpty(),
+                factKey = scopedRule?.factKey
+                    ?: existing?.factKey
+                    ?: error("A rule definition is required for a new rule assertion."),
+                value = value,
+                evidence = existing?.evidence,
+                updatedAtEpochMillis = existing?.updatedAtEpochMillis ?: 0L,
+            )
+        }
+        return profileWithFactOverrides.copy(
+            ruleAssertions = ruleAssertions + overriddenAssertions,
+        )
+    }
 }
+
+data class RuleRef(
+    val opportunityId: String,
+    val ruleId: String,
+)
+
+data class RuleAssertion(
+    val profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
+    val ruleRef: RuleRef,
+    val ruleFingerprint: String,
+    val factKey: FactKey,
+    val value: FactValue,
+    val evidence: EvidenceMetadata? = null,
+    val updatedAtEpochMillis: Long = 0L,
+)
+
+data class ScenarioOverrides(
+    val profileFacts: Map<FactKey, FactValue> = emptyMap(),
+    val ruleAssertions: Map<RuleRef, FactValue> = emptyMap(),
+)
 
 enum class FactKey {
     GPA,

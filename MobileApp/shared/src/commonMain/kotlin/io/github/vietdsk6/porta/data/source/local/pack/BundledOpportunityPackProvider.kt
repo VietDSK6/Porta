@@ -11,7 +11,7 @@ class BundledOpportunityPackProvider(
 
     companion object {
         const val PACK_ID = "porta-curated-opportunities-2026-10-21"
-        const val PACK_VERSION = 1
+        const val PACK_VERSION = 2
         const val LEGACY_SYNTHETIC_PACK_ID = "porta-synthetic-demo"
     }
 }

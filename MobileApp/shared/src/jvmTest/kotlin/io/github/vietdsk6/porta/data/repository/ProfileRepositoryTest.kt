@@ -5,9 +5,12 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
+import io.github.vietdsk6.porta.domain.model.RuleAssertion
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
@@ -28,6 +31,7 @@ class ProfileRepositoryTest {
             .build()
         repository = ProfileRepository(
             profileFactDao = database.profileFactDao(),
+            ruleAssertionDao = database.ruleAssertionDao(),
             backgroundExecutor = BackgroundExecutor(Dispatchers.Default),
         )
     }
@@ -101,5 +105,78 @@ class ProfileRepositoryTest {
         assertTrue(repository.clearProfile().isSuccess)
 
         assertTrue(repository.getProfile().getOrThrow().facts.isEmpty())
+    }
+
+    @Test
+    fun `profile snapshot combines facts with programme scoped assertions`() = runTest {
+        val ruleRef = RuleRef(
+            opportunityId = "oecd-internship",
+            ruleId = "programme-availability",
+        )
+        repository.saveFacts(
+            listOf(
+                ProfileFact(
+                    id = "default:gpa",
+                    key = FactKey.GPA,
+                    value = FactValue.NumberValue(3.6, "4.0 scale"),
+                ),
+            ),
+        ).getOrThrow()
+        RuleAssertionRepository(
+            ruleAssertionDao = database.ruleAssertionDao(),
+            backgroundExecutor = BackgroundExecutor(Dispatchers.Default),
+        ).saveAssertions(
+            listOf(
+                RuleAssertion(
+                    ruleRef = ruleRef,
+                    ruleFingerprint = "sha256:programme-availability",
+                    factKey = FactKey.AVAILABLE_FULL_PERIOD,
+                    value = FactValue.BooleanValue(true),
+                    evidence = EvidenceMetadata(label = "University approval"),
+                    updatedAtEpochMillis = 43L,
+                ),
+            ),
+        ).getOrThrow()
+
+        val saved = repository.getProfile().getOrThrow()
+
+        assertEquals(FactValue.NumberValue(3.6, "4.0 scale"), saved.facts[FactKey.GPA]?.value)
+        assertEquals(FactValue.BooleanValue(true), saved.ruleAssertions[ruleRef]?.value)
+    }
+
+    @Test
+    fun `clear profile removes facts and scoped assertions`() = runTest {
+        val ruleRef = RuleRef(
+            opportunityId = "cern-summer",
+            ruleId = "full-period-availability",
+        )
+        repository.saveFacts(
+            listOf(
+                ProfileFact(
+                    id = "default:gpa",
+                    key = FactKey.GPA,
+                    value = FactValue.NumberValue(8.5, "10.0 scale"),
+                ),
+            ),
+        ).getOrThrow()
+        RuleAssertionRepository(
+            ruleAssertionDao = database.ruleAssertionDao(),
+            backgroundExecutor = BackgroundExecutor(Dispatchers.Default),
+        ).saveAssertions(
+            listOf(
+                RuleAssertion(
+                    ruleRef = ruleRef,
+                    ruleFingerprint = "sha256:full-period-availability",
+                    factKey = FactKey.AVAILABLE_FULL_PERIOD,
+                    value = FactValue.BooleanValue(true),
+                ),
+            ),
+        ).getOrThrow()
+
+        repository.clearProfile().getOrThrow()
+
+        val cleared = repository.getProfile().getOrThrow()
+        assertTrue(cleared.facts.isEmpty())
+        assertTrue(cleared.ruleAssertions.isEmpty())
     }
 }

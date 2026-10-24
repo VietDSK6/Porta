@@ -11,6 +11,7 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
@@ -91,10 +92,10 @@ class ActivePlanViewModel(
             val today = currentLocalDateProvider.today()
             scenarioEvaluator.evaluate(
                 profile = profile,
-                overrides = mapOf(targetFactKey to targetValue),
+                overrides = target.asScenarioOverrides(),
                 opportunities = opportunities,
                 today = today,
-            ).resolvedHardGapOpportunityIds(targetFactKey)
+            ).resolvedHardGapOpportunityIds(target)
                 .filter { opportunityId ->
                     opportunities.firstOrNull { it.id == opportunityId }
                         ?.isFeasibleForPlanning(
@@ -126,7 +127,7 @@ class ActivePlanViewModel(
             evidenceLabel = action?.completionEvidenceTypes?.joinToString()?.replaceFirstChar(Char::uppercaseChar)
                 ?: "Evidence definition needs review",
             affectedDoorTitles = affectedDoors,
-            riskNote = "This milestone resolves encoded hard-rule gaps only. Confirm remaining manual checks and " +
+            riskNote = "This milestone can address the published checks Porta can evaluate. Confirm remaining manual checks and " +
                 "live deadlines on official sources before acting.",
             updatedLabel = "Updated ${updatedAtEpochMillis.asFormattedDate()}",
             progress = completedSteps / 3f,

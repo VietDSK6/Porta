@@ -7,6 +7,7 @@ import io.github.vietdsk6.porta.data.repository.GenerationRepository
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
 import io.github.vietdsk6.porta.data.repository.UserRepository
@@ -147,6 +148,7 @@ private val dataModule = module {
     singleOf(::OpportunityPackRepository)
     singleOf(::PlanRepository)
     singleOf(::ProfileRepository)
+    singleOf(::RuleAssertionRepository)
     singleOf(::SavedOpportunityRepository)
 
     // Loggers

@@ -1,9 +1,19 @@
 package io.github.vietdsk6.porta.data.source.local.profile
 
+import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.DurationUnit
+import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
+import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.FactProvenance
 import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleAssertion
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.displayValue
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -24,6 +34,7 @@ class ProfileExportCodec(
                         key = fact.key.name,
                         value = fact.value.displayValue(),
                         valueType = fact.value.exportType(),
+                        structuredValue = fact.value.toExportValue(),
                         provenance = fact.provenance.name,
                         actionability = fact.actionability.name,
                         evidenceLabel = fact.evidence?.label,
@@ -32,8 +43,64 @@ class ProfileExportCodec(
                         updatedAtEpochMillis = fact.updatedAtEpochMillis,
                     )
                 },
+            ruleAssertions = profile.ruleAssertions.values
+                .sortedWith(
+                    compareBy(
+                        { it.ruleRef.opportunityId },
+                        { it.ruleRef.ruleId },
+                    ),
+                ).map { assertion ->
+                    RuleAssertionExport(
+                        opportunityId = assertion.ruleRef.opportunityId,
+                        ruleId = assertion.ruleRef.ruleId,
+                        ruleFingerprint = assertion.ruleFingerprint,
+                        factKey = assertion.factKey.name,
+                        value = assertion.value.displayValue(),
+                        valueType = assertion.value.exportType(),
+                        structuredValue = assertion.value.toExportValue(),
+                        evidenceLabel = assertion.evidence?.label,
+                        evidenceReference = assertion.evidence?.reference,
+                        evidenceCheckedAtEpochMillis = assertion.evidence?.checkedAtEpochMillis,
+                        updatedAtEpochMillis = assertion.updatedAtEpochMillis,
+                    )
+                },
         ),
     )
+
+    fun decode(encoded: String): ProfileSnapshot {
+        val export = json.decodeFromString<ProfileMetadataExport>(encoded)
+        require(export.schemaVersion == 2) { "Unsupported profile export schema ${export.schemaVersion}." }
+        val facts = export.facts.map { fact ->
+            val key = FactKey.valueOf(fact.key)
+            ProfileFact(
+                id = "${export.profileId}:${key.name.lowercase()}",
+                profileId = export.profileId,
+                key = key,
+                value = fact.structuredValue.toDomainValue(fact.valueType),
+                provenance = FactProvenance.valueOf(fact.provenance),
+                actionability = Actionability.valueOf(fact.actionability),
+                evidence = fact.evidence(),
+                updatedAtEpochMillis = fact.updatedAtEpochMillis,
+            )
+        }
+        val assertions = export.ruleAssertions.map { assertion ->
+            val ruleRef = RuleRef(assertion.opportunityId, assertion.ruleId)
+            RuleAssertion(
+                profileId = export.profileId,
+                ruleRef = ruleRef,
+                ruleFingerprint = assertion.ruleFingerprint,
+                factKey = FactKey.valueOf(assertion.factKey),
+                value = assertion.structuredValue.toDomainValue(assertion.valueType),
+                evidence = assertion.evidence(),
+                updatedAtEpochMillis = assertion.updatedAtEpochMillis,
+            )
+        }
+        return ProfileSnapshot(
+            id = export.profileId,
+            facts = facts.associateBy(ProfileFact::key),
+            ruleAssertions = assertions.associateBy(RuleAssertion::ruleRef),
+        )
+    }
 
     companion object {
         private val DEFAULT_JSON = Json {
@@ -54,13 +121,70 @@ private fun FactValue.exportType(): String = when (this) {
     is FactValue.TextValue -> "text"
 }
 
+private fun FactValue.toExportValue(): FactValueExport = when (this) {
+    is FactValue.BooleanValue -> FactValueExport(booleanValue = value)
+
+    is FactValue.DateValue -> FactValueExport(textValue = value.toString())
+
+    is FactValue.DurationValue -> FactValueExport(
+        durationAmount = amount,
+        durationUnit = unit.name,
+    )
+
+    is FactValue.EnumListValue -> FactValueExport(listValue = values.sorted())
+
+    is FactValue.EnumValue -> FactValueExport(textValue = value)
+
+    is FactValue.NumberValue -> FactValueExport(numberValue = amount, unit = unit)
+
+    is FactValue.TextValue -> FactValueExport(textValue = value)
+}
+
+private fun FactValueExport.toDomainValue(valueType: String): FactValue = when (valueType) {
+    "boolean" -> FactValue.BooleanValue(checkNotNull(booleanValue))
+
+    "date" -> FactValue.DateValue(LocalDate.parse(checkNotNull(textValue)))
+
+    "duration" -> FactValue.DurationValue(
+        amount = checkNotNull(durationAmount),
+        unit = DurationUnit.valueOf(checkNotNull(durationUnit)),
+    )
+
+    "enum_list" -> FactValue.EnumListValue(listValue.toSet())
+
+    "enum" -> FactValue.EnumValue(checkNotNull(textValue))
+
+    "number" -> FactValue.NumberValue(checkNotNull(numberValue), unit.orEmpty())
+
+    "text" -> FactValue.TextValue(textValue.orEmpty())
+
+    else -> error("Unsupported exported fact value type '$valueType'.")
+}
+
+private fun ProfileFactExport.evidence(): EvidenceMetadata? = evidenceLabel?.let { label ->
+    EvidenceMetadata(
+        label = label,
+        reference = evidenceReference,
+        checkedAtEpochMillis = evidenceCheckedAtEpochMillis,
+    )
+}
+
+private fun RuleAssertionExport.evidence(): EvidenceMetadata? = evidenceLabel?.let { label ->
+    EvidenceMetadata(
+        label = label,
+        reference = evidenceReference,
+        checkedAtEpochMillis = evidenceCheckedAtEpochMillis,
+    )
+}
+
 @Serializable
 private data class ProfileMetadataExport(
-    val schemaVersion: Int = 1,
-    val warning: String = "Private profile metadata. Evidence binary files are not included.",
+    val schemaVersion: Int = 2,
+    val warning: String = "Private profile metadata. Evidence binary files are not included. Rule assertions only apply to the exact opportunity rule and fingerprint shown.",
     val profileId: String,
     val exportedAtEpochMillis: Long,
     val facts: List<ProfileFactExport>,
+    val ruleAssertions: List<RuleAssertionExport>,
 )
 
 @Serializable
@@ -68,10 +192,37 @@ private data class ProfileFactExport(
     val key: String,
     val value: String,
     val valueType: String,
+    val structuredValue: FactValueExport,
     val provenance: String,
     val actionability: String,
     val evidenceLabel: String? = null,
     val evidenceReference: String? = null,
     val evidenceCheckedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long,
+)
+
+@Serializable
+private data class RuleAssertionExport(
+    val opportunityId: String,
+    val ruleId: String,
+    val ruleFingerprint: String,
+    val factKey: String,
+    val value: String,
+    val valueType: String,
+    val structuredValue: FactValueExport,
+    val evidenceLabel: String? = null,
+    val evidenceReference: String? = null,
+    val evidenceCheckedAtEpochMillis: Long? = null,
+    val updatedAtEpochMillis: Long,
+)
+
+@Serializable
+private data class FactValueExport(
+    val numberValue: Double? = null,
+    val textValue: String? = null,
+    val booleanValue: Boolean? = null,
+    val listValue: List<String> = emptyList(),
+    val unit: String? = null,
+    val durationAmount: Int? = null,
+    val durationUnit: String? = null,
 )

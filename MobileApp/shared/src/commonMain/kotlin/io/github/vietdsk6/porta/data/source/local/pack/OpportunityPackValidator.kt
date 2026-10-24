@@ -151,6 +151,15 @@ class OpportunityPackValidator {
             seenRuleIds = ruleIds,
             error = error,
         )
+        val atomicRules = opportunity.eligibilityRule.flattenAtomics()
+        opportunity.actionTemplates.forEachIndexed { actionIndex, action ->
+            validateActionTarget(
+                action = action,
+                atomicRules = atomicRules,
+                path = "$path.actionTemplates[$actionIndex]",
+                error = error,
+            )
+        }
     }
 
     private fun validateAction(action: ActionTemplateDto, path: String, error: ErrorSink) {
@@ -166,12 +175,34 @@ class OpportunityPackValidator {
                 "Unknown actionability '${action.targetActionability}'.",
                 "$path.targetActionability",
             )
-        } else if (actionability in FORBIDDEN_ACTION_TARGETS) {
+        } else if (actionability !in ALLOWED_ACTION_TARGETS) {
             error(
                 "unsafe_action_target",
                 "Actions cannot target ${actionability.name.lowercase()} facts.",
                 "$path.targetActionability",
             )
+        }
+        val targetScope = enumValueOrNull<ActionTargetScope>(action.targetScope)
+        if (targetScope == null) {
+            error("unknown_action_scope", "Unknown action target scope '${action.targetScope}'.", "$path.targetScope")
+        } else {
+            when (targetScope) {
+                ActionTargetScope.PROFILE -> if (action.targetRuleId != null) {
+                    error(
+                        "unexpected_target_rule",
+                        "Profile actions cannot declare targetRuleId.",
+                        "$path.targetRuleId",
+                    )
+                }
+
+                ActionTargetScope.RULE -> if (action.targetRuleId.isNullOrBlank()) {
+                    error(
+                        "missing_target_rule",
+                        "Rule-scoped actions must declare targetRuleId.",
+                        "$path.targetRuleId",
+                    )
+                }
+            }
         }
         if (action.minimumDurationDays < 0) {
             error("invalid_duration", "Minimum duration cannot be negative.", "$path.minimumDurationDays")
@@ -183,6 +214,81 @@ class OpportunityPackValidator {
             error("unknown_cost", "Unknown cost band '${action.costBand}'.", "$path.costBand")
         }
         validateFactValue(action.targetValue, "$path.targetValue", error)
+    }
+
+    private fun validateActionTarget(
+        action: ActionTemplateDto,
+        atomicRules: List<RuleNodeDto.Atomic>,
+        path: String,
+        error: ErrorSink,
+    ) {
+        val scope = enumValueOrNull<ActionTargetScope>(action.targetScope) ?: return
+        val references = atomicRules.filter { it.actionTemplateId == action.id }
+        if (references.isEmpty()) {
+            error(
+                "unreferenced_action",
+                "Action '${action.id}' is not referenced by an atomic rule.",
+                "$path.id",
+            )
+            return
+        }
+
+        val targetRules = when (scope) {
+            ActionTargetScope.PROFILE -> references
+
+            ActionTargetScope.RULE -> {
+                val targetRuleId = action.targetRuleId ?: return
+                val targetRule = atomicRules.firstOrNull { it.id == targetRuleId }
+                if (targetRule == null) {
+                    error(
+                        "unknown_target_rule",
+                        "Rule-scoped action '${action.id}' targets missing atomic rule '$targetRuleId'.",
+                        "$path.targetRuleId",
+                    )
+                    return
+                }
+                if (targetRule.actionTemplateId != action.id) {
+                    error(
+                        "target_rule_action_mismatch",
+                        "Target rule '$targetRuleId' does not reference action '${action.id}'.",
+                        "$path.targetRuleId",
+                    )
+                }
+                if (references.any { it.id != targetRuleId }) {
+                    error(
+                        "ambiguous_rule_action_reference",
+                        "Rule-scoped action '${action.id}' may only be referenced by its target rule '$targetRuleId'.",
+                        "$path.targetRuleId",
+                    )
+                }
+                listOf(targetRule)
+            }
+        }
+
+        targetRules.forEach { rule ->
+            if (rule.factKey != action.targetFactKey) {
+                error(
+                    "target_fact_mismatch",
+                    "Action '${action.id}' targets ${action.targetFactKey}, but rule '${rule.id}' uses ${rule.factKey}.",
+                    "$path.targetFactKey",
+                )
+            }
+            if (rule.actionability != action.targetActionability) {
+                error(
+                    "target_actionability_mismatch",
+                    "Action '${action.id}' and rule '${rule.id}' must use the same actionability.",
+                    "$path.targetActionability",
+                )
+            }
+            val operator = enumValueOrNull<Operator>(rule.operator)
+            if (operator != null && !targetSatisfiesRule(action.targetValue, operator, rule.expected)) {
+                error(
+                    "incompatible_target_value",
+                    "Action '${action.id}' does not provide a value that satisfies rule '${rule.id}'.",
+                    "$path.targetValue",
+                )
+            }
+        }
     }
 
     private fun validateRule(
@@ -296,6 +402,68 @@ class OpportunityPackValidator {
         }
     }
 
+    private fun targetSatisfiesRule(
+        actual: FactValueDto,
+        operator: Operator,
+        expected: FactValueDto?,
+    ): Boolean = when (operator) {
+        Operator.EXISTS -> true
+
+        Operator.EQUALS -> actual == expected
+
+        Operator.NOT_EQUALS -> expected != null && actual::class == expected::class && actual != expected
+
+        Operator.GREATER_THAN_OR_EQUAL -> when {
+            actual is FactValueDto.NumberValue && expected is FactValueDto.NumberValue ->
+                actual.unit == expected.unit && actual.amount >= expected.amount
+
+            actual is FactValueDto.DurationValue && expected is FactValueDto.DurationValue ->
+                actual.unit == expected.unit && actual.amount >= expected.amount
+
+            else -> false
+        }
+
+        Operator.LESS_THAN_OR_EQUAL -> when {
+            actual is FactValueDto.NumberValue && expected is FactValueDto.NumberValue ->
+                actual.unit == expected.unit && actual.amount <= expected.amount
+
+            actual is FactValueDto.DurationValue && expected is FactValueDto.DurationValue ->
+                actual.unit == expected.unit && actual.amount <= expected.amount
+
+            else -> false
+        }
+
+        Operator.IN_SET -> expected is FactValueDto.EnumListValue && when (actual) {
+            is FactValueDto.EnumValue -> actual.value in expected.values
+            is FactValueDto.TextValue -> actual.value in expected.values
+            else -> false
+        }
+
+        Operator.CONTAINS_ANY ->
+            actual is FactValueDto.EnumListValue &&
+                expected is FactValueDto.EnumListValue &&
+                actual.values.any { value -> value in expected.values }
+
+        Operator.CONTAINS_ALL ->
+            actual is FactValueDto.EnumListValue &&
+                expected is FactValueDto.EnumListValue &&
+                actual.values.containsAll(expected.values)
+
+        Operator.DATE_BEFORE ->
+            actual is FactValueDto.DateValue &&
+                expected is FactValueDto.DateValue &&
+                parseDate(actual.value)?.let { actualDate ->
+                    parseDate(expected.value)?.let { expectedDate -> actualDate < expectedDate }
+                } == true
+
+        Operator.DATE_AFTER ->
+            actual is FactValueDto.DateValue &&
+                expected is FactValueDto.DateValue &&
+                parseDate(actual.value)?.let { actualDate ->
+                    parseDate(expected.value)?.let { expectedDate -> actualDate > expectedDate }
+                } == true
+    }
+
     private fun requireText(
         value: String,
         code: String,
@@ -317,8 +485,15 @@ class OpportunityPackValidator {
     private inline fun <reified T : Enum<T>> enumValueOrNull(value: String): T? = enumValues<T>().firstOrNull { it.name == value }
 
     private companion object {
-        val FORBIDDEN_ACTION_TARGETS = setOf(Actionability.IMMUTABLE, Actionability.CONTEXT_ONLY)
+        val ALLOWED_ACTION_TARGETS = setOf(Actionability.CONTROLLABLE, Actionability.TIME_DEPENDENT)
     }
 }
 
 private typealias ErrorSink = (code: String, message: String, path: String) -> Unit
+
+private fun RuleNodeDto.flattenAtomics(): List<RuleNodeDto.Atomic> = when (this) {
+    is RuleNodeDto.All -> children.flatMap(RuleNodeDto::flattenAtomics)
+    is RuleNodeDto.Any -> children.flatMap(RuleNodeDto::flattenAtomics)
+    is RuleNodeDto.Atomic -> listOf(this)
+    is RuleNodeDto.ManualCheck -> emptyList()
+}

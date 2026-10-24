@@ -1,7 +1,9 @@
 package io.github.vietdsk6.porta.data.source.local.pack
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
@@ -9,6 +11,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -21,7 +24,7 @@ class OpportunityPackParserTest {
         val rawJson = codec.encode(validPack())
         val result = parser.parse(rawJson, importedAtEpochMillis = 42L)
 
-        assertTrue(result.isValid)
+        assertTrue(result.isValid, result.diagnostics.joinToString())
         val document = assertNotNull(result.document)
         assertEquals("porta-test-pack", document.metadata.id)
         assertEquals(42L, document.metadata.importedAtEpochMillis)
@@ -91,6 +94,119 @@ class OpportunityPackParserTest {
         assertFalse(result.isValid)
         assertTrue(result.diagnostics.any { it.code == "duplicate_opportunity_id" })
         assertTrue(result.document == null)
+    }
+
+    @Test
+    fun `v1 availability action upgrades to its single referenced rule`() {
+        val opportunity = validPack().opportunities.single()
+        val availabilityRule = (opportunity.eligibilityRule as RuleNodeDto.Atomic).copy(
+            id = "programme-availability",
+            factKey = FactKey.AVAILABLE_FULL_PERIOD.name,
+            operator = "EQUALS",
+            expected = FactValueDto.BooleanValue(true),
+            actionTemplateId = "reserve-programme-period",
+        )
+        val availabilityAction = opportunity.actionTemplates.single().copy(
+            id = "reserve-programme-period",
+            targetFactKey = FactKey.AVAILABLE_FULL_PERIOD.name,
+            targetValue = FactValueDto.BooleanValue(true),
+        )
+        val v1Pack = validPack().copy(
+            schemaVersion = 1,
+            opportunities = listOf(
+                opportunity.copy(
+                    schemaVersion = 1,
+                    eligibilityRule = availabilityRule,
+                    actionTemplates = listOf(availabilityAction),
+                ),
+            ),
+        )
+
+        val rawV1 = codec.encode(v1Pack)
+            .lineSequence()
+            .filterNot { line -> "\"targetScope\"" in line || "\"targetRuleId\"" in line }
+            .joinToString("\n")
+        val result = parser.parse(rawV1)
+
+        assertTrue(result.isValid, result.diagnostics.joinToString())
+        val target = assertIs<ActionTarget.OpportunityRuleTarget>(
+            assertNotNull(result.document).opportunities.single().actionTemplates.single().target,
+        )
+        assertEquals("synthetic-scholarship", target.opportunityId)
+        assertEquals("programme-availability", target.ruleId)
+        assertTrue(target.ruleFingerprint.isNotBlank())
+    }
+
+    @Test
+    fun `v1 availability action with ambiguous references is rejected`() {
+        val opportunity = validPack().opportunities.single()
+        val action = opportunity.actionTemplates.single().copy(
+            id = "reserve-programme-period",
+            targetFactKey = FactKey.AVAILABLE_FULL_PERIOD.name,
+            targetValue = FactValueDto.BooleanValue(true),
+        )
+        fun availabilityRule(id: String) = RuleNodeDto.Atomic(
+            id = id,
+            factKey = FactKey.AVAILABLE_FULL_PERIOD.name,
+            operator = "EQUALS",
+            expected = FactValueDto.BooleanValue(true),
+            explanation = "Synthetic availability rule.",
+            sourceNote = "Synthetic fixture.",
+            actionability = "CONTROLLABLE",
+            actionTemplateId = action.id,
+        )
+        val v1Pack = validPack().copy(
+            schemaVersion = 1,
+            opportunities = listOf(
+                opportunity.copy(
+                    schemaVersion = 1,
+                    eligibilityRule = RuleNodeDto.All(
+                        id = "availability-root",
+                        children = listOf(availabilityRule("period-a"), availabilityRule("period-b")),
+                    ),
+                    actionTemplates = listOf(action),
+                ),
+            ),
+        )
+
+        val result = parser.parse(codec.encode(v1Pack))
+
+        assertFalse(result.isValid)
+        assertEquals("ambiguous_v1_availability_target", result.diagnostics.single().code)
+        assertTrue(result.diagnostics.single().message.contains("found 2 references"))
+    }
+
+    @Test
+    fun `v2 rule-scoped action targeting a missing rule is rejected`() {
+        val opportunity = validPack().opportunities.single()
+        val action = opportunity.actionTemplates.single().copy(
+            targetScope = ActionTargetScope.RULE.name,
+            targetRuleId = "missing-rule",
+        )
+
+        val result = parser.parse(
+            codec.encode(validPack().copy(opportunities = listOf(opportunity.copy(actionTemplates = listOf(action))))),
+        )
+
+        assertFalse(result.isValid)
+        assertTrue(result.diagnostics.any { it.code == "unknown_target_rule" })
+    }
+
+    @Test
+    fun `rule-scoped action value must satisfy its target rule`() {
+        val opportunity = validPack().opportunities.single()
+        val action = opportunity.actionTemplates.single().copy(
+            targetScope = ActionTargetScope.RULE.name,
+            targetRuleId = "ielts-rule",
+            targetValue = FactValueDto.NumberValue(6.0, "band"),
+        )
+
+        val result = parser.parse(
+            codec.encode(validPack().copy(opportunities = listOf(opportunity.copy(actionTemplates = listOf(action))))),
+        )
+
+        assertFalse(result.isValid)
+        assertTrue(result.diagnostics.any { it.code == "incompatible_target_value" })
     }
 
     private fun validPack(): OpportunityPackDto = OpportunityPackDto(

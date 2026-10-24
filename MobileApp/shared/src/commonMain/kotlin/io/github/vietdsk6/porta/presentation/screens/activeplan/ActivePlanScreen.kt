@@ -392,7 +392,7 @@ private fun PlanActions(
     }
 }
 
-private val PORTA_TEAL = Color(0xFF2DD4BF)
+private val PORTA_TEAL = Color(0xFF167D73)
 
 @Preview
 @Composable

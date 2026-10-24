@@ -5,8 +5,7 @@ data class PlanItem(
     val profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
     val actionTemplateId: String,
     val title: String,
-    val targetFactKey: FactKey,
-    val targetValue: FactValue,
+    val target: ActionTarget,
     val status: PlanStatus = PlanStatus.PLANNED,
     val targetDateEpochDays: Long? = null,
     val note: String? = null,
@@ -15,7 +14,47 @@ data class PlanItem(
     val costBand: CostBand,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
-)
+) {
+    val targetFactKey: FactKey
+        get() = target.factKey
+
+    val targetValue: FactValue
+        get() = target.value
+
+    constructor(
+        id: String,
+        profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
+        actionTemplateId: String,
+        title: String,
+        targetFactKey: FactKey,
+        targetValue: FactValue,
+        status: PlanStatus = PlanStatus.PLANNED,
+        targetDateEpochDays: Long? = null,
+        note: String? = null,
+        expectedDurationDays: Int? = null,
+        effort: EffortLevel,
+        costBand: CostBand,
+        createdAtEpochMillis: Long,
+        updatedAtEpochMillis: Long,
+    ) : this(
+        id = id,
+        profileId = profileId,
+        actionTemplateId = actionTemplateId,
+        title = title,
+        target = ActionTarget.ProfileFactTarget(
+            factKey = targetFactKey,
+            value = targetValue,
+        ),
+        status = status,
+        targetDateEpochDays = targetDateEpochDays,
+        note = note,
+        expectedDurationDays = expectedDurationDays,
+        effort = effort,
+        costBand = costBand,
+        createdAtEpochMillis = createdAtEpochMillis,
+        updatedAtEpochMillis = updatedAtEpochMillis,
+    )
+}
 
 enum class PlanStatus {
     PLANNED,

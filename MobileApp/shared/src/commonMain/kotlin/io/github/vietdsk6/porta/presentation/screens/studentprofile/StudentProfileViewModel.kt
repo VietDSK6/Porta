@@ -16,6 +16,8 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.countryForStoredValue
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.file.FileManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -180,13 +182,20 @@ class StudentProfileViewModel(
         transient: StudentProfileTransientState,
     ): StudentProfileUiState {
         val facts = profile.facts.values.associate { fact ->
+            val growthRecord = (fact.value as? FactValue.TextValue)
+                ?.takeIf { fact.key == FactKey.COMMUNITY_PROJECT || fact.key == FactKey.LEADERSHIP }
+                ?.let { GrowthEvidenceEncoding.decode(it.value) }
             fact.key to ProfileFactUiState(
                 key = fact.key,
                 label = fact.key.label(),
-                value = fact.value.profileDisplayValue(fact.key),
+                value = growthRecord?.primary.orEmpty().ifBlank { fact.value.profileDisplayValue(fact.key) },
+                detail = growthRecord?.secondary?.takeIf(String::isNotBlank),
+                isGrowthEvidence = growthRecord != null,
                 provenanceLabel = fact.provenance.label(),
                 actionabilityLabel = fact.actionability.label(),
-                evidenceLabel = fact.evidence?.label,
+                evidenceLabel = fact.evidence?.let { evidence ->
+                    listOfNotNull(evidence.label, evidence.reference?.takeIf(String::isNotBlank)).joinToString(" · ")
+                },
                 dependentDoorTitles = opportunities
                     .filter { opportunity -> opportunity.eligibilityRule.uses(fact.key) }
                     .map(Opportunity::title),
@@ -227,6 +236,10 @@ class StudentProfileViewModel(
         key == FactKey.GPA && this is FactValue.NumberValue -> {
             val scale = unit.removeSuffix(" scale").ifBlank { "4.0" }
             "${amount.compact()} / $scale"
+        }
+
+        (key == FactKey.NATIONALITY || key == FactKey.RESIDENCY) && this is FactValue.EnumValue -> {
+            countryForStoredValue(value)?.displayName ?: value
         }
 
         this is FactValue.NumberValue -> "${amount.compact()} $unit".trim()
@@ -282,31 +295,36 @@ class StudentProfileViewModel(
     companion object {
         private val PROFILE_SECTIONS = listOf(
             ProfileSectionDefinition(
-                title = "Academic",
-                description = "Study status and measurable academic facts.",
+                title = "Essentials",
+                description = "Your current study context.",
                 keys = listOf(
                     FactKey.STUDY_LEVEL,
                     FactKey.FIELD_OF_STUDY,
+                    FactKey.ENROLLED,
+                ),
+            ),
+            ProfileSectionDefinition(
+                title = "Academic record",
+                description = "Measured results stay on their original scale.",
+                keys = listOf(
                     FactKey.GPA,
                     FactKey.IELTS_SCORE,
-                    FactKey.ENROLLED,
                     FactKey.DEGREE_COMPLETED,
                 ),
             ),
             ProfileSectionDefinition(
-                title = "Location and identity context",
-                description = "Context can explain a rule, but Porta never recommends changing it.",
-                keys = listOf(FactKey.NATIONALITY, FactKey.RESIDENCY, FactKey.AGE),
-            ),
-            ProfileSectionDefinition(
-                title = "Experience and availability",
-                description = "Experience, projects and time commitments.",
+                title = "Experience and evidence",
+                description = "Growth evidence informs planning but never passes a published check automatically.",
                 keys = listOf(
                     FactKey.EXPERIENCE_MONTHS,
                     FactKey.COMMUNITY_PROJECT,
                     FactKey.LEADERSHIP,
-                    FactKey.AVAILABLE_FULL_PERIOD,
                 ),
+            ),
+            ProfileSectionDefinition(
+                title = "Context",
+                description = "Porta explains context-dependent rules but never recommends changing identity.",
+                keys = listOf(FactKey.NATIONALITY, FactKey.RESIDENCY, FactKey.AGE),
             ),
         )
     }

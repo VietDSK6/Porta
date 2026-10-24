@@ -4,33 +4,42 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import kotlinx.coroutines.delay
 
 @Composable
 fun DoorsScreen(
@@ -54,6 +63,12 @@ fun DoorsScreen(
     onOpenOpportunity: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(uiState.highlightedDoorIds) {
+        if (uiState.highlightedDoorIds.isNotEmpty()) {
+            delay(DOOR_HIGHLIGHT_DURATION_MILLIS)
+            onUiEvent(DoorsUiEvent.DismissHighlights)
+        }
+    }
     ScreenWithToolbar(
         modifier = modifier.testTag("doors-screen"),
         isScrollableContent = false,
@@ -72,7 +87,7 @@ fun DoorsScreen(
                         doorCount = uiState.catalogDoorCount,
                     )
                     Text(
-                        text = "See what is open now—and what one honest next step could change.",
+                        text = "See how your current profile compares with each published check.",
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodyLarge,
                     )
@@ -88,6 +103,7 @@ fun DoorsScreen(
             items(uiState.doors, key = DoorCardUiState::id) { door ->
                 DoorCard(
                     door = door,
+                    isHighlighted = door.id in uiState.highlightedDoorIds,
                     onOpen = { onOpenOpportunity(door.id) },
                     onSavedChanged = { onUiEvent(DoorsUiEvent.SavedChanged(door.id)) },
                 )
@@ -105,7 +121,7 @@ private fun ProfileAndPackContext(
 ) {
     if (!isSampleProfile && !isSampleCatalog) {
         Text(
-            text = "$doorCount source-linked opportunities · evaluated on this device",
+            text = "$doorCount source-linked opportunities · checked on this device",
             color = AppTheme.colors.primary,
             fontWeight = FontWeight.Bold,
             style = AppTheme.typography.bodySmall,
@@ -113,76 +129,81 @@ private fun ProfileAndPackContext(
         return
     }
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(
-                when {
-                    isSampleProfile && isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
-                    isSampleProfile -> "SAMPLE PROFILE · $doorCount SOURCED DOORS"
-                    isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
-                    else -> "YOUR PROFILE · $doorCount SOURCED DOORS"
-                },
-                color = AppTheme.colors.primary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                when {
-                    isSampleCatalog -> {
-                        "This fallback catalog is fictional and exists only to demonstrate Porta safely."
-                    }
-
-                    isSampleProfile -> {
-                        "A sample student is evaluated against Porta's offline, source-linked opportunity pack."
-                    }
-
-                    else -> {
-                        "Your local facts are evaluated against published rules checked in the active offline pack."
-                    }
-                },
-                color = AppTheme.colors.text.primary,
-                style = AppTheme.typography.bodyMedium,
-            )
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            when {
+                isSampleProfile && isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
+                isSampleProfile -> "SAMPLE PROFILE · $doorCount SOURCED DOORS"
+                isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
+                else -> "YOUR PROFILE · $doorCount SOURCED DOORS"
+            },
+            color = AppTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+            style = AppTheme.typography.bodySmall,
+        )
+        Text(
+            when {
+                isSampleCatalog -> "The fallback catalog is fictional and is only used for a safe demo."
+                isSampleProfile -> "A sample student is compared with the active source-linked pack."
+                else -> "Your saved facts are compared with the active offline pack."
+            },
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+        )
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StateSummary(uiState: DoorsUiState) {
-    Row(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(12.dp),
     ) {
-        SummaryCell("${uiState.openCount}", "Open", PORTA_TEAL, Modifier.weight(1f))
-        SummaryCell("${uiState.gapCount}", "Has gaps", PORTA_AMBER, Modifier.weight(1f))
-        SummaryCell("${uiState.needsInfoCount}", "Verify", AppTheme.colors.primary, Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun SummaryCell(value: String, label: String, color: Color, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(Modifier.padding(14.dp)) {
-            Text(value, color = color, style = AppTheme.typography.h4)
-            Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        FlowRow(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SummaryItem(uiState.openCount, "CURRENT CHECKS PASSED", PORTA_TEAL)
+            SummaryItem(uiState.gapCount, "NEEDS ACTION", PORTA_AMBER)
+            SummaryItem(uiState.needsInfoCount, "NEEDS VERIFICATION", AppTheme.colors.primary)
+            if (uiState.notAvailableCount > 0) {
+                SummaryItem(uiState.notAvailableCount, "NOT AVAILABLE THIS CYCLE", PORTA_CORAL)
+            }
+            if (uiState.closedCount > 0) {
+                SummaryItem(uiState.closedCount, "CLOSED", PORTA_CORAL)
+            }
         }
     }
 }
 
 @Composable
+private fun SummaryItem(value: Int, label: String, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Text(value.toString(), color = color, fontWeight = FontWeight.Bold)
+        Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun DoorFilterRow(selected: DoorFilter, onSelected: (DoorFilter) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(DoorFilter.entries) { filter ->
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        DoorFilter.entries.forEach { filter ->
             FilterChip(
+                modifier = Modifier.testTag("door-filter-${filter.name}"),
                 selected = filter == selected,
                 onClick = { onSelected(filter) },
-                label = { Text(filter.label) },
+                label = { Text(filter.label, style = AppTheme.typography.bodySmall) },
             )
         }
     }
@@ -191,6 +212,7 @@ private fun DoorFilterRow(selected: DoorFilter, onSelected: (DoorFilter) -> Unit
 @Composable
 private fun DoorCard(
     door: DoorCardUiState,
+    isHighlighted: Boolean,
     onOpen: () -> Unit,
     onSavedChanged: () -> Unit,
 ) {
@@ -200,36 +222,98 @@ private fun DoorCard(
             .fillMaxWidth()
             .testTag("door-card-${door.id}")
             .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, stateColor.copy(alpha = 0.72f)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHighlighted) AppTheme.colors.alternative else AppTheme.colors.surfaceContainer,
+        ),
+        border = if (isHighlighted) BorderStroke(1.dp, AppTheme.colors.primary) else null,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(door.state.label(), color = stateColor, fontWeight = FontWeight.Bold)
-                Text(door.deadlineLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            if (isHighlighted) {
+                Text(
+                    text = "UPDATED FROM YOUR CONFIRMED PROFILE",
+                    color = AppTheme.colors.primary,
+                    fontWeight = FontWeight.Bold,
+                    style = AppTheme.typography.bodySmall,
+                )
             }
-            Text(door.title, style = AppTheme.typography.h5, color = AppTheme.colors.text.primary)
-            Text(door.provider, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.secondary)
-            Text(door.primaryReason, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.primary)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(door.checkedLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-                TextButton(onClick = onSavedChanged) {
-                    Text(if (door.isSaved) "Saved" else "Save")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        door.state.label(),
+                        color = stateColor,
+                        fontWeight = FontWeight.Bold,
+                        style = AppTheme.typography.bodySmall,
+                    )
+                    Text(
+                        door.title,
+                        style = AppTheme.typography.h5,
+                        color = AppTheme.colors.text.primary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
+                IconButton(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics {
+                            contentDescription = if (door.isSaved) {
+                                "Remove ${door.title} from saved opportunities"
+                            } else {
+                                "Save ${door.title}"
+                            }
+                        },
+                    onClick = onSavedChanged,
+                ) {
+                    Text(
+                        text = if (door.isSaved) "★" else "☆",
+                        color = if (door.isSaved) AppTheme.colors.primary else AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.h5,
+                    )
+                }
+            }
+            Text(
+                listOf(door.provider, door.categoryLabel).filter(String::isNotBlank).joinToString(" · "),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.text.secondary,
+            )
+            Text(
+                door.primaryReason,
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.text.primary,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                door.deadlineLabel,
+                color = AppTheme.colors.text.secondary,
+                fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.bodySmall,
+            )
+            if (door.isSaved) {
+                Text(
+                    "SAVED",
+                    color = AppTheme.colors.primary,
+                    fontWeight = FontWeight.Bold,
+                    style = AppTheme.typography.bodySmall,
+                )
             }
         }
     }
 }
 
 private fun EligibilityState.label(): String = when (this) {
-    EligibilityState.OPEN -> "OPEN"
-    EligibilityState.HAS_GAPS -> "ONE STEP AWAY"
-    EligibilityState.NEEDS_INFO -> "VERIFY"
-    EligibilityState.NOT_ACTIONABLE -> "NOT ACTIONABLE"
+    EligibilityState.OPEN -> "CURRENT CHECKS PASSED"
+    EligibilityState.HAS_GAPS -> "NEEDS ACTION"
+    EligibilityState.NEEDS_INFO -> "NEEDS VERIFICATION"
+    EligibilityState.NOT_ACTIONABLE -> "NOT AVAILABLE THIS CYCLE"
     EligibilityState.CLOSED -> "CLOSED"
 }
 
@@ -246,9 +330,10 @@ private fun EligibilityState.color(): Color = when (this) {
     -> PORTA_CORAL
 }
 
-private val PORTA_TEAL = Color(0xFF2DD4BF)
-private val PORTA_AMBER = Color(0xFFF4B860)
-private val PORTA_CORAL = Color(0xFFEF6A6A)
+private val PORTA_TEAL = Color(0xFF167D73)
+private val PORTA_AMBER = Color(0xFFA66B1F)
+private val PORTA_CORAL = Color(0xFFB84F5B)
+private const val DOOR_HIGHLIGHT_DURATION_MILLIS = 2_600L
 
 @Preview
 @Composable
@@ -264,6 +349,7 @@ private fun DoorsScreenPreview() {
                         id = "kotlin-contest",
                         title = "Kotlin Student Coding Competition",
                         provider = "Kotlin Foundation",
+                        categoryLabel = "Student contest",
                         state = EligibilityState.NEEDS_INFO,
                         deadlineLabel = "Due 2026-12-07",
                         checkedLabel = "Checked 2026-10-21",

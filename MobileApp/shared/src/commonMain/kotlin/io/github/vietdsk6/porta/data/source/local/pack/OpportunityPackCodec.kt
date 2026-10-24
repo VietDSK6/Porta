@@ -23,7 +23,7 @@ class OpportunityPackCodec(
     fun encode(pack: OpportunityPackDto): String = json.encodeToString(pack)
 
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 1
+        const val CURRENT_SCHEMA_VERSION = 2
 
         private val DEFAULT_JSON = Json {
             classDiscriminator = "kind"

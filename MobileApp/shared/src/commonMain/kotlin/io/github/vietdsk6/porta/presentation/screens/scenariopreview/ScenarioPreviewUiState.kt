@@ -5,6 +5,7 @@ data class ScenarioPreviewUiState(
     val title: String = "",
     val beforeLabel: String = "",
     val afterLabel: String = "",
+    val scopeNotice: String? = null,
     val openedDoors: List<ScenarioDoorUiState> = emptyList(),
     val progressedDoors: List<ScenarioDoorUiState> = emptyList(),
     val unchangedDoors: List<ScenarioDoorUiState> = emptyList(),
@@ -19,6 +20,8 @@ data class ScenarioDoorUiState(
     val id: String,
     val title: String,
     val stateLabel: String,
+    val actualStateLabel: String = "",
+    val simulatedStateLabel: String = "",
 )
 
 sealed interface ScenarioPreviewUiEvent {

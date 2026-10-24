@@ -5,15 +5,77 @@ import kotlinx.datetime.LocalDate
 data class ActionTemplate(
     val id: String,
     val title: String,
-    val targetFactKey: FactKey,
-    val targetValue: FactValue,
+    val target: ActionTarget,
     val targetActionability: Actionability,
     val minimumDurationDays: Int,
     val effort: EffortLevel,
     val costBand: CostBand,
     val completionEvidenceTypes: Set<String> = emptySet(),
     val sourceNote: String? = null,
-)
+) {
+    val targetFactKey: FactKey
+        get() = target.factKey
+
+    val targetValue: FactValue
+        get() = target.value
+
+    /**
+     * Compatibility constructor for profile-wide milestones authored before scoped rule targets.
+     */
+    constructor(
+        id: String,
+        title: String,
+        targetFactKey: FactKey,
+        targetValue: FactValue,
+        targetActionability: Actionability,
+        minimumDurationDays: Int,
+        effort: EffortLevel,
+        costBand: CostBand,
+        completionEvidenceTypes: Set<String> = emptySet(),
+        sourceNote: String? = null,
+    ) : this(
+        id = id,
+        title = title,
+        target = ActionTarget.ProfileFactTarget(
+            factKey = targetFactKey,
+            value = targetValue,
+        ),
+        targetActionability = targetActionability,
+        minimumDurationDays = minimumDurationDays,
+        effort = effort,
+        costBand = costBand,
+        completionEvidenceTypes = completionEvidenceTypes,
+        sourceNote = sourceNote,
+    )
+}
+
+sealed interface ActionTarget {
+    val factKey: FactKey
+    val value: FactValue
+
+    data class ProfileFactTarget(
+        override val factKey: FactKey,
+        override val value: FactValue,
+    ) : ActionTarget
+
+    data class OpportunityRuleTarget(
+        val opportunityId: String,
+        val ruleId: String,
+        val ruleFingerprint: String,
+        override val factKey: FactKey,
+        override val value: FactValue,
+    ) : ActionTarget
+}
+
+fun ActionTarget.asScenarioOverrides(): ScenarioOverrides = when (this) {
+    is ActionTarget.ProfileFactTarget -> ScenarioOverrides(
+        profileFacts = mapOf(factKey to value),
+    )
+
+    is ActionTarget.OpportunityRuleTarget -> ScenarioOverrides(
+        ruleAssertions = mapOf(RuleRef(opportunityId, ruleId) to value),
+    )
+}
 
 enum class EffortLevel(val rank: Int) {
     VERY_LOW(1),
@@ -97,16 +159,27 @@ fun Opportunity.isFeasibleForPlanning(
 }
 
 /**
- * Returns opportunities where the scenario resolves a failed encoded rule for [targetFactKey].
+ * Returns opportunities where the scenario addresses the encoded rule represented by [target].
+ * Profile-wide milestones must turn a failure into a pass. A rule-scoped confirmation may also
+ * turn an unknown rule into a pass because its purpose is to collect programme-specific evidence.
  * The door may still need a manual source check, so this is intentionally broader than "open".
  */
-fun ScenarioResult.resolvedHardGapOpportunityIds(targetFactKey: FactKey): List<String> = baseline
+fun ScenarioResult.resolvedHardGapOpportunityIds(target: ActionTarget): List<String> = baseline
     .mapNotNull { (opportunityId, beforeReceipt) ->
+        if (target is ActionTarget.OpportunityRuleTarget && target.opportunityId != opportunityId) {
+            return@mapNotNull null
+        }
         val afterReceipt = simulated[opportunityId] ?: return@mapNotNull null
         val afterRules = afterReceipt.rules.associateBy(RuleReceipt::ruleId)
         val resolved = beforeReceipt.rules.any { beforeRule ->
-            beforeRule.factKey == targetFactKey &&
-                beforeRule.result == RuleResult.FAIL &&
+            val targetsRule = target !is ActionTarget.OpportunityRuleTarget ||
+                beforeRule.ruleId == target.ruleId
+            val isScopedUnknown = target is ActionTarget.OpportunityRuleTarget &&
+                beforeRule.result == RuleResult.UNKNOWN
+            val addressableBefore = beforeRule.result == RuleResult.FAIL || isScopedUnknown
+            beforeRule.factKey == target.factKey &&
+                targetsRule &&
+                addressableBefore &&
                 afterRules[beforeRule.ruleId]?.result == RuleResult.PASS
         }
         opportunityId.takeIf { resolved }

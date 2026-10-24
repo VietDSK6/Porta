@@ -72,7 +72,7 @@ fun StudentProfileScreen(
     ScreenWithToolbar(
         modifier = modifier,
         isScrollableContent = true,
-        title = "Profile",
+        title = "Your academic profile",
         includeBottomInsets = false,
         toolbarExtraContent = {
             if (uiState.hasRealProfile) {
@@ -494,6 +494,15 @@ private fun FactRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                fact.detail?.let { detail ->
+                    Text(
+                        text = detail,
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.text.secondary,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Text(
                 text = if (expanded) "Close" else "Details",
@@ -523,6 +532,14 @@ private fun FactRow(
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        if (fact.isGrowthEvidence) {
+            Text(
+                text = "Growth evidence · never used to auto-pass a hard requirement",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
             )
         }
 

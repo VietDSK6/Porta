@@ -9,33 +9,41 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
-import io.github.vietdsk6.porta.designsystem.generated.resources.poppins_bold
-import io.github.vietdsk6.porta.designsystem.generated.resources.poppins_medium
-import io.github.vietdsk6.porta.designsystem.generated.resources.poppins_regular
-import io.github.vietdsk6.porta.designsystem.generated.resources.poppins_semibold
+import io.github.vietdsk6.porta.designsystem.generated.resources.manrope_variable
+import io.github.vietdsk6.porta.designsystem.generated.resources.newsreader_variable
 import org.jetbrains.compose.resources.Font
 
-private val fontFamily
+private val uiFontFamily
     @Composable get() =
         FontFamily(
             Font(
-                UiRes.font.poppins_regular,
+                UiRes.font.manrope_variable,
                 FontWeight.Normal,
                 FontStyle.Normal,
             ),
             Font(
-                UiRes.font.poppins_medium,
+                UiRes.font.manrope_variable,
                 FontWeight.Medium,
                 FontStyle.Normal,
             ),
             Font(
-                UiRes.font.poppins_semibold,
+                UiRes.font.manrope_variable,
                 FontWeight.SemiBold,
                 FontStyle.Normal,
             ),
             Font(
-                UiRes.font.poppins_bold,
+                UiRes.font.manrope_variable,
                 FontWeight.Bold,
+                FontStyle.Normal,
+            ),
+        )
+
+private val editorialFontFamily
+    @Composable get() =
+        FontFamily(
+            Font(
+                UiRes.font.newsreader_variable,
+                FontWeight.SemiBold,
                 FontStyle.Normal,
             ),
         )
@@ -71,21 +79,21 @@ val MaterialThemAppTypography
     @Composable
     get() =
         Typography(
-            displayLarge = baseline.displayLarge.copy(fontFamily = fontFamily),
-            displayMedium = baseline.displayMedium.copy(fontFamily = fontFamily),
-            displaySmall = baseline.displaySmall.copy(fontFamily = fontFamily),
-            headlineLarge = baseline.headlineLarge.copy(fontFamily = fontFamily),
-            headlineMedium = baseline.headlineMedium.copy(fontFamily = fontFamily),
-            headlineSmall = baseline.headlineSmall.copy(fontFamily = fontFamily),
-            titleLarge = baseline.titleLarge.copy(fontFamily = fontFamily),
-            titleMedium = baseline.titleMedium.copy(fontFamily = fontFamily),
-            titleSmall = baseline.titleSmall.copy(fontFamily = fontFamily),
-            bodyLarge = baseline.bodyLarge.copy(fontFamily = fontFamily),
-            bodyMedium = baseline.bodyMedium.copy(fontFamily = fontFamily),
-            bodySmall = baseline.bodySmall.copy(fontFamily = fontFamily),
-            labelLarge = baseline.labelLarge.copy(fontFamily = fontFamily),
-            labelMedium = baseline.labelMedium.copy(fontFamily = fontFamily),
-            labelSmall = baseline.labelSmall.copy(fontFamily = fontFamily),
+            displayLarge = baseline.displayLarge.copy(fontFamily = editorialFontFamily),
+            displayMedium = baseline.displayMedium.copy(fontFamily = editorialFontFamily),
+            displaySmall = baseline.displaySmall.copy(fontFamily = editorialFontFamily),
+            headlineLarge = baseline.headlineLarge.copy(fontFamily = editorialFontFamily),
+            headlineMedium = baseline.headlineMedium.copy(fontFamily = editorialFontFamily),
+            headlineSmall = baseline.headlineSmall.copy(fontFamily = editorialFontFamily),
+            titleLarge = baseline.titleLarge.copy(fontFamily = editorialFontFamily),
+            titleMedium = baseline.titleMedium.copy(fontFamily = uiFontFamily),
+            titleSmall = baseline.titleSmall.copy(fontFamily = uiFontFamily),
+            bodyLarge = baseline.bodyLarge.copy(fontFamily = uiFontFamily),
+            bodyMedium = baseline.bodyMedium.copy(fontFamily = uiFontFamily),
+            bodySmall = baseline.bodySmall.copy(fontFamily = uiFontFamily),
+            labelLarge = baseline.labelLarge.copy(fontFamily = uiFontFamily),
+            labelMedium = baseline.labelMedium.copy(fontFamily = uiFontFamily),
+            labelSmall = baseline.labelSmall.copy(fontFamily = uiFontFamily),
         )
 
 val appTypography
@@ -93,55 +101,55 @@ val appTypography
         AppTypography(
             h1 =
             TextStyle(
-                fontFamily = fontFamily,
+                fontFamily = editorialFontFamily,
                 letterSpacing = 0.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 48.sp,
                 lineHeight = 67.sp,
             ),
             h2 =
             TextStyle(
                 letterSpacing = 0.sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.Bold,
+                fontFamily = editorialFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 40.sp,
                 lineHeight = 56.sp,
             ),
             h3 =
             TextStyle(
                 letterSpacing = 0.sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.Bold,
+                fontFamily = editorialFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 32.sp,
                 lineHeight = 45.sp,
             ),
             h4 =
             TextStyle(
                 letterSpacing = 0.sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
+                fontFamily = editorialFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 29.sp,
                 lineHeight = 34.sp,
             ),
             h5 =
             TextStyle(
                 letterSpacing = 0.sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.Bold,
+                fontFamily = editorialFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 20.sp,
-                lineHeight = 28.sp,
+                lineHeight = 26.sp,
             ),
             h6 =
             TextStyle(
                 letterSpacing = 0.sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.Bold,
+                fontFamily = uiFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp,
-                lineHeight = 25.sp,
+                lineHeight = 24.sp,
             ),
             bodyExtraLarge =
             TextStyle(
-                fontFamily = fontFamily,
+                fontFamily = uiFontFamily,
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 0.2.sp,
                 fontSize = 18.sp,
@@ -149,7 +157,7 @@ val appTypography
             ),
             bodyLarge =
             TextStyle(
-                fontFamily = fontFamily,
+                fontFamily = uiFontFamily,
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 0.2.sp,
                 fontSize = 16.sp,
@@ -157,26 +165,26 @@ val appTypography
             ),
             bodyMedium =
             TextStyle(
-                fontFamily = fontFamily,
+                fontFamily = uiFontFamily,
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 0.2.sp,
-                fontSize = 14.sp,
-                lineHeight = 22.sp,
+                fontSize = 15.sp,
+                lineHeight = 23.sp,
             ),
             bodySmall =
             TextStyle(
-                fontFamily = fontFamily,
+                fontFamily = uiFontFamily,
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 0.2.sp,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 lineHeight = 19.sp,
             ),
             bodyExtraSmall =
             TextStyle(
-                fontFamily = fontFamily,
+                fontFamily = uiFontFamily,
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 0.2.sp,
-                fontSize = 10.sp,
-                lineHeight = 16.sp,
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
             ),
         )

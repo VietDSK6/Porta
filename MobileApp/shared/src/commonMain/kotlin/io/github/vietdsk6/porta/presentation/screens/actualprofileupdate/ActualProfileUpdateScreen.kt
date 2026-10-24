@@ -206,6 +206,14 @@ private fun ValueComparisonCard(uiState: ActualProfileUpdateUiState) {
         ) {
             Text(uiState.factLabel, style = AppTheme.typography.h5)
             Text(uiState.planTitle, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
+            uiState.scopeDescription?.let { scope ->
+                Text(
+                    text = scope,
+                    color = AppTheme.colors.primary,
+                    style = AppTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -302,16 +310,29 @@ private fun EvidenceCard(
     onUiEvent: (ActualProfileUpdateUiEvent) -> Unit,
 ) {
     FormCard(
-        title = "Evidence (optional)",
-        description = "Store a local note about what supports this fact. Porta does not upload the file.",
+        title = if (uiState.isEvidenceRequired) "Evidence for this programme check" else "Evidence (optional)",
+        description = if (uiState.isEvidenceRequired) {
+            "A programme-specific confirmation needs a local evidence note. Porta does not upload the file."
+        } else {
+            "Store a local note about what supports this fact. Porta does not upload the file."
+        },
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                modifier = Modifier.testTag("include-evidence-checkbox"),
-                checked = uiState.includeEvidence,
-                onCheckedChange = { onUiEvent(ActualProfileUpdateUiEvent.IncludeEvidenceChanged(it)) },
+        if (uiState.isEvidenceRequired) {
+            Text(
+                text = "Required before this exact requirement can be confirmed",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
             )
-            Text("Add evidence details", style = AppTheme.typography.bodyLarge)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    modifier = Modifier.testTag("include-evidence-checkbox"),
+                    checked = uiState.includeEvidence,
+                    onCheckedChange = { onUiEvent(ActualProfileUpdateUiEvent.IncludeEvidenceChanged(it)) },
+                )
+                Text("Add evidence details", style = AppTheme.typography.bodyLarge)
+            }
         }
         if (uiState.includeEvidence) {
             OutlinedTextField(
@@ -348,7 +369,7 @@ private fun ConfirmationCard() {
     ) {
         Text(
             "By confirming, you assert that this achieved value is true now. " +
-                "Doors will immediately re-evaluate against it; eligibility still does not mean selection.",
+                "Doors will immediately re-evaluate against it. Passing current checks does not predict selection.",
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             color = Color(0xFF0B4C43),
             style = AppTheme.typography.bodyMedium,

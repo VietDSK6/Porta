@@ -161,8 +161,8 @@ data class AppColors(
     }
 }
 
-val PrimaryColor = Color(0xFF7F5FFF)
-val PrimaryAlpha8Color = Color(0xFFF2E9FF) // ~8% alpha of PrimaryColor, solid hex
+val PrimaryColor = Color(0xFF5E4DB2)
+val PrimaryAlpha8Color = Color(0xFFEEEAF8)
 
 val lightModeAppColors =
     AppColors(
@@ -170,40 +170,74 @@ val lightModeAppColors =
         onPrimary = Color.White,
         alternative = PrimaryAlpha8Color,
         onAlternative = PrimaryColor,
-        background = Color(0xFFF9F7FF),
-        surfaceContainer = Color(0xFFFFFFFF),
-        text = AppColors.Text.DefaultLight,
+        background = Color(0xFFF7F5F2),
+        surfaceContainer = Color(0xFFFFFCF8),
+        text = AppColors.Text(
+            primary = Color(0xFF24202A),
+            secondary = Color(0xFF6C6671),
+        ),
+        status = AppColors.Status(
+            error = Color(0xFFB84F5B),
+            errorContainer = Color(0xFFF8E8E9),
+            warning = Color(0xFFA66B1F),
+            warningContainer = Color(0xFFF7EDDE),
+            info = PrimaryColor,
+            infoContainer = PrimaryAlpha8Color,
+            success = Color(0xFF167D73),
+            successContainer = Color(0xFFE1F1EE),
+        ),
         textInput =
         AppColors.TextInput.DefaultLight.copy(
-            background = Color(0xFFF2E9FF),
-            readOnlyBackground = Color(0xFFEADFFF),
-            disabledBackground = Color(0xFFE2D5FF),
+            textIcon = Color(0xFF24202A),
+            background = Color(0xFFFFFCF8),
+            placeholder = Color(0xFF6C6671),
+            readOnlyBackground = Color(0xFFEEEAF8),
+            disabledBackground = Color(0xFFE8E3E9),
         ),
         bottomNav =
         AppColors.BottomNav.DefaultLight.copy(
-            background = Color(0xFFF9F7FF),
+            background = Color(0xFFFFFCF8),
+            selectedTextIcon = PrimaryColor,
+            unselectedTextIcon = Color(0xFF6C6671),
         ),
-        outline = Color(0xFFB8B0CC), // neutral gray
+        outline = Color(0xFFD9D2DE),
     )
 
 val darkModeAppColors =
     AppColors(
-        primary = PrimaryColor,
-        onPrimary = Color.White,
-        alternative = Color(0xFF4B36A6), // muted/dark alternative
-        onAlternative = Color(0xFFF2E9FF),
-        background = Color(0xFF12101A),
-        surfaceContainer = Color(0xFF1D1A28),
-        text = AppColors.Text.DefaultDark,
+        primary = Color(0xFFB9ACEA),
+        onPrimary = Color(0xFF211A45),
+        alternative = Color(0xFF2C273B),
+        onAlternative = Color(0xFFE9E2FF),
+        background = Color(0xFF17151B),
+        surfaceContainer = Color(0xFF211E25),
+        text = AppColors.Text(
+            primary = Color(0xFFF3EFF5),
+            secondary = Color(0xFFBCB4C0),
+        ),
+        status = AppColors.Status(
+            error = Color(0xFFDF8290),
+            errorContainer = Color(0xFF40262C),
+            warning = Color(0xFFD9A55C),
+            warningContainer = Color(0xFF3B3021),
+            info = Color(0xFFB9ACEA),
+            infoContainer = Color(0xFF2C273B),
+            success = Color(0xFF69C5BA),
+            successContainer = Color(0xFF193632),
+        ),
         textInput =
         AppColors.TextInput.DefaultDark.copy(
-            background = Color(0xFF1A1725),
-            readOnlyBackground = Color(0xFF23203B),
-            disabledBackground = Color(0xFF2B2846),
+            textIcon = Color(0xFFF3EFF5),
+            background = Color(0xFF211E25),
+            placeholder = Color(0xFFBCB4C0),
+            readOnlyBackground = Color(0xFF2C273B),
+            disabledBackground = Color(0xFF302C34),
         ),
         bottomNav =
         AppColors.BottomNav.DefaultDark.copy(
-            background = Color(0xFF12101A),
+            background = Color(0xFF211E25),
+            selectedTextIcon = Color(0xFFB9ACEA),
+            unselectedTextIcon = Color(0xFF8C8490),
         ),
-        outline = Color(0xFF3A3650),
+        outline = Color(0xFF49424E),
     )

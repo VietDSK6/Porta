@@ -3,11 +3,10 @@ package io.github.vietdsk6.porta.presentation.screens.frontier
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -54,7 +53,7 @@ internal fun FrontierControls(
                         if (collapsible) {
                             Modifier.clickable(
                                 role = Role.Button,
-                                onClickLabel = if (expanded) "Collapse planning limits" else "Adjust planning limits",
+                                onClickLabel = if (expanded) "Collapse your limits" else "Adjust your limits",
                             ) { expanded = !expanded }
                         } else {
                             Modifier
@@ -64,7 +63,7 @@ internal fun FrontierControls(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Planning limits", style = AppTheme.typography.h6)
+                    Text("Your limits", style = AppTheme.typography.h6)
                     Text(
                         text = "${uiState.horizonDays} days · ${uiState.maxEffort.ceilingLabel()} effort · " +
                             "${uiState.maxCost.ceilingLabel()} cost",
@@ -86,8 +85,11 @@ internal fun FrontierControls(
                     title = "Time available",
                     description = "Milestones longer than this stay visible below with a reason.",
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(ALLOWED_HORIZONS) { days ->
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    ALLOWED_HORIZONS.forEach { days ->
                         FilterChip(
                             modifier = Modifier.testTag("frontier-horizon-$days"),
                             selected = uiState.horizonDays == days,
@@ -101,8 +103,11 @@ internal fun FrontierControls(
                     title = "Maximum effort",
                     description = "The most demanding milestone you can realistically take on.",
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(EffortLevel.entries) { effort ->
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    EffortLevel.entries.forEach { effort ->
                         FilterChip(
                             modifier = Modifier.testTag("frontier-effort-${effort.name}"),
                             selected = uiState.maxEffort == effort,
@@ -116,8 +121,11 @@ internal fun FrontierControls(
                     title = "Maximum cost",
                     description = "Choose Any to keep actions whose price still needs verification.",
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(CostBand.entries) { cost ->
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    CostBand.entries.forEach { cost ->
                         FilterChip(
                             modifier = Modifier.testTag("frontier-cost-${cost.name}"),
                             selected = uiState.maxCost == cost,

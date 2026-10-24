@@ -6,11 +6,14 @@ import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleRef
+import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
@@ -75,18 +78,21 @@ class ScenarioPreviewViewModel(
             )
             return
         }
-        val action = activeOpportunities
-            .flatMap { it.actionTemplates }
-            .firstOrNull { it.id == actionId }
-            ?: return
+        val opportunity = activeOpportunities.firstOrNull { candidate ->
+            candidate.actionTemplates.any { it.id == actionId }
+        } ?: return
+        val action = opportunity.actionTemplates.first { it.id == actionId }
         val timestamp = nowEpochMillis()
         val plan = PlanItem(
             id = "${activeProfile.id}:${action.id}",
             profileId = activeProfile.id,
             actionTemplateId = action.id,
-            title = "Raise ${action.targetFactKey.readable()} to ${action.targetValue.displayValue()}",
-            targetFactKey = action.targetFactKey,
-            targetValue = action.targetValue,
+            title = if (action.target is ActionTarget.OpportunityRuleTarget) {
+                "${action.title} · ${opportunity.title}"
+            } else {
+                action.title
+            },
+            target = action.target,
             targetDateEpochDays = timestamp / MILLIS_PER_DAY + action.minimumDurationDays,
             note = action.sourceNote,
             expectedDurationDays = action.minimumDurationDays,
@@ -119,20 +125,28 @@ class ScenarioPreviewViewModel(
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionId }
             ?: return ScenarioPreviewUiState(error = "This action is no longer available.")
-        val currentValue = profile.facts[action.targetFactKey]?.value
-            ?: return ScenarioPreviewUiState(
-                isSampleProfile = isSampleProfile,
-                error = "Your profile is missing ${action.targetFactKey.readable()}.",
-            )
+        val currentLabel = when (val target = action.target) {
+            is ActionTarget.ProfileFactTarget -> profile.facts[target.factKey]
+                ?.value
+                ?.displayValue()
+                ?: return ScenarioPreviewUiState(
+                    isSampleProfile = isSampleProfile,
+                    error = "Your profile is missing ${target.factKey.readable()}.",
+                )
+
+            is ActionTarget.OpportunityRuleTarget -> profile.ruleAssertions[
+                RuleRef(target.opportunityId, target.ruleId),
+            ]?.value?.displayValue() ?: "Not confirmed"
+        }
         val today = currentLocalDateProvider.today()
         val scenario = scenarioEvaluator.evaluate(
             profile = profile,
-            overrides = mapOf(action.targetFactKey to action.targetValue),
+            overrides = action.target.asScenarioOverrides(),
             opportunities = activeOpportunities,
             today = today,
         )
         val opportunitiesById = activeOpportunities.associateBy { it.id }
-        val improvedIds = scenario.resolvedHardGapOpportunityIds(action.targetFactKey)
+        val improvedIds = scenario.resolvedHardGapOpportunityIds(action.target)
             .filter { opportunityId ->
                 opportunitiesById[opportunityId]
                     ?.isFeasibleForPlanning(
@@ -142,44 +156,67 @@ class ScenarioPreviewViewModel(
                     ?: false
             }
             .toSet()
-        val opened = scenario.deltas
+        val wouldPassCurrentChecks = scenario.deltas
             .filter {
                 it.opportunityId in improvedIds &&
                     it.before != EligibilityState.OPEN &&
                     it.after == EligibilityState.OPEN
             }
             .mapNotNull { delta ->
-                opportunitiesById[delta.opportunityId]?.let {
-                    ScenarioDoorUiState(it.id, it.title, "Opens")
+                opportunitiesById[delta.opportunityId]?.let { opportunity ->
+                    ScenarioDoorUiState(
+                        id = opportunity.id,
+                        title = opportunity.title,
+                        stateLabel = "Would pass current checks",
+                        actualStateLabel = delta.before.trustLabel(),
+                        simulatedStateLabel = delta.after.trustLabel(),
+                    )
                 }
             }
-        val openedIds = opened.map(ScenarioDoorUiState::id).toSet()
+        val passedIds = wouldPassCurrentChecks.map(ScenarioDoorUiState::id).toSet()
         val progressed = improvedIds
-            .filterNot(openedIds::contains)
+            .filterNot(passedIds::contains)
             .mapNotNull { opportunityId ->
                 opportunitiesById[opportunityId]?.let { opportunity ->
                     val before = scenario.baseline.getValue(opportunityId).state
                     val after = scenario.simulated.getValue(opportunityId).state
-                    val label = if (before == after) {
-                        "Hard gap resolved · verify remaining rules"
+                    val outcome = if (after == EligibilityState.NEEDS_INFO) {
+                        "Still needs verification"
                     } else {
-                        "${before.readable()} → ${after.readable()}"
+                        "Would address one checked requirement"
                     }
-                    ScenarioDoorUiState(opportunity.id, opportunity.title, label)
+                    ScenarioDoorUiState(
+                        id = opportunity.id,
+                        title = opportunity.title,
+                        stateLabel = outcome,
+                        actualStateLabel = before.trustLabel(),
+                        simulatedStateLabel = after.trustLabel(),
+                    )
                 }
             }
         val unchanged = activeOpportunities
             .filterNot { it.id in improvedIds }
             .map { opportunity ->
                 val state = scenario.baseline.getValue(opportunity.id).state
-                ScenarioDoorUiState(opportunity.id, opportunity.title, state.readable())
+                ScenarioDoorUiState(
+                    id = opportunity.id,
+                    title = opportunity.title,
+                    stateLabel = state.trustLabel(),
+                    actualStateLabel = state.trustLabel(),
+                    simulatedStateLabel = state.trustLabel(),
+                )
             }
         return ScenarioPreviewUiState(
             actionId = action.id,
             title = action.title,
-            beforeLabel = currentValue.displayValue(),
+            beforeLabel = currentLabel,
             afterLabel = action.targetValue.displayValue(),
-            openedDoors = opened,
+            scopeNotice = if (action.target is ActionTarget.OpportunityRuleTarget) {
+                "Would satisfy this programme-specific check if confirmed."
+            } else {
+                null
+            },
+            openedDoors = wouldPassCurrentChecks,
             progressedDoors = progressed,
             unchangedDoors = unchanged,
             isSampleProfile = isSampleProfile,
@@ -191,10 +228,13 @@ class ScenarioPreviewViewModel(
         else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
     }
 
-    private fun EligibilityState.readable(): String = name
-        .lowercase()
-        .replace('_', ' ')
-        .replaceFirstChar(Char::uppercaseChar)
+    private fun EligibilityState.trustLabel(): String = when (this) {
+        EligibilityState.OPEN -> "Current checks passed"
+        EligibilityState.HAS_GAPS -> "Needs action"
+        EligibilityState.NEEDS_INFO -> "Needs verification"
+        EligibilityState.NOT_ACTIONABLE -> "Not available this cycle"
+        EligibilityState.CLOSED -> "Closed"
+    }
 
     private companion object {
         const val MILLIS_PER_DAY = 86_400_000L

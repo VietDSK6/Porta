@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.domain.usecase
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
@@ -8,6 +9,7 @@ import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.FrontierAction
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
@@ -16,6 +18,7 @@ import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -445,6 +448,55 @@ class ActionFrontierEngineTest {
         assertTrue(evaluation.exclusions.isEmpty())
     }
 
+    @Test
+    fun `scoped availability actions never leak impact across opportunities`() {
+        val opportunities = listOf(
+            scopedAvailabilityOpportunity("programme-a"),
+            scopedAvailabilityOpportunity("programme-b"),
+        )
+
+        val evaluation = engine.evaluate(
+            profile = profile(
+                FactKey.AVAILABLE_FULL_PERIOD,
+                FactValue.BooleanValue(false),
+            ),
+            opportunities = opportunities,
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints.copy(prioritizeSaved = false),
+            today = today,
+        )
+
+        assertEquals(2, evaluation.actions.size)
+        assertEquals(
+            listOf(listOf("programme-a"), listOf("programme-b")),
+            evaluation.actions.map(FrontierAction::improvedOpportunityIds),
+        )
+    }
+
+    @Test
+    fun `stale scoped target fingerprint has no verified impact`() {
+        val opportunity = scopedAvailabilityOpportunity("programme-a")
+        val staleTemplate = opportunity.actionTemplates.single().copy(
+            target = (opportunity.actionTemplates.single().target as ActionTarget.OpportunityRuleTarget).copy(
+                ruleFingerprint = "stale-fingerprint",
+            ),
+        )
+
+        val evaluation = engine.evaluate(
+            profile = ProfileSnapshot(),
+            opportunities = listOf(opportunity.copy(actionTemplates = listOf(staleTemplate))),
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints,
+            today = today,
+        )
+
+        assertTrue(evaluation.actions.isEmpty())
+        assertEquals(
+            setOf(FrontierExclusionReason.NO_VERIFIED_IMPACT),
+            evaluation.exclusions.single().reasons,
+        )
+    }
+
     private val permissiveConstraints = PlanningConstraints(
         horizonDays = 365,
         maxEffort = EffortLevel.VERY_HIGH,
@@ -529,6 +581,46 @@ class ActionFrontierEngineTest {
         ),
         actionTemplates = listOf(template),
     )
+
+    private fun scopedAvailabilityOpportunity(id: String): Opportunity {
+        val templateId = "confirm-$id"
+        val rule = RuleNode.Atomic(
+            id = "$id-availability",
+            factKey = FactKey.AVAILABLE_FULL_PERIOD,
+            operator = Operator.EQUALS,
+            expected = FactValue.BooleanValue(true),
+            explanation = "Confirm availability for this programme's exact dates.",
+            actionability = Actionability.CONTROLLABLE,
+            actionTemplateId = templateId,
+        )
+        val template = ActionTemplate(
+            id = templateId,
+            title = "Confirm $id availability",
+            target = ActionTarget.OpportunityRuleTarget(
+                opportunityId = id,
+                ruleId = rule.id,
+                ruleFingerprint = rule.fingerprint(),
+                factKey = rule.factKey,
+                value = FactValue.BooleanValue(true),
+            ),
+            targetActionability = Actionability.CONTROLLABLE,
+            minimumDurationDays = 1,
+            effort = EffortLevel.VERY_LOW,
+            costBand = CostBand.FREE,
+        )
+        return Opportunity(
+            id = id,
+            title = "Synthetic $id",
+            provider = "Test provider",
+            category = OpportunityCategory.SCHOLARSHIP,
+            cycle = "test-only",
+            sourceUrl = "https://example.invalid/$id",
+            lastCheckedOn = today,
+            deadline = Deadline.Known(LocalDate(2027, 6, 1)),
+            eligibilityRule = rule,
+            actionTemplates = listOf(template),
+        )
+    }
 
     private fun template(
         id: String,

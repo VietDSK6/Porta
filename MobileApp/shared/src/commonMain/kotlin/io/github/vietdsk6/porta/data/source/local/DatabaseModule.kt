@@ -9,9 +9,7 @@ val databaseModule = module {
     single<AppDatabase> {
         get<DatabaseProvider>()
             .provideAppDatabaseBuilder()
-            // No real migrations yet: on any schema change Room drops & recreates all tables.
-            // Replace with proper Migrations before shipping data you can't lose.
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(MIGRATION_1_2)
             .setQueryCoroutineContext(defaultAsyncDispatcher)
             .build()
     }
@@ -19,6 +17,7 @@ val databaseModule = module {
     single { get<AppDatabase>().creditTransactionDao() }
     single { get<AppDatabase>().generationOutputDao() }
     single { get<AppDatabase>().profileFactDao() }
+    single { get<AppDatabase>().ruleAssertionDao() }
     single { get<AppDatabase>().opportunityPackDao() }
     single { get<AppDatabase>().savedOpportunityDao() }
     single { get<AppDatabase>().planItemDao() }

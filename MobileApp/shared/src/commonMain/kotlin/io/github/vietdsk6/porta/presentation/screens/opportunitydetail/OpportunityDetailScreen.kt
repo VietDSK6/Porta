@@ -1,6 +1,5 @@
 package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,12 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,33 +56,33 @@ fun OpportunityDetailScreen(
     ScreenWithToolbar(
         modifier = modifier.testTag("opportunity-receipt-screen"),
         isScrollableContent = false,
-        title = "Eligibility receipt",
+        title = "Opportunity details",
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
     ) {
         if (uiState.error != null) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Receipt unavailable", style = AppTheme.typography.h5)
+                Text("Opportunity unavailable", style = AppTheme.typography.h5)
                 Text(uiState.error, color = AppTheme.colors.text.secondary)
                 OutlinedButton(onClick = onNavigateBack) { Text("Go back") }
             }
             return@ScreenWithToolbar
         }
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize().testTag("opportunity-detail-content"),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item { ReceiptHeader(uiState) }
+            item { OpportunityHeader(uiState) }
+            item { CurrentConclusion(uiState) }
             item {
-                Text(
-                    "Encoded hard rules",
-                    style = AppTheme.typography.h6,
-                    color = AppTheme.colors.text.primary,
+                RuleSection(
+                    title = "Needs action",
+                    emptyMessage = "No current profile changes are required by the checks Porta can evaluate.",
+                    rules = uiState.rules.filter { it.result == RuleResult.FAIL },
+                    accent = PORTA_AMBER,
                 )
             }
-            items(uiState.rules, key = RuleReceiptUiState::id) { rule -> RuleReceiptCard(rule) }
-            item { SourceCard(uiState) }
             uiState.relatedActionId?.let { actionId ->
                 item {
                     Button(
@@ -94,16 +92,34 @@ fun OpportunityDetailScreen(
                             onPreviewAction(actionId)
                         },
                     ) {
-                        Text("Preview the related milestone")
+                        Text("Preview this profile change")
                     }
                 }
             }
+            item {
+                RuleSection(
+                    title = "Needs verification",
+                    emptyMessage = "No checks currently need more information.",
+                    rules = uiState.rules.filter { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) },
+                    accent = AppTheme.colors.primary,
+                )
+            }
+            item {
+                RuleSection(
+                    title = "Passed checks",
+                    emptyMessage = "No encoded checks have passed yet.",
+                    rules = uiState.rules.filter { it.result == RuleResult.PASS },
+                    accent = PORTA_TEAL,
+                )
+            }
+            item { SoftSelectionFactors(uiState.softCriteria) }
+            item { SourceDetails(uiState) }
         }
     }
 }
 
 @Composable
-private fun ReceiptHeader(uiState: OpportunityDetailUiState) {
+private fun OpportunityHeader(uiState: OpportunityDetailUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             when {
@@ -117,72 +133,113 @@ private fun ReceiptHeader(uiState: OpportunityDetailUiState) {
         )
         Text(uiState.title, style = AppTheme.typography.h4)
         Text(uiState.provider, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyLarge)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(uiState.stateLabel, color = PORTA_AMBER, fontWeight = FontWeight.Bold)
-            Text(uiState.deadlineLabel, color = AppTheme.colors.text.secondary)
+        Text(uiState.deadlineLabel, color = AppTheme.colors.text.secondary)
+    }
+}
+
+@Composable
+private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
+    Surface(
+        color = AppTheme.colors.alternative,
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("Current conclusion", style = AppTheme.typography.h6)
+            Text(
+                uiState.stateLabel,
+                color = uiState.stateColor(),
+                fontWeight = FontWeight.Bold,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(uiState.conclusionSummary, color = AppTheme.colors.text.primary)
         }
     }
 }
 
 @Composable
-private fun RuleReceiptCard(rule: RuleReceiptUiState) {
-    val accent = rule.result.color()
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.7f)),
-        shape = RoundedCornerShape(18.dp),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(rule.result.name, color = accent, fontWeight = FontWeight.Bold)
-            Text(rule.explanation, style = AppTheme.typography.bodyLarge)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ReceiptValue("Actual", rule.actualLabel, Modifier.weight(1f))
-                ReceiptValue("Required", rule.expectedLabel, Modifier.weight(1f))
+private fun RuleSection(
+    title: String,
+    emptyMessage: String,
+    rules: List<RuleReceiptUiState>,
+    accent: Color,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(title, style = AppTheme.typography.h6, color = AppTheme.colors.text.primary)
+        if (rules.isEmpty()) {
+            Text(emptyMessage, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
+        } else {
+            rules.forEachIndexed { index, rule ->
+                RuleRow(rule = rule, accent = accent)
+                if (index != rules.lastIndex) {
+                    HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.3f))
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun RuleRow(rule: RuleReceiptUiState, accent: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(rule.explanation, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.text.primary)
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("Your current value", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            Text(rule.actualLabel, color = accent, fontWeight = FontWeight.SemiBold)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("Published check", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            Text(rule.expectedLabel, fontWeight = FontWeight.SemiBold)
+        }
+        if (rule.sourceNote.isNotBlank()) {
             Text(rule.sourceNote, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }
 
 @Composable
-private fun ReceiptValue(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-        Text(value, fontWeight = FontWeight.SemiBold, style = AppTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun SourceCard(uiState: OpportunityDetailUiState) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
-        shape = RoundedCornerShape(18.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Source & limits", color = AppTheme.colors.onAlternative, fontWeight = FontWeight.Bold)
-            Text(uiState.checkedLabel, color = AppTheme.colors.text.primary)
-            Text(uiState.sourceUrl, color = AppTheme.colors.primary, style = AppTheme.typography.bodySmall)
-            Text(uiState.disclaimer, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
+private fun SoftSelectionFactors(criteria: List<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Soft selection factors", style = AppTheme.typography.h6)
+        Text(
+            "These may affect selection, but Porta never treats them as pass/fail rules.",
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+        )
+        if (criteria.isEmpty()) {
+            Text("None listed in the current source pack.", color = AppTheme.colors.text.secondary)
+        } else {
+            criteria.forEach { criterion -> Text("• $criterion", color = AppTheme.colors.text.primary) }
         }
     }
 }
 
 @Composable
-private fun RuleResult.color(): Color = when (this) {
-    RuleResult.PASS -> PORTA_TEAL
-
-    RuleResult.FAIL -> PORTA_AMBER
-
-    RuleResult.UNKNOWN,
-    RuleResult.REVIEW,
-    -> AppTheme.colors.primary
+private fun SourceDetails(uiState: OpportunityDetailUiState) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Source and last review", style = AppTheme.typography.h6)
+        if (uiState.sourceSection.isNotBlank()) {
+            Text("Section: ${uiState.sourceSection}", color = AppTheme.colors.text.primary)
+        }
+        Text(uiState.checkedLabel, color = AppTheme.colors.text.primary)
+        Text(uiState.sourceUrl, color = AppTheme.colors.primary, style = AppTheme.typography.bodySmall)
+        Text(uiState.disclaimer, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
+    }
 }
 
-private val PORTA_TEAL = Color(0xFF2DD4BF)
-private val PORTA_AMBER = Color(0xFFF4B860)
+@Composable
+private fun OpportunityDetailUiState.stateColor(): Color = when (stateLabel) {
+    "CURRENT CHECKS PASSED" -> PORTA_TEAL
+    "NEEDS ACTION" -> PORTA_AMBER
+    "NEEDS VERIFICATION" -> AppTheme.colors.primary
+    else -> PORTA_CORAL
+}
+
+private val PORTA_TEAL = Color(0xFF167D73)
+private val PORTA_AMBER = Color(0xFFA66B1F)
+private val PORTA_CORAL = Color(0xFFB84F5B)
 
 @Preview
 @Composable
@@ -193,10 +250,12 @@ private fun OpportunityDetailScreenPreview() {
                 id = "aurora",
                 title = "Aurora Scholars",
                 provider = "Northstar Foundation",
-                stateLabel = "HAS GAPS",
+                stateLabel = "NEEDS ACTION",
+                conclusionSummary = "At least one published check needs a change in your profile.",
                 deadlineLabel = "Deadline 2027-06-01",
                 checkedLabel = "Checked 2026-10-20",
                 sourceUrl = "https://example.invalid/porta-sample/aurora",
+                sourceSection = "Eligibility",
                 disclaimer = "Sample data only.",
                 rules = listOf(
                     RuleReceiptUiState(
@@ -208,6 +267,7 @@ private fun OpportunityDetailScreenPreview() {
                         sourceNote = "Synthetic sample rule; not a real requirement.",
                     ),
                 ),
+                softCriteria = listOf("Community leadership", "Clear study goals"),
                 relatedActionId = "raise-ielts",
             ),
             onUiEvent = {},

@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -76,10 +76,31 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("15 source-linked opportunities · evaluated on this device").assertExists()
+        onNodeWithText("15 source-linked opportunities · checked on this device").assertExists()
         onAllNodesWithText(
             "Your local facts are evaluated against published rules checked in the active offline pack.",
         ).assertCountEquals(0)
+    }
+
+    @Test
+    fun `door filters wrap without clipping on a 320 dp screen`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 320.dp, height = 760.dp)) {
+                    DoorsScreen(
+                        uiState = doorsState.copy(
+                            notAvailableCount = 1,
+                            closedCount = 1,
+                        ),
+                        onUiEvent = {},
+                        onOpenOpportunity = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("door-filter-ALL").assertIsDisplayed()
+        onNodeWithTag("door-filter-SAVED").assertIsDisplayed()
     }
 
     @Test
@@ -87,7 +108,7 @@ class PortaVerticalSliceUiTest {
         val events = mutableListOf<FrontierUiEvent>()
         setContent {
             AppTheme {
-                Box(Modifier.size(width = 700.dp, height = 900.dp)) {
+                Box(Modifier.size(width = 700.dp, height = 600.dp)) {
                     FrontierScreen(
                         uiState = frontierState,
                         onUiEvent = { events += it },
@@ -99,7 +120,7 @@ class PortaVerticalSliceUiTest {
         }
 
         onNodeWithText("Adjust").performClick()
-        onNodeWithTag("frontier-horizon-30").performClick()
+        onNodeWithTag("frontier-horizon-30").performScrollTo().performClick()
         assertTrue(events.contains(FrontierUiEvent.HorizonChanged(30)))
     }
 
@@ -108,7 +129,7 @@ class PortaVerticalSliceUiTest {
         val events = mutableListOf<FrontierUiEvent>()
         setContent {
             AppTheme {
-                Box(Modifier.size(width = 700.dp, height = 2200.dp)) {
+                Box(Modifier.size(width = 700.dp, height = 600.dp)) {
                     FrontierScreen(
                         uiState = frontierState,
                         onUiEvent = { events += it },
@@ -125,7 +146,10 @@ class PortaVerticalSliceUiTest {
         onNodeWithTag("frontier-prioritize-saved").performScrollTo().performClick()
 
         assertTrue(events.contains(FrontierUiEvent.MaxEffortChanged(EffortLevel.MEDIUM)))
-        assertTrue(events.contains(FrontierUiEvent.MaxCostChanged(CostBand.LOW)))
+        assertTrue(
+            events.contains(FrontierUiEvent.MaxCostChanged(CostBand.LOW)),
+            "Expected LOW cost event, received $events",
+        )
         assertTrue(events.contains(FrontierUiEvent.PrioritizeSavedChanged(false)))
     }
 
@@ -133,7 +157,7 @@ class PortaVerticalSliceUiTest {
     fun `frontier explains excluded actions and exposes an accessible impact map`() = runComposeUiTest {
         setContent {
             AppTheme {
-                Box(Modifier.size(width = 700.dp, height = 2200.dp)) {
+                Box(Modifier.size(width = 700.dp, height = 900.dp)) {
                     FrontierScreen(
                         uiState = frontierState,
                         onUiEvent = {},
@@ -144,10 +168,32 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithContentDescription("Action impact map", substring = true).assertExists()
+        onNodeWithTag("frontier-compact-content").performScrollToIndex(6)
+        onNodeWithTag("frontier-trade-offs-toggle").performClick()
+        onNodeWithTag("frontier-impact-map").assertExists()
         onNodeWithTag("frontier-compact-content").performScrollToIndex(7)
         onNodeWithTag("frontier-exclusions").assertExists()
         onNodeWithText("Above your cost limit", substring = true).assertExists()
+    }
+
+    @Test
+    fun `frontier omits trade-off graph when only one action is available`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 360.dp, height = 760.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(actions = frontierState.actions.take(1)),
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("RECOMMENDED NEXT MOVE").assertExists()
+        onNodeWithTag("frontier-trade-offs-toggle").assertDoesNotExist()
+        onNodeWithTag("frontier-impact-map").assertDoesNotExist()
     }
 
     @Test
@@ -167,7 +213,7 @@ class PortaVerticalSliceUiTest {
         }
 
         onNodeWithTag("frontier-desktop-workspace").assertExists()
-        onNodeWithText("ACTUAL VS WHAT-IF").assertExists()
+        onNodeWithText("SIMULATION PREVIEW").assertExists()
         onNodeWithText("6.5 band").assertExists()
         onNodeWithText("7.0 band").assertExists()
         onNodeWithText("Aurora Scholars").assertExists()
@@ -190,8 +236,8 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("WHAT-IF · REAL PROFILE").assertExists()
-        onNodeWithText("1 hard gap resolved · 1 open").assertExists()
+        onNodeWithText("Simulation — your saved profile is unchanged.").assertExists()
+        onNodeWithText("1 door is affected by this simulation.").assertExists()
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
     }
@@ -207,7 +253,9 @@ class PortaVerticalSliceUiTest {
                             ScenarioDoorUiState(
                                 id = "erasmus-mundus",
                                 title = "Erasmus Mundus Joint Masters",
-                                stateLabel = "Hard gap resolved · verify remaining rules",
+                                stateLabel = "Still needs verification",
+                                actualStateLabel = "Needs action",
+                                simulatedStateLabel = "Needs verification",
                             ),
                         ),
                     ),
@@ -225,18 +273,21 @@ class PortaVerticalSliceUiTest {
     fun `receipt exposes actual required and source limits`() = runComposeUiTest {
         setContent {
             AppTheme {
-                OpportunityDetailScreen(
-                    uiState = receiptState,
-                    onUiEvent = {},
-                    onNavigateBack = {},
-                    onPreviewAction = {},
-                )
+                Box(Modifier.size(width = 700.dp, height = 700.dp)) {
+                    OpportunityDetailScreen(
+                        uiState = receiptState,
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onPreviewAction = {},
+                    )
+                }
             }
         }
 
         onNodeWithText("6.5 band").assertExists()
         onNodeWithText("7.0 band").assertExists()
-        onNodeWithText("Source & limits").assertExists()
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(6)
+        onNodeWithText("Source and last review").assertExists()
         onNodeWithText("Sample data only.").assertExists()
     }
 

@@ -43,7 +43,7 @@ internal fun FrontierPlot(
     onActionSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (actions.isEmpty()) return
+    if (actions.size < 2) return
 
     Card(
         modifier = modifier.fillMaxWidth().testTag("frontier-impact-map"),
@@ -55,9 +55,9 @@ internal fun FrontierPlot(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("Impact map", style = AppTheme.typography.h6)
+                Text("Compare trade-offs", style = AppTheme.typography.h6)
                 Text(
-                    text = "Up and left means more verified impact in less time.",
+                    text = "Up and left means more checked requirements affected in less time.",
                     color = AppTheme.colors.text.secondary,
                     style = AppTheme.typography.bodySmall,
                 )
@@ -107,7 +107,7 @@ private fun ImpactPlotArea(
             .semantics {
                 contentDescription =
                     "Action impact map. Horizontal axis is duration in days. " +
-                    "Vertical axis is improved doors. Point color is cost and every point has a text label."
+                    "Vertical axis is affected doors. Point color is cost and every point has a text label."
             },
     ) {
         val plotWidth = (maxWidth - PLOT_LEFT - PLOT_RIGHT).coerceAtLeast(1.dp)
@@ -176,7 +176,7 @@ private fun ImpactPlotArea(
                     )
                     .semantics {
                         contentDescription =
-                            "${action.title}. ${action.durationDays} days, ${action.improvedCount} improved doors, " +
+                            "${action.title}. ${action.durationDays} days, ${action.improvedCount} affected doors, " +
                             "${action.costLabel} cost."
                     },
                 shape = CircleShape,

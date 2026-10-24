@@ -421,7 +421,7 @@ private fun ReceiptCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Why Aurora Scholars changed", style = AppTheme.typography.h6)
                     Text(
-                        "Hard rule · IELTS ≥ 7.0",
+                        "Published check · IELTS ≥ 7.0",
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodyMedium,
                     )
@@ -569,7 +569,9 @@ private fun PortalDoor(
         modifier = modifier
             .height(142.dp)
             .testTag(testTag)
-            .semantics { stateDescription = if (isUnlocked) "Open" else "Needs IELTS 7.0" },
+            .semantics {
+                stateDescription = if (isUnlocked) "Current checks passed" else "Needs IELTS 7.0"
+            },
         colors = CardDefaults.cardColors(
             containerColor = if (isUnlocked) AppTheme.colors.alternative else AppTheme.colors.surfaceContainer,
         ),
@@ -592,7 +594,7 @@ private fun PortalDoor(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = if (isUnlocked) "OPEN" else "ONE GAP",
+                text = if (isUnlocked) "CHECKS PASSED" else "NEEDS ACTION",
                 color = AppTheme.colors.primary,
                 style = AppTheme.typography.bodySmall,
                 fontWeight = FontWeight.ExtraBold,

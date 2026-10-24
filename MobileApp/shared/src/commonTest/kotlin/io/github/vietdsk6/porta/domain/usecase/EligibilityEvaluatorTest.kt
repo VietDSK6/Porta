@@ -1,7 +1,11 @@
 package io.github.vietdsk6.porta.domain.usecase
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
+import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.Deadline
+import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
@@ -10,8 +14,11 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleAssertion
 import io.github.vietdsk6.porta.domain.model.RuleNode
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -159,6 +166,95 @@ class EligibilityEvaluatorTest {
 
         assertEquals(EligibilityState.OPEN, onDeadline.state)
         assertEquals(EligibilityState.CLOSED, afterDeadline.state)
+    }
+
+    @Test
+    fun `matching scoped assertion applies only while its rule fingerprint is current`() {
+        val rule = atomic(
+            id = "availability",
+            key = FactKey.AVAILABLE_FULL_PERIOD,
+            operator = Operator.EQUALS,
+            expected = FactValue.BooleanValue(true),
+        ).copy(actionTemplateId = "confirm-availability")
+        val target = ActionTarget.OpportunityRuleTarget(
+            opportunityId = "synthetic-opportunity",
+            ruleId = rule.id,
+            ruleFingerprint = rule.fingerprint(),
+            factKey = rule.factKey,
+            value = FactValue.BooleanValue(true),
+        )
+        val opportunity = opportunity(rule).copy(
+            actionTemplates = listOf(
+                ActionTemplate(
+                    id = "confirm-availability",
+                    title = "Confirm this programme period",
+                    target = target,
+                    targetActionability = Actionability.CONTROLLABLE,
+                    minimumDurationDays = 1,
+                    effort = EffortLevel.VERY_LOW,
+                    costBand = CostBand.FREE,
+                ),
+            ),
+        )
+        val ruleRef = RuleRef(opportunity.id, rule.id)
+        val matching = ProfileSnapshot(
+            ruleAssertions = mapOf(
+                ruleRef to RuleAssertion(
+                    ruleRef = ruleRef,
+                    ruleFingerprint = rule.fingerprint(),
+                    factKey = rule.factKey,
+                    value = FactValue.BooleanValue(true),
+                ),
+            ),
+        )
+        val stale = matching.copy(
+            ruleAssertions = mapOf(
+                ruleRef to matching.ruleAssertions.getValue(ruleRef).copy(
+                    ruleFingerprint = "stale-fingerprint",
+                ),
+            ),
+        )
+
+        assertEquals(EligibilityState.OPEN, evaluator.evaluate(matching, opportunity, today).state)
+        assertEquals(EligibilityState.NEEDS_INFO, evaluator.evaluate(stale, opportunity, today).state)
+    }
+
+    @Test
+    fun `global fact does not satisfy a rule that requires a scoped assertion`() {
+        val rule = atomic(
+            id = "availability",
+            key = FactKey.AVAILABLE_FULL_PERIOD,
+            operator = Operator.EQUALS,
+            expected = FactValue.BooleanValue(true),
+        ).copy(actionTemplateId = "confirm-availability")
+        val opportunity = opportunity(rule).copy(
+            actionTemplates = listOf(
+                ActionTemplate(
+                    id = "confirm-availability",
+                    title = "Confirm this programme period",
+                    target = ActionTarget.OpportunityRuleTarget(
+                        opportunityId = "synthetic-opportunity",
+                        ruleId = rule.id,
+                        ruleFingerprint = rule.fingerprint(),
+                        factKey = rule.factKey,
+                        value = FactValue.BooleanValue(true),
+                    ),
+                    targetActionability = Actionability.CONTROLLABLE,
+                    minimumDurationDays = 1,
+                    effort = EffortLevel.VERY_LOW,
+                    costBand = CostBand.FREE,
+                ),
+            ),
+        )
+
+        val receipt = evaluator.evaluate(
+            profile = profile(FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(true)),
+            opportunity = opportunity,
+            today = today,
+        )
+
+        assertEquals(RuleResult.UNKNOWN, receipt.rootResult)
+        assertEquals(EligibilityState.NEEDS_INFO, receipt.state)
     }
 
     private fun profile(vararg facts: Pair<FactKey, FactValue>): ProfileSnapshot = ProfileSnapshot(

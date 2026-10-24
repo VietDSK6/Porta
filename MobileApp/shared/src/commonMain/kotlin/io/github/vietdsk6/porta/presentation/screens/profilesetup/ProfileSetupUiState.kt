@@ -4,19 +4,26 @@ data class ProfileSetupUiState(
     val studyLevel: StudyLevelOption? = null,
     val fieldOfStudy: String = "",
     val nationality: String = "",
+    val residency: String = "",
     val gpa: String = "",
+    val gpaScale: GpaScaleOption = GpaScaleOption.FOUR,
     val ielts: String = "",
     val age: String = "",
     val experienceMonths: String = "",
-    val isEnrolled: Boolean = true,
+    val isEnrolled: Boolean? = null,
     val isDegreeCompleted: Boolean? = null,
-    val isAvailableFullPeriod: Boolean? = null,
+    val communityProjectTitle: String = "",
+    val communityProjectSummary: String = "",
+    val communityProjectEvidenceReference: String = "",
+    val leadershipRole: String = "",
+    val leadershipTitle: String = "",
+    val leadershipEvidenceReference: String = "",
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val error: String? = null,
 ) {
     val gpaValue: Double?
-        get() = gpa.toDoubleOrNull()
+        get() = gpa.takeIf(String::isNotBlank)?.toDoubleOrNull()
 
     val ieltsValue: Double?
         get() = ielts.takeIf(String::isNotBlank)?.toDoubleOrNull()
@@ -30,8 +37,8 @@ data class ProfileSetupUiState(
     val gpaError: String?
         get() = when {
             gpa.isBlank() -> null
-            gpaValue == null -> "Use a number, for example 3.6"
-            gpaValue?.let { it !in 0.0..4.0 } == true -> "Use the 4.0 scale"
+            gpaValue == null -> "Use a number, for example ${gpaScale.example}"
+            gpaValue?.let { it !in 0.0..gpaScale.maximum } == true -> "Use the ${gpaScale.label} scale"
             else -> null
         }
 
@@ -67,8 +74,7 @@ data class ProfileSetupUiState(
     val canSave: Boolean
         get() = studyLevel != null &&
             fieldOfStudy.isNotBlank() &&
-            nationality.isNotBlank() &&
-            gpaValue?.let { it in 0.0..4.0 } == true &&
+            gpaError == null &&
             ieltsError == null &&
             ageError == null &&
             experienceMonthsError == null &&
@@ -84,6 +90,15 @@ enum class StudyLevelOption(
     DOCTORAL("doctoral", "Doctoral"),
 }
 
+enum class GpaScaleOption(
+    val label: String,
+    val maximum: Double,
+    val example: String,
+) {
+    FOUR("4.0", 4.0, "3.6"),
+    TEN("10.0", 10.0, "8.5"),
+}
+
 sealed interface ProfileSetupUiEvent {
     data class StudyLevelChanged(val value: StudyLevelOption) : ProfileSetupUiEvent
 
@@ -91,7 +106,11 @@ sealed interface ProfileSetupUiEvent {
 
     data class NationalityChanged(val value: String) : ProfileSetupUiEvent
 
+    data class ResidencyChanged(val value: String) : ProfileSetupUiEvent
+
     data class GpaChanged(val value: String) : ProfileSetupUiEvent
+
+    data class GpaScaleChanged(val value: GpaScaleOption) : ProfileSetupUiEvent
 
     data class IeltsChanged(val value: String) : ProfileSetupUiEvent
 
@@ -99,11 +118,21 @@ sealed interface ProfileSetupUiEvent {
 
     data class ExperienceMonthsChanged(val value: String) : ProfileSetupUiEvent
 
-    data class EnrolledChanged(val value: Boolean) : ProfileSetupUiEvent
+    data class EnrolledChanged(val value: Boolean?) : ProfileSetupUiEvent
 
     data class DegreeCompletedChanged(val value: Boolean?) : ProfileSetupUiEvent
 
-    data class AvailableFullPeriodChanged(val value: Boolean?) : ProfileSetupUiEvent
+    data class CommunityProjectTitleChanged(val value: String) : ProfileSetupUiEvent
+
+    data class CommunityProjectSummaryChanged(val value: String) : ProfileSetupUiEvent
+
+    data class CommunityProjectEvidenceChanged(val value: String) : ProfileSetupUiEvent
+
+    data class LeadershipRoleChanged(val value: String) : ProfileSetupUiEvent
+
+    data class LeadershipTitleChanged(val value: String) : ProfileSetupUiEvent
+
+    data class LeadershipEvidenceChanged(val value: String) : ProfileSetupUiEvent
 
     data object Save : ProfileSetupUiEvent
 

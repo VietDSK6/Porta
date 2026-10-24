@@ -54,7 +54,11 @@ class ActivePlanViewModelTest {
             .build()
         val backgroundExecutor = BackgroundExecutor(dispatcher)
         planRepository = PlanRepository(database.planItemDao(), backgroundExecutor)
-        profileRepository = ProfileRepository(database.profileFactDao(), backgroundExecutor)
+        profileRepository = ProfileRepository(
+            database.profileFactDao(),
+            database.ruleAssertionDao(),
+            backgroundExecutor,
+        )
         opportunityPackRepository = OpportunityPackRepository(
             database.opportunityPackDao(),
             OpportunityPackParser(OpportunityPackCodec(), OpportunityPackValidator()),

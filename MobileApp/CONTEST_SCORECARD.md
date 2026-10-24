@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 23 October 2026
+> Last updated: 24 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -54,6 +54,8 @@ Current evidence:
 - [x] Competitor boundary documented; What-if is treated as the visualization, not the sole novelty claim.
 - [x] Working Action Frontier over the bundled 15-record sourced dataset, with hard-gap resolution kept distinct
   from fully open eligibility and unverified deadlines.
+- [x] Trust-first v2 model scopes programme confirmations by opportunity, rule and fingerprint; stale assertions are
+  ignored, ambiguous v1 availability actions are rejected, and cross-opportunity leakage is covered by tests.
 - [x] Constraint-aware Action Frontier now persists time/effort/cost/saved-door priorities, reacts to Room-backed
   saves, diagnoses excluded milestones, and exposes a selectable impact map; domain, ViewModel and Compose UI tests
   cover the ranking and disclosure behavior.
@@ -70,6 +72,8 @@ Required evidence:
 - [x] Shared deterministic eligibility engine and receipts.
 - [x] Shared counterfactual simulator and Action Frontier algorithm.
 - [x] Shared repository, validation, Room persistence, and import/export.
+- [x] Room schema v2 preserves existing facts, saved doors and active plans while adding scoped rule assertions;
+  profile export v2 round-trips facts and assertions as separate sections.
 - [x] Meaningful shared Compose UI/state, not only common constants.
 - [x] Android quick-update/tracking flow completes a local plan, requires explicit actual-fact confirmation,
   persists optional evidence metadata and refreshes Doors reactively; covered by ViewModel/UI tests and the
@@ -104,7 +108,7 @@ A green formatter alone must never be recorded as `20/20`.
 
 | Asset | Status | Definition of done |
 |---|---|---|
-| Product name and visual identity | IN PROGRESS | Product name is Porta; implement the Portal Atlas system consistently across icon and screens, then audit marks/assets. |
+| Product name and visual identity | IN PROGRESS | Porta now uses the Editorial Atlas palette, Newsreader/Manrope typography and trust-first core journey; capture final light/dark Android and Desktop media, then audit marks/assets. |
 | Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register and two-profile receipt tests; complete an independent second reading before submission. |
 | README | IN PROGRESS | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and fresh-setup verification. |
 | Essay | TODO | Exactly 300 words and consistent with the actual submission. |

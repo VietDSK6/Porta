@@ -1,25 +1,29 @@
 # Porta
 
-> See which realistic next milestone opens the most verified opportunities—without pretending to predict who wins.
+> See which realistic next milestone creates the most verified progress—without pretending to predict who wins.
 
 Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a sourced offline opportunity
-pack against the student's actual profile, explains every encoded result, and builds an **Action Frontier** of
+pack against the student's actual profile, explains every published-check conclusion, and builds an **Action Frontier** of
 controllable milestones ranked by verified marginal opportunity gain, time, effort, and cost.
 
 The contest build is completely free and does not require an account, cloud service, API key, or network connection.
 
 ## What Porta does
 
-Porta keeps four boundaries visible:
+Porta keeps five conclusions visible:
 
-- **Open** — the profile meets every encoded published hard rule.
-- **Has gaps** — at least one encoded hard rule is not currently met.
-- **Verify** — a published rule needs information or a manual source check.
-- **Unknown** — the pack cannot safely represent the provider's condition.
+- **Current checks passed** — every deterministic check Porta can evaluate currently passes.
+- **Needs action** — a published check fails and has a controllable or time-dependent path.
+- **Needs verification** — information or an official-source review is still required.
+- **Not available this cycle** — a current-cycle requirement cannot be addressed through a profile update.
+- **Closed** — the published application window has ended.
 
-From those receipts, Porta proposes only controllable milestones, such as improving a language score or completing
-a documented project. The What-if view previews the exact doors changed by one milestone. It never writes a
+From those explanations, Porta proposes only controllable milestones, such as improving a language score or completing
+a documented project. The What-if view previews only the doors changed by one milestone. It never writes a
 hypothetical value into the actual profile; the student must confirm a real update separately.
+
+Programme-specific confirmations are scoped to one opportunity and one rule fingerprint. Confirming availability
+for one internship cannot silently change another programme, and a changed source rule makes an old assertion stale.
 
 Porta does **not** predict admission or scholarship success, turn soft selection criteria into pass/fail rules, scrape
 providers, submit applications, or use AI to decide eligibility.
@@ -27,8 +31,8 @@ providers, submit applications, or use AI to decide eligibility.
 ## Demo path
 
 1. Finish onboarding with the sample profile or enter six local profile facts.
-2. Open **Doors** to see the current sourced opportunity receipts.
-3. Open **Frontier** and change the time, budget, and effort constraints.
+2. Open **Doors** to see the current source-linked conclusions.
+3. Open **Next moves** and change the time, budget, and effort constraints.
 4. Select an action to compare the Actual profile with its What-if result across all affected doors.
 5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed.
 6. On Desktop, use the wide master-detail Frontier and Pack Inspector to inspect results and source diagnostics.
@@ -96,14 +100,14 @@ Android launcher ─┐
                   ├─ shared Compose UI + Navigation 3
 Desktop launcher ─┘              │
                                  ├─ profile / plan / pack repositories
-                                 ├─ typed eligibility + scenario engines
+                                 ├─ typed published-rule + scenario engines
                                  ├─ constrained Action Frontier
                                  └─ Room + bundled local opportunity pack
 ```
 
 The shared module owns the domain models, deterministic rule graph, evaluation receipts, counterfactual simulation,
 Action Frontier, persistence, ViewModels, and most UI. Platform modules provide launchers and platform services.
-There is no server-authoritative eligibility decision.
+There is no server-authoritative admission or selection decision.
 
 The core product documents are:
 
@@ -148,7 +152,10 @@ platform work, including iOS.
 ## Data and limitations
 
 - Results apply only to the rules encoded in the installed pack and its stated verification date.
-- A hard-rule receipt means "meets the encoded eligibility rules," not "competitive" or "will be accepted."
+- `Current checks passed` means only that Porta's current deterministic checks pass; it never means competitive,
+  selected, funded, or accepted.
+- Programme-scoped assertions apply only when opportunity ID, rule ID, and rule fingerprint all still match.
+- Completing a plan changes plan status only. A separate evidence-aware confirmation updates the actual profile.
 - Provider-specific, constituency-specific, legal, soft, or ambiguous conditions remain explicit manual checks.
 - Action duration, cost, and effort are Porta planning estimates, not provider claims.
 - TBA and rolling deadlines are never inferred from an older cycle.

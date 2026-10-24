@@ -5,6 +5,7 @@ data class ActualProfileUpdateUiState(
     val hasCompletedPlan: Boolean = false,
     val planTitle: String = "",
     val factLabel: String = "",
+    val scopeDescription: String? = null,
     val currentValueLabel: String = "Not recorded",
     val plannedTargetLabel: String = "",
     val inputKind: ActualValueInputKind = ActualValueInputKind.NUMBER,
@@ -12,6 +13,7 @@ data class ActualProfileUpdateUiState(
     val achievedBoolean: Boolean? = null,
     val unitLabel: String = "",
     val includeEvidence: Boolean = false,
+    val isEvidenceRequired: Boolean = false,
     val evidenceLabel: String = "",
     val evidenceReference: String = "",
     val isSaving: Boolean = false,
@@ -29,6 +31,7 @@ data class ActualProfileUpdateUiState(
                 ActualValueInputKind.TEXT,
                 -> achievedValue.isNotBlank()
             } &&
+            (!isEvidenceRequired || includeEvidence) &&
             (!includeEvidence || evidenceLabel.isNotBlank()) &&
             !isSaving
 }

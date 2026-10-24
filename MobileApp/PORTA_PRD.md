@@ -1,9 +1,9 @@
 # Porta — Product Requirements Document
 
 > **Product name:** Porta
-> **Document version:** 0.1
-> **Status:** Product direction selected; kill test passed with constraints
-> **Date:** 20/10/2026
+> **Document version:** 0.2
+> **Status:** Trust-first core journey implemented; stabilization in progress
+> **Date:** 24/10/2026
 > **Contest deadline:** 07/12/2026, 23:59 CET
 > **Target platforms:** Android + JVM Desktop
 > **Delivery model:** Local-first Kotlin Multiplatform app
@@ -15,8 +15,8 @@
 
 Porta helps students answer three questions:
 
-1. Which opportunities meet all currently encoded published eligibility rules for my actual profile?
-2. Why is each door open, blocked or uncertain?
+1. Which opportunities pass all deterministic checks Porta can currently evaluate for my actual profile?
+2. Why does each door need action, verification, or no further deterministic action right now?
 3. Under my available time, budget and effort, which realistic next milestone creates the largest verified increase in accessible opportunities?
 
 Porta is **not** another scholarship search feed, AI admissions predictor or profile score.
@@ -26,7 +26,7 @@ Its contest-scale core loop is:
 ```text
 Actual profile
     ↓
-Explainable eligibility receipts
+Explainable published-check conclusions
     ↓
 Action Frontier ranked by constraints
     ↓
@@ -39,11 +39,11 @@ Track the milestone and later update the actual profile
 
 ### Product promise
 
-> See which realistic next milestone opens the most verified opportunities—without pretending to predict who wins.
+> See which realistic next milestone creates the most verified progress—without pretending to predict who wins.
 
 ### Magic moment
 
-The app proposes several controllable milestones. The student taps one such as `IELTS 6.5 → 7.0`. Opportunity cards whose published hard eligibility changes visibly open, while every change remains traceable to an official clause and verification date.
+The app proposes several controllable milestones. The student taps one such as `IELTS 6.5 → 7.0`. Only opportunity cards whose published-check conclusion changes are shown, while every change remains traceable to an official clause and verification date.
 
 The user can then change available time, budget or effort. The Action Frontier reorders transparently.
 
@@ -96,6 +96,22 @@ The concept passed a 15-opportunity rule-encoding test with conditions:
 - The product can only claim eligibility against the rules it has encoded and verified on a stated date.
 
 Full validation data appears in Appendix A.
+
+### Trust-first v0.2 correction
+
+The implemented product deliberately uses more conservative language than the original concept:
+
+- `OPEN` remains an internal serialized enum but is shown as **Current checks passed**.
+- `HAS_GAPS` is shown as **Needs action**; Porta does not claim that one action is always enough.
+- `NEEDS_INFO` is shown as **Needs verification**; it is never presented as a successful result.
+- Completing a plan updates plan status only. An explicit confirmation, with evidence required for programme-scoped
+  checks, is the only path that changes the actual profile.
+- Global facts and programme-scoped assertions are different data. A scoped assertion is keyed by profile,
+  opportunity and rule, and is accepted only while its rule fingerprint still matches the installed pack.
+- What-if always states that the saved profile is unchanged and renders only doors whose evaluated conclusion changes.
+
+This correction removes cross-opportunity availability leakage and avoids turning a deterministic rule check into a
+claim about admission, selection or funding.
 
 ---
 
@@ -255,20 +271,23 @@ Example dimensions:
 
 | Internal state | UI label | Meaning |
 |---|---|---|
-| `OPEN` | Open | All currently encoded published hard rules pass |
-| `HAS_GAPS` | Has gaps | At least one hard rule fails, but an actionable path may exist |
-| `NEEDS_INFO` | Verify | Missing, ambiguous or manual information prevents a conclusion |
-| `NOT_ACTIONABLE` | Unavailable | At least one hard blocker cannot be changed legitimately for this cycle |
+| `OPEN` | Current checks passed | All deterministic checks Porta can currently evaluate pass |
+| `HAS_GAPS` | Needs action | At least one published check fails and an actionable path may exist |
+| `NEEDS_INFO` | Needs verification | Missing, ambiguous or manual information prevents a conclusion |
+| `NOT_ACTIONABLE` | Not available this cycle | A current-cycle requirement cannot be addressed through a profile update |
 | `CLOSED` | Closed | Deadline has passed |
 
 ### Proximity
 
-Proximity is separate from eligibility:
+Proximity remains an internal planning concept and is not shown as a certainty claim:
 
 - `ONE_STEP_AWAY`
 - `MULTI_STEP`
 - `MANUAL_REVIEW`
 - `OUT_OF_REACH`
+
+The UI must not say **one step away** unless the engine can prove that one checked requirement is the only remaining
+deterministic blocker; the contest build uses the broader **Needs action** label instead.
 
 ### Requirement type
 
@@ -310,7 +329,7 @@ This distinction prevents “CV uploaded” or “essay completed” from falsel
 - Save/unsave an opportunity.
 - Archive expired cycles without deleting history.
 
-### Eligibility receipt
+### Decision explanation
 
 Each opportunity must show:
 
@@ -417,7 +436,7 @@ Left navigation rail:
 
 Desktop is not a stretched phone screen. It prioritizes:
 
-- dense eligibility matrices;
+- dense published-check matrices;
 - actual versus scenario comparison;
 - rule/source inspector;
 - pack validation;
@@ -431,7 +450,7 @@ Desktop is not a stretched phone screen. It prioritizes:
 2. Sample profile or create profile.
 3. Minimum profile setup.
 4. Doors overview.
-5. Opportunity detail and eligibility receipt.
+5. Opportunity detail and decision explanation.
 6. Next Steps / Action Frontier.
 7. Planning constraints sheet.
 8. Milestone detail.
@@ -458,9 +477,9 @@ Desktop is not a stretched phone screen. It prioritizes:
 Welcome
 → Try sample student
 → Doors overview
-→ Suggested Action Frontier
+→ Recommended next move
 → Tap “IELTS 6.5 → 7.0”
-→ Doors change state
+→ Preview only the doors whose checked conclusions change
 → Inspect exact official clauses
 → Adjust time/budget
 → Frontier reorders
@@ -474,9 +493,9 @@ Acceptance target: first meaningful preview in under 30 seconds.
 Welcome
 → Create my profile
 → Enter minimum facts
-→ Unknown rules remain “Verify”
+→ Unknown rules remain “Needs verification”
 → Doors overview
-→ Add missing fact from a receipt
+→ Add a missing fact from the decision explanation
 → Re-evaluate deterministically
 ```
 
@@ -487,8 +506,8 @@ Minimum profile entry must be progressive. Do not force the user to complete eve
 ```text
 Doors
 → Select opportunity
-→ Eligibility receipt
-→ See Pass / Gap / Verify / Soft sections
+→ Decision explanation
+→ See Current conclusion / Needs action / Needs verification / Passed checks / Soft factors
 → Open official source
 → Preview a mapped milestone
 ```
@@ -500,7 +519,7 @@ Next Steps
 → Set horizon, effort and cost constraints
 → View 2–5 non-dominated milestones
 → Tap one milestone
-→ Inspect doors opened / moved closer / unchanged
+→ Inspect doors that would pass current checks / address one check / remain unchanged
 → Inspect deadline feasibility
 → Add milestone to plan
 ```
@@ -623,7 +642,7 @@ The user supplies:
 - maximum cost band;
 - opportunity priorities.
 
-An action that cannot finish before a door's deadline contributes zero unlocked value for that door.
+An action that cannot finish before a door's deadline contributes zero impact value for that door.
 
 ## FR-7 Action Frontier
 
@@ -631,8 +650,8 @@ An action that cannot finish before a door's deadline contributes zero unlocked 
 - Rank only within that frontier.
 - Show no more than five actions by default.
 - Each action explanation must name:
-  - newly open saved doors;
-  - newly open total doors;
+  - saved doors that would pass current checks;
+  - total doors that would pass current checks;
   - doors moved closer;
   - earliest affected deadline;
   - expected duration, effort and cost;
@@ -861,8 +880,8 @@ For each candidate action:
 
 Action A dominates action B only when A is:
 
-- no worse in newly opened saved doors;
-- no worse in newly opened total doors;
+- no worse in saved doors that would pass current checks;
+- no worse in total doors that would pass current checks;
 - no worse in duration;
 - no worse in effort;
 - no worse in cost;
@@ -876,9 +895,9 @@ Only non-dominated actions enter the default frontier.
 The UI should use an explainable lexicographic order rather than present a mysterious number:
 
 1. Feasible within the selected horizon.
-2. More saved opportunities newly open.
-3. More total opportunities newly open.
-4. More doors move from multi-step to one-step-away.
+2. More saved opportunities would pass current checks.
+3. More total opportunities would pass current checks.
+4. More published checks would be addressed.
 5. Earlier affected deadline.
 6. Shorter duration.
 7. Lower effort.
@@ -887,7 +906,7 @@ The UI should use an explainable lexicographic order rather than present a myste
 
 The app may compute an internal score for tests, but it must explain rankings in factors, for example:
 
-> Ranked first because it opens 3 saved opportunities and 2 others before their deadlines. Estimated duration: 8–10 weeks. Effort: high. Cost: medium.
+> Ranked first because 3 saved opportunities and 2 others would pass their current checks before their deadlines. Estimated duration: 8–10 weeks. Effort: high. Cost: medium.
 
 ## 14.5 Ethical rules
 
@@ -915,9 +934,9 @@ Doors are a state metaphor, not literal 3D doors everywhere.
 
 Recommended presentation:
 
-- opportunity cards with a clear latch/open state;
+- opportunity cards with a clear checked-conclusion state;
 - subtle opening transition when status changes;
-- delta badges such as `+3 open`;
+- delta badges such as `3 would pass current checks`;
 - a comparison ribbon showing `Actual → Preview`;
 - accessible labels on every state.
 
@@ -927,32 +946,31 @@ Avoid a fantasy-game map that makes serious eligibility data feel arbitrary.
 
 Must show:
 
-- Open;
-- One step away;
-- Further away;
-- Verify;
-- Unavailable;
+- Current checks passed;
+- Needs action;
+- Needs verification;
+- Not available this cycle;
 - Closed.
 
 Every group has an explanation and count. Color is supplementary, never the only signal.
 
-## 15.3 Opportunity receipt
+## 15.3 Opportunity decision explanation
 
 Recommended sections:
 
 1. Current conclusion.
-2. Published hard requirements.
+2. Needs action.
 3. Needs verification.
-4. Soft selection criteria.
-5. Application readiness — P1 or informational only.
-6. Source and last checked.
+4. Passed checks.
+5. Soft selection factors.
+6. Source, section and last checked date.
 
 ## 15.4 Action Frontier card
 
 Each card displays:
 
 - milestone title;
-- doors newly open;
+- doors that would pass current checks;
 - saved doors affected;
 - duration range;
 - effort;
@@ -967,7 +985,7 @@ Each card displays:
 - Actual and hypothetical value shown together.
 - Changed cards animate once.
 - Summary uses precise wording:
-  - `3 opportunities now meet all encoded hard rules.`
+  - `3 opportunities would pass the current checked requirements.`
   - Not `You unlocked 3 scholarships you can win.`
 - Reset and Add to Plan are distinct actions.
 
@@ -975,9 +993,9 @@ Each card displays:
 
 Use:
 
-- “Meets all currently encoded published rules.”
-- “One hard condition is currently unmet.”
-- “This program requires manual confirmation.”
+- “Current checks passed.”
+- “At least one published check needs action.”
+- “This programme needs verification against the official source.”
 - “Source checked on 20 Oct 2026.”
 - “Always confirm on the official page.”
 
@@ -1262,7 +1280,7 @@ For every opportunity:
 
 - Sample onboarding.
 - Create/edit/delete fact.
-- Opportunity receipt sections.
+- Opportunity decision-explanation sections.
 - Constraint editing.
 - Frontier ordering.
 - Preview changed doors.
@@ -1371,14 +1389,14 @@ Open Android sample profile:
 
 Show counts:
 
-- open;
-- one step away;
-- verify;
-- unavailable.
+- current checks passed;
+- needs action;
+- needs verification;
+- not available this cycle.
 
 Mention local-only/offline.
 
-## 0:50–1:20 — eligibility receipt
+## 0:50–1:20 — decision explanation
 
 Open one opportunity:
 
@@ -1387,7 +1405,7 @@ Open one opportunity:
 - one soft criterion is displayed separately;
 - source URL and checked date are visible.
 
-> Porta does not say “84% match.” It shows the receipt.
+> Porta does not say “84% match.” It shows exactly which published checks were evaluated, which need action, and which still need verification.
 
 ## 1:20–2:05 — Action Frontier
 

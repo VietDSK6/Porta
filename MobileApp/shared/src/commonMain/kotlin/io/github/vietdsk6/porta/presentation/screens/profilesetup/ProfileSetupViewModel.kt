@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.FactProvenance
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
@@ -32,7 +34,12 @@ class ProfileSetupViewModel(
                         },
                         fieldOfStudy = (facts[FactKey.FIELD_OF_STUDY]?.value as? FactValue.TextValue)?.value.orEmpty(),
                         nationality = (facts[FactKey.NATIONALITY]?.value as? FactValue.EnumValue)?.value.orEmpty(),
+                        residency = (facts[FactKey.RESIDENCY]?.value as? FactValue.EnumValue)?.value.orEmpty(),
                         gpa = (facts[FactKey.GPA]?.value as? FactValue.NumberValue)?.amount?.toInputText().orEmpty(),
+                        gpaScale = (facts[FactKey.GPA]?.value as? FactValue.NumberValue)
+                            ?.unit
+                            ?.let(::gpaScaleFromUnit)
+                            ?: GpaScaleOption.FOUR,
                         ielts = (facts[FactKey.IELTS_SCORE]?.value as? FactValue.NumberValue)
                             ?.amount
                             ?.toInputText()
@@ -45,12 +52,20 @@ class ProfileSetupViewModel(
                             ?.amount
                             ?.toInputText()
                             .orEmpty(),
-                        isEnrolled = (facts[FactKey.ENROLLED]?.value as? FactValue.BooleanValue)?.value ?: true,
+                        isEnrolled = (facts[FactKey.ENROLLED]?.value as? FactValue.BooleanValue)?.value,
                         isDegreeCompleted = (facts[FactKey.DEGREE_COMPLETED]?.value as? FactValue.BooleanValue)?.value,
-                        isAvailableFullPeriod = facts[FactKey.AVAILABLE_FULL_PERIOD]
-                            ?.value
-                            .let { it as? FactValue.BooleanValue }
-                            ?.value,
+                        communityProjectTitle = facts.growthRecord(FactKey.COMMUNITY_PROJECT).primary,
+                        communityProjectSummary = facts.growthRecord(FactKey.COMMUNITY_PROJECT).secondary,
+                        communityProjectEvidenceReference = facts[FactKey.COMMUNITY_PROJECT]
+                            ?.evidence
+                            ?.reference
+                            .orEmpty(),
+                        leadershipRole = facts.growthRecord(FactKey.LEADERSHIP).primary,
+                        leadershipTitle = facts.growthRecord(FactKey.LEADERSHIP).secondary,
+                        leadershipEvidenceReference = facts[FactKey.LEADERSHIP]
+                            ?.evidence
+                            ?.reference
+                            .orEmpty(),
                     )
                 }
             }
@@ -65,7 +80,11 @@ class ProfileSetupViewModel(
 
             is ProfileSetupUiEvent.NationalityChanged -> update { copy(nationality = event.value) }
 
+            is ProfileSetupUiEvent.ResidencyChanged -> update { copy(residency = event.value) }
+
             is ProfileSetupUiEvent.GpaChanged -> update { copy(gpa = event.value.filterNumeric()) }
+
+            is ProfileSetupUiEvent.GpaScaleChanged -> update { copy(gpaScale = event.value) }
 
             is ProfileSetupUiEvent.IeltsChanged -> update { copy(ielts = event.value.filterNumeric()) }
 
@@ -79,8 +98,24 @@ class ProfileSetupViewModel(
 
             is ProfileSetupUiEvent.DegreeCompletedChanged -> update { copy(isDegreeCompleted = event.value) }
 
-            is ProfileSetupUiEvent.AvailableFullPeriodChanged -> {
-                update { copy(isAvailableFullPeriod = event.value) }
+            is ProfileSetupUiEvent.CommunityProjectTitleChanged -> {
+                update { copy(communityProjectTitle = event.value) }
+            }
+
+            is ProfileSetupUiEvent.CommunityProjectSummaryChanged -> {
+                update { copy(communityProjectSummary = event.value) }
+            }
+
+            is ProfileSetupUiEvent.CommunityProjectEvidenceChanged -> {
+                update { copy(communityProjectEvidenceReference = event.value) }
+            }
+
+            is ProfileSetupUiEvent.LeadershipRoleChanged -> update { copy(leadershipRole = event.value) }
+
+            is ProfileSetupUiEvent.LeadershipTitleChanged -> update { copy(leadershipTitle = event.value) }
+
+            is ProfileSetupUiEvent.LeadershipEvidenceChanged -> {
+                update { copy(leadershipEvidenceReference = event.value) }
             }
 
             ProfileSetupUiEvent.Save -> save()
@@ -122,28 +157,50 @@ class ProfileSetupViewModel(
 
     private fun ProfileSetupUiState.toFacts(): List<ProfileFact> {
         val timestamp = nowEpochMillis()
-        val values = buildList {
-            add(FactKey.STUDY_LEVEL to FactValue.EnumValue(checkNotNull(studyLevel).storedValue))
-            add(FactKey.FIELD_OF_STUDY to FactValue.TextValue(fieldOfStudy.trim()))
-            add(FactKey.NATIONALITY to FactValue.EnumValue(nationality.trim().uppercase()))
-            add(FactKey.GPA to FactValue.NumberValue(checkNotNull(gpaValue), "4.0 scale"))
-            add(FactKey.ENROLLED to FactValue.BooleanValue(isEnrolled))
-            ieltsValue?.let { add(FactKey.IELTS_SCORE to FactValue.NumberValue(it, "band")) }
-            ageValue?.let { add(FactKey.AGE to FactValue.NumberValue(it, "years")) }
+        val values = buildList<FactDraft> {
+            add(FactDraft(FactKey.STUDY_LEVEL, FactValue.EnumValue(checkNotNull(studyLevel).storedValue)))
+            add(FactDraft(FactKey.FIELD_OF_STUDY, FactValue.TextValue(fieldOfStudy.trim())))
+            nationality.takeIf(String::isNotBlank)?.let {
+                add(FactDraft(FactKey.NATIONALITY, FactValue.EnumValue(it.uppercase())))
+            }
+            residency.takeIf(String::isNotBlank)?.let {
+                add(FactDraft(FactKey.RESIDENCY, FactValue.EnumValue(it.uppercase())))
+            }
+            gpaValue?.let {
+                add(FactDraft(FactKey.GPA, FactValue.NumberValue(it, "${gpaScale.label} scale")))
+            }
+            isEnrolled?.let { add(FactDraft(FactKey.ENROLLED, FactValue.BooleanValue(it))) }
+            ieltsValue?.let { add(FactDraft(FactKey.IELTS_SCORE, FactValue.NumberValue(it, "band"))) }
+            ageValue?.let { add(FactDraft(FactKey.AGE, FactValue.NumberValue(it, "years"))) }
             experienceMonthsValue?.let {
-                add(FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(it, "months"))
+                add(FactDraft(FactKey.EXPERIENCE_MONTHS, FactValue.NumberValue(it, "months")))
             }
-            isDegreeCompleted?.let { add(FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(it)) }
-            isAvailableFullPeriod?.let {
-                add(FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(it))
+            isDegreeCompleted?.let {
+                add(FactDraft(FactKey.DEGREE_COMPLETED, FactValue.BooleanValue(it)))
             }
+            growthDraft(
+                key = FactKey.COMMUNITY_PROJECT,
+                primary = communityProjectTitle,
+                secondary = communityProjectSummary,
+                evidenceLabel = "Community project evidence",
+                evidenceReference = communityProjectEvidenceReference,
+            )?.let(::add)
+            growthDraft(
+                key = FactKey.LEADERSHIP,
+                primary = leadershipRole,
+                secondary = leadershipTitle,
+                evidenceLabel = "Leadership evidence",
+                evidenceReference = leadershipEvidenceReference,
+            )?.let(::add)
         }
-        return values.map { (key, value) ->
+        return values.map { draft ->
             ProfileFact(
-                id = "${ProfileFact.DEFAULT_PROFILE_ID}:${key.name.lowercase()}",
-                key = key,
-                value = value,
-                actionability = key.actionability(),
+                id = "${ProfileFact.DEFAULT_PROFILE_ID}:${draft.key.name.lowercase()}",
+                key = draft.key,
+                value = draft.value,
+                provenance = draft.provenance,
+                actionability = draft.key.actionability(),
+                evidence = draft.evidence,
                 updatedAtEpochMillis = timestamp,
             )
         }
@@ -160,23 +217,32 @@ class ProfileSetupViewModel(
         FactKey.EXPERIENCE_MONTHS,
         -> Actionability.TIME_DEPENDENT
 
-        FactKey.AVAILABLE_FULL_PERIOD -> Actionability.CONTROLLABLE
-
         FactKey.AGE -> Actionability.IMMUTABLE
 
         FactKey.FIELD_OF_STUDY,
         FactKey.NATIONALITY,
+        FactKey.RESIDENCY,
         -> Actionability.CONTEXT_ONLY
 
-        else -> Actionability.UNKNOWN
+        FactKey.COMMUNITY_PROJECT,
+        FactKey.LEADERSHIP,
+        FactKey.AVAILABLE_FULL_PERIOD,
+        -> Actionability.UNKNOWN
     }
 
     private fun ProfileSetupUiState.omittedOptionalKeys(): List<FactKey> = buildList {
         if (ieltsValue == null) add(FactKey.IELTS_SCORE)
+        if (gpaValue == null) add(FactKey.GPA)
         if (ageValue == null) add(FactKey.AGE)
         if (experienceMonthsValue == null) add(FactKey.EXPERIENCE_MONTHS)
         if (isDegreeCompleted == null) add(FactKey.DEGREE_COMPLETED)
-        if (isAvailableFullPeriod == null) add(FactKey.AVAILABLE_FULL_PERIOD)
+        if (isEnrolled == null) add(FactKey.ENROLLED)
+        if (nationality.isBlank()) add(FactKey.NATIONALITY)
+        if (residency.isBlank()) add(FactKey.RESIDENCY)
+        if (communityProjectTitle.isBlank() && communityProjectSummary.isBlank()) {
+            add(FactKey.COMMUNITY_PROJECT)
+        }
+        if (leadershipRole.isBlank() && leadershipTitle.isBlank()) add(FactKey.LEADERSHIP)
     }
 
     private fun String.filterNumeric(): String = filter { it.isDigit() || it == '.' }
@@ -186,4 +252,37 @@ class ProfileSetupViewModel(
         }
 
     private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
+
+    private fun Map<FactKey, ProfileFact>.growthRecord(key: FactKey): GrowthEvidenceRecord {
+        val text = (get(key)?.value as? FactValue.TextValue)?.value.orEmpty()
+        return GrowthEvidenceEncoding.decode(text)
+    }
+
+    private fun growthDraft(
+        key: FactKey,
+        primary: String,
+        secondary: String,
+        evidenceLabel: String,
+        evidenceReference: String,
+    ): FactDraft? {
+        if (primary.isBlank() && secondary.isBlank()) return null
+        val evidence = evidenceReference.trim().takeIf(String::isNotBlank)?.let { reference ->
+            EvidenceMetadata(label = evidenceLabel, reference = reference)
+        }
+        return FactDraft(
+            key = key,
+            value = FactValue.TextValue(GrowthEvidenceEncoding.encode(primary, secondary)),
+            provenance = if (evidence == null) FactProvenance.SELF_REPORTED else FactProvenance.EVIDENCE_BACKED,
+            evidence = evidence,
+        )
+    }
+
+    private data class FactDraft(
+        val key: FactKey,
+        val value: FactValue,
+        val provenance: FactProvenance = FactProvenance.SELF_REPORTED,
+        val evidence: EvidenceMetadata? = null,
+    )
 }
+
+private fun gpaScaleFromUnit(unit: String): GpaScaleOption = if (unit.startsWith("10")) GpaScaleOption.TEN else GpaScaleOption.FOUR

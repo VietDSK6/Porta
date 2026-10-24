@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.data.source.local.pack
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
@@ -12,6 +13,8 @@ import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.RuleNode
+import io.github.vietdsk6.porta.domain.model.findAtomicRule
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -110,6 +113,8 @@ data class ActionTemplateDto(
     val title: String,
     val targetFactKey: String,
     val targetValue: FactValueDto,
+    val targetScope: String = ActionTargetScope.PROFILE.name,
+    val targetRuleId: String? = null,
     val targetActionability: String,
     val minimumDurationDays: Int,
     val effort: String,
@@ -117,6 +122,11 @@ data class ActionTemplateDto(
     val completionEvidenceTypes: Set<String> = emptySet(),
     val sourceNote: String? = null,
 )
+
+enum class ActionTargetScope {
+    PROFILE,
+    RULE,
+}
 
 @Serializable
 sealed interface FactValueDto {
@@ -149,25 +159,30 @@ sealed interface FactValueDto {
     data class TextValue(val value: String) : FactValueDto
 }
 
-internal fun OpportunityDto.toDomain(): Opportunity = Opportunity(
-    id = id,
-    title = title,
-    provider = provider,
-    category = OpportunityCategory.valueOf(category),
-    cycle = cycle,
-    cycleStartOn = cycleStartOn?.let(LocalDate::parse),
-    sourceUrl = sourceUrl,
-    sourceSection = sourceSection,
-    lastCheckedOn = LocalDate.parse(lastCheckedOn),
-    deadline = deadline.toDomain(),
-    eligibilityRule = eligibilityRule.toDomain(),
-    softCriteria = softCriteria,
-    readinessItems = readinessItems,
-    actionTemplates = actionTemplates.map(ActionTemplateDto::toDomain),
-    schemaVersion = schemaVersion,
-    disclaimer = disclaimer,
-    archived = archived,
-)
+internal fun OpportunityDto.toDomain(): Opportunity {
+    val domainRule = eligibilityRule.toDomain()
+    return Opportunity(
+        id = id,
+        title = title,
+        provider = provider,
+        category = OpportunityCategory.valueOf(category),
+        cycle = cycle,
+        cycleStartOn = cycleStartOn?.let(LocalDate::parse),
+        sourceUrl = sourceUrl,
+        sourceSection = sourceSection,
+        lastCheckedOn = LocalDate.parse(lastCheckedOn),
+        deadline = deadline.toDomain(),
+        eligibilityRule = domainRule,
+        softCriteria = softCriteria,
+        readinessItems = readinessItems,
+        actionTemplates = actionTemplates.map { action ->
+            action.toDomain(opportunityId = id, eligibilityRule = domainRule)
+        },
+        schemaVersion = schemaVersion,
+        disclaimer = disclaimer,
+        archived = archived,
+    )
+}
 
 private fun DeadlineDto.toDomain(): Deadline = when (this) {
     is DeadlineDto.Known -> Deadline.Known(LocalDate.parse(date))
@@ -194,18 +209,42 @@ private fun RuleNodeDto.toDomain(): RuleNode = when (this) {
     is RuleNodeDto.ManualCheck -> RuleNode.ManualCheck(id, explanation, sourceNote)
 }
 
-private fun ActionTemplateDto.toDomain(): ActionTemplate = ActionTemplate(
-    id = id,
-    title = title,
-    targetFactKey = FactKey.valueOf(targetFactKey),
-    targetValue = targetValue.toDomain(),
-    targetActionability = Actionability.valueOf(targetActionability),
-    minimumDurationDays = minimumDurationDays,
-    effort = EffortLevel.valueOf(effort),
-    costBand = CostBand.valueOf(costBand),
-    completionEvidenceTypes = completionEvidenceTypes,
-    sourceNote = sourceNote,
-)
+private fun ActionTemplateDto.toDomain(
+    opportunityId: String,
+    eligibilityRule: RuleNode,
+): ActionTemplate {
+    val factKey = FactKey.valueOf(targetFactKey)
+    val value = targetValue.toDomain()
+    val target = when (ActionTargetScope.valueOf(targetScope)) {
+        ActionTargetScope.PROFILE -> ActionTarget.ProfileFactTarget(
+            factKey = factKey,
+            value = value,
+        )
+
+        ActionTargetScope.RULE -> {
+            val ruleId = checkNotNull(targetRuleId)
+            val rule = checkNotNull(eligibilityRule.findAtomicRule(ruleId))
+            ActionTarget.OpportunityRuleTarget(
+                opportunityId = opportunityId,
+                ruleId = ruleId,
+                ruleFingerprint = rule.fingerprint(),
+                factKey = factKey,
+                value = value,
+            )
+        }
+    }
+    return ActionTemplate(
+        id = id,
+        title = title,
+        target = target,
+        targetActionability = Actionability.valueOf(targetActionability),
+        minimumDurationDays = minimumDurationDays,
+        effort = EffortLevel.valueOf(effort),
+        costBand = CostBand.valueOf(costBand),
+        completionEvidenceTypes = completionEvidenceTypes,
+        sourceNote = sourceNote,
+    )
+}
 
 private fun FactValueDto.toDomain(): FactValue = when (this) {
     is FactValueDto.BooleanValue -> FactValue.BooleanValue(value)

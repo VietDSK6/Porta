@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -13,6 +15,8 @@ import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleAssertion
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +31,7 @@ import kotlinx.coroutines.launch
 class ActualProfileUpdateViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
+    private val ruleAssertionRepository: RuleAssertionRepository,
 ) : ViewModel() {
     private val formState = MutableStateFlow(FormState())
 
@@ -66,7 +71,11 @@ class ActualProfileUpdateViewModel(
             }
 
             is ActualProfileUpdateUiEvent.IncludeEvidenceChanged -> formState.update {
-                it.copy(includeEvidence = event.value, error = null)
+                if (uiState.value.isEvidenceRequired && !event.value) {
+                    it
+                } else {
+                    it.copy(includeEvidence = event.value, error = null)
+                }
             }
 
             is ActualProfileUpdateUiEvent.EvidenceLabelChanged -> formState.update {
@@ -124,24 +133,13 @@ class ActualProfileUpdateViewModel(
             }
             val timestamp = nowEpochMillis()
             val evidence = form.evidence(timestamp)
-            val existing = profile.facts[plan.targetFactKey]
-            val updatedFact = existing?.copy(
+            saveConfirmedTarget(
+                plan = plan,
+                profile = profile,
                 value = value,
-                provenance = if (evidence == null) FactProvenance.SELF_REPORTED else FactProvenance.EVIDENCE_BACKED,
                 evidence = evidence,
-                updatedAtEpochMillis = timestamp,
-            ) ?: ProfileFact(
-                id = "${profile.id}:${plan.targetFactKey.name.lowercase()}",
-                profileId = profile.id,
-                key = plan.targetFactKey,
-                value = value,
-                provenance = if (evidence == null) FactProvenance.SELF_REPORTED else FactProvenance.EVIDENCE_BACKED,
-                actionability = plan.targetFactKey.actionability(),
-                evidence = evidence,
-                updatedAtEpochMillis = timestamp,
+                timestamp = timestamp,
             )
-
-            profileRepository.saveFacts(listOf(updatedFact))
                 .onSuccess {
                     formState.update { it.copy(isSaving = false, isSaved = true) }
                 }
@@ -156,31 +154,94 @@ class ActualProfileUpdateViewModel(
         }
     }
 
+    private suspend fun saveConfirmedTarget(
+        plan: PlanItem,
+        profile: ProfileSnapshot,
+        value: FactValue,
+        evidence: EvidenceMetadata?,
+        timestamp: Long,
+    ): Result<Unit> = when (val target = plan.target) {
+        is ActionTarget.ProfileFactTarget -> {
+            val existing = profile.facts[target.factKey]
+            val updatedFact = existing?.copy(
+                value = value,
+                provenance = if (evidence == null) {
+                    FactProvenance.SELF_REPORTED
+                } else {
+                    FactProvenance.EVIDENCE_BACKED
+                },
+                evidence = evidence,
+                updatedAtEpochMillis = timestamp,
+            ) ?: ProfileFact(
+                id = "${profile.id}:${target.factKey.name.lowercase()}",
+                profileId = profile.id,
+                key = target.factKey,
+                value = value,
+                provenance = if (evidence == null) {
+                    FactProvenance.SELF_REPORTED
+                } else {
+                    FactProvenance.EVIDENCE_BACKED
+                },
+                actionability = target.factKey.actionability(),
+                evidence = evidence,
+                updatedAtEpochMillis = timestamp,
+            )
+            profileRepository.saveFacts(listOf(updatedFact))
+        }
+
+        is ActionTarget.OpportunityRuleTarget -> ruleAssertionRepository.saveAssertions(
+            listOf(
+                RuleAssertion(
+                    profileId = profile.id,
+                    ruleRef = RuleRef(target.opportunityId, target.ruleId),
+                    ruleFingerprint = target.ruleFingerprint,
+                    factKey = target.factKey,
+                    value = value,
+                    evidence = evidence,
+                    updatedAtEpochMillis = timestamp,
+                ),
+            ),
+        )
+    }
+
     private fun PlanItem?.toUiState(
         profile: ProfileSnapshot,
         form: FormState,
     ): ActualProfileUpdateUiState {
         if (this == null) return ActualProfileUpdateUiState(isLoading = false)
 
-        val currentFact = profile.facts[targetFactKey]
+        val currentValue = when (val actionTarget = target) {
+            is ActionTarget.ProfileFactTarget -> profile.facts[actionTarget.factKey]?.value
+
+            is ActionTarget.OpportunityRuleTarget -> profile.ruleAssertions[
+                RuleRef(actionTarget.opportunityId, actionTarget.ruleId),
+            ]?.value
+        }
         return ActualProfileUpdateUiState(
             isLoading = false,
             hasCompletedPlan = status == PlanStatus.COMPLETED,
             planTitle = title,
-            factLabel = targetFactKey.label(),
-            currentValueLabel = currentFact?.value?.displayValue() ?: "Not recorded",
+            factLabel = when (target) {
+                is ActionTarget.ProfileFactTarget -> targetFactKey.label()
+                is ActionTarget.OpportunityRuleTarget -> "Programme-specific ${targetFactKey.label().lowercase()}"
+            },
+            scopeDescription = (target as? ActionTarget.OpportunityRuleTarget)?.let {
+                "Programme ${it.opportunityId} · requirement ${it.ruleId}"
+            },
+            currentValueLabel = currentValue?.displayValue() ?: "Not confirmed",
             plannedTargetLabel = targetValue.displayValue(),
             inputKind = form.inputKind,
             achievedValue = form.achievedValue,
             achievedBoolean = form.achievedBoolean,
             unitLabel = (targetValue as? FactValue.NumberValue)?.unit.orEmpty(),
             includeEvidence = form.includeEvidence,
+            isEvidenceRequired = target is ActionTarget.OpportunityRuleTarget,
             evidenceLabel = form.evidenceLabel,
             evidenceReference = form.evidenceReference,
             isSaving = form.isSaving,
             isSaved = form.isSaved,
             error = form.error,
-            achievedValueError = form.validationError(targetFactKey),
+            achievedValueError = form.validationError(targetFactKey, targetValue),
         )
     }
 
@@ -202,11 +263,18 @@ class ActualProfileUpdateViewModel(
         null
     }
 
-    private fun FormState.validationError(key: FactKey): String? {
+    private fun FormState.validationError(key: FactKey, targetValue: FactValue): String? {
         if (inputKind != ActualValueInputKind.NUMBER || achievedValue.isBlank()) return null
         val number = achievedValue.toDoubleOrNull() ?: return "Enter a number"
         return when (key) {
-            FactKey.GPA -> if (number in 0.0..4.0) null else "Use the 4.0 GPA scale"
+            FactKey.GPA -> {
+                val scale = (targetValue as? FactValue.NumberValue)
+                    ?.unit
+                    ?.removeSuffix(" scale")
+                    ?.toDoubleOrNull()
+                    ?: 4.0
+                if (number in 0.0..scale) null else "Use the ${scale.toInputText()} GPA scale"
+            }
 
             FactKey.IELTS_SCORE -> if (number in 0.0..9.0) null else "IELTS bands range from 0 to 9"
 
@@ -285,35 +353,40 @@ class ActualProfileUpdateViewModel(
         val error: String? = null,
     ) {
         companion object {
-            fun from(plan: PlanItem): FormState = when (val target = plan.targetValue) {
-                is FactValue.BooleanValue -> FormState(
-                    planId = plan.id,
-                    inputKind = ActualValueInputKind.BOOLEAN,
-                    achievedBoolean = target.value,
-                )
+            fun from(plan: PlanItem): FormState {
+                val initial = when (val target = plan.targetValue) {
+                    is FactValue.BooleanValue -> FormState(
+                        planId = plan.id,
+                        inputKind = ActualValueInputKind.BOOLEAN,
+                        achievedBoolean = target.value,
+                    )
 
-                is FactValue.NumberValue -> FormState(
-                    planId = plan.id,
-                    inputKind = ActualValueInputKind.NUMBER,
-                    achievedValue = target.amount.toInputText(),
-                )
+                    is FactValue.NumberValue -> FormState(
+                        planId = plan.id,
+                        inputKind = ActualValueInputKind.NUMBER,
+                        achievedValue = target.amount.toInputText(),
+                    )
 
-                is FactValue.EnumValue -> FormState(
-                    planId = plan.id,
-                    inputKind = ActualValueInputKind.TEXT,
-                    achievedValue = target.value,
-                )
+                    is FactValue.EnumValue -> FormState(
+                        planId = plan.id,
+                        inputKind = ActualValueInputKind.TEXT,
+                        achievedValue = target.value,
+                    )
 
-                is FactValue.TextValue -> FormState(
-                    planId = plan.id,
-                    inputKind = ActualValueInputKind.TEXT,
-                    achievedValue = target.value,
-                )
+                    is FactValue.TextValue -> FormState(
+                        planId = plan.id,
+                        inputKind = ActualValueInputKind.TEXT,
+                        achievedValue = target.value,
+                    )
 
-                else -> FormState(planId = plan.id, inputKind = ActualValueInputKind.TEXT)
+                    else -> FormState(planId = plan.id, inputKind = ActualValueInputKind.TEXT)
+                }
+                return initial.copy(
+                    includeEvidence = plan.target is ActionTarget.OpportunityRuleTarget,
+                )
             }
-
-            private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
         }
     }
 }
+
+private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()

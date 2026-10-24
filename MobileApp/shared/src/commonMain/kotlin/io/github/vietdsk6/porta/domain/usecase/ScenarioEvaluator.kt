@@ -5,7 +5,9 @@ import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.ScenarioResult
+import io.github.vietdsk6.porta.domain.model.findAtomicRule
 import kotlinx.datetime.LocalDate
 
 class ScenarioEvaluator(
@@ -16,8 +18,33 @@ class ScenarioEvaluator(
         overrides: Map<FactKey, FactValue>,
         opportunities: List<Opportunity>,
         today: LocalDate,
+    ): ScenarioResult = evaluate(
+        profile = profile,
+        overrides = ScenarioOverrides(profileFacts = overrides),
+        opportunities = opportunities,
+        today = today,
+    )
+
+    fun evaluate(
+        profile: ProfileSnapshot,
+        overrides: ScenarioOverrides,
+        opportunities: List<Opportunity>,
+        today: LocalDate,
     ): ScenarioResult {
-        val simulatedProfile = profile.withOverrides(overrides)
+        val opportunityById = opportunities.associateBy(Opportunity::id)
+        val scopedRules = overrides.ruleAssertions.keys.associateWith { ruleRef ->
+            opportunityById[ruleRef.opportunityId]
+                ?.eligibilityRule
+                ?.findAtomicRule(ruleRef.ruleId)
+                ?: error(
+                    "Scenario assertion references missing rule " +
+                        "${ruleRef.opportunityId}/${ruleRef.ruleId}.",
+                )
+        }
+        val simulatedProfile = profile.withOverrides(
+            overrides = overrides,
+            scopedRules = scopedRules,
+        )
         val baseline = opportunities.associate { opportunity ->
             opportunity.id to eligibilityEvaluator.evaluate(profile, opportunity, today)
         }

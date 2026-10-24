@@ -412,7 +412,7 @@ internal object PortaContestPackData {
     private fun oecdInternship(): OpportunityDto {
         val source = "https://www.oecd.org/en/about/careers/internships.html"
         val enrollmentAction = enrollmentAction("oecd", source)
-        val availabilityAction = availabilityAction("oecd", source)
+        val availabilityAction = availabilityAction("oecd", "oecd-availability", source)
         return opportunity(
             id = "oecd-internship-rolling",
             title = "OECD Internship Programme",
@@ -512,7 +512,11 @@ internal object PortaContestPackData {
     private fun worldBankTreasury(): OpportunityDto {
         val source = "https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers"
         val enrollmentAction = enrollmentAction("world-bank-treasury", source)
-        val availabilityAction = availabilityAction("world-bank-treasury", source)
+        val availabilityAction = availabilityAction(
+            "world-bank-treasury",
+            "world-bank-treasury-availability",
+            source,
+        )
         return opportunity(
             id = "world-bank-treasury-summer-internship-2027",
             title = "World Bank Treasury Summer Internship",
@@ -560,7 +564,7 @@ internal object PortaContestPackData {
     private fun esaInternship(): OpportunityDto {
         val source = "https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2"
         val enrollmentAction = enrollmentAction("esa", source)
-        val availabilityAction = availabilityAction("esa", source)
+        val availabilityAction = availabilityAction("esa", "esa-availability", source)
         return opportunity(
             id = "esa-student-internships",
             title = "ESA Student Internships",
@@ -607,7 +611,7 @@ internal object PortaContestPackData {
     private fun cernOpenlab(): OpportunityDto {
         val source = "https://openlab.web.cern.ch/cern-openlab-summer-student-programme/"
         val enrollmentAction = enrollmentAction("cern-openlab", source)
-        val availabilityAction = availabilityAction("cern-openlab", source)
+        val availabilityAction = availabilityAction("cern-openlab", "cern-openlab-availability", source)
         return opportunity(
             id = "cern-openlab-summer-student-2027",
             title = "CERN openlab Summer Student Programme",
@@ -837,11 +841,17 @@ internal object PortaContestPackData {
         sourceNote = planningNote(source),
     )
 
-    private fun availabilityAction(id: String, source: String): ActionTemplateDto = action(
+    private fun availabilityAction(
+        id: String,
+        targetRuleId: String,
+        source: String,
+    ): ActionTemplateDto = action(
         id = "$id-full-period-availability",
         title = "Reserve the full required programme period",
         targetFactKey = FactKey.AVAILABLE_FULL_PERIOD,
         targetValue = bool(true),
+        targetScope = ActionTargetScope.RULE,
+        targetRuleId = targetRuleId,
         targetActionability = Actionability.CONTROLLABLE,
         minimumDurationDays = 14,
         effort = EffortLevel.LOW,
@@ -872,6 +882,8 @@ internal object PortaContestPackData {
         title: String,
         targetFactKey: FactKey,
         targetValue: FactValueDto,
+        targetScope: ActionTargetScope = ActionTargetScope.PROFILE,
+        targetRuleId: String? = null,
         targetActionability: Actionability,
         minimumDurationDays: Int,
         effort: EffortLevel,
@@ -883,6 +895,8 @@ internal object PortaContestPackData {
         title = title,
         targetFactKey = targetFactKey.name,
         targetValue = targetValue,
+        targetScope = targetScope.name,
+        targetRuleId = targetRuleId,
         targetActionability = targetActionability.name,
         minimumDurationDays = minimumDurationDays,
         effort = effort.name,

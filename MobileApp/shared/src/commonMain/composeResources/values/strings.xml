@@ -1,7 +1,7 @@
 <resources>
     <string name="bottom_nav_label_home">Doors</string>
     <string name="bottom_nav_label_profile">Profile</string>
-    <string name="bottom_nav_label_gallery">Frontier</string>
+    <string name="bottom_nav_label_gallery">Next moves</string>
 
     <string name="title_onboarding_page_1">Amazing Title</string>
     <string name="desc_onboarding_page_1">Amazing Description Text will be here</string>

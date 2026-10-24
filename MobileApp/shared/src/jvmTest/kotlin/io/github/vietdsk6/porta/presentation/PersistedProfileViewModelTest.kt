@@ -32,6 +32,8 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.GpaScaleOption
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupUiEvent
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.StudyLevelOption
@@ -75,6 +77,7 @@ class PersistedProfileViewModelTest {
             .build()
         repository = ProfileRepository(
             profileFactDao = database.profileFactDao(),
+            ruleAssertionDao = database.ruleAssertionDao(),
             backgroundExecutor = BackgroundExecutor(dispatcher),
         )
         planRepository = PlanRepository(
@@ -114,6 +117,7 @@ class PersistedProfileViewModelTest {
 
         assertFalse(viewModel.uiState.value.isSampleMode)
         assertEquals(5, viewModel.uiState.value.openCount)
+        assertTrue(viewModel.uiState.value.highlightedDoorIds.isEmpty())
     }
 
     @Test
@@ -135,6 +139,11 @@ class PersistedProfileViewModelTest {
 
         assertFalse(viewModel.uiState.value.isSampleMode)
         assertEquals(5, viewModel.uiState.value.openCount)
+        assertEquals(4, viewModel.uiState.value.highlightedDoorIds.size)
+
+        viewModel.onUiEvent(DoorsUiEvent.DismissHighlights)
+
+        assertTrue(viewModel.uiState.value.highlightedDoorIds.isEmpty())
     }
 
     @Test
@@ -203,38 +212,54 @@ class PersistedProfileViewModelTest {
         assertEquals(15, doors.uiState.value.catalogDoorCount)
         assertTrue(doors.uiState.value.doors.any { it.title == "Kotlin Student Coding Competition" })
         assertFalse(frontier.uiState.value.isSampleCatalog)
-        assertEquals(4, frontier.uiState.value.actions.single().improvedCount)
-        assertEquals("Reserve the full required programme period", frontier.uiState.value.actions.single().title)
+        assertEquals(4, frontier.uiState.value.actions.size)
+        assertTrue(frontier.uiState.value.actions.all { it.improvedCount == 1 })
+        assertTrue(
+            frontier.uiState.value.actions.all {
+                it.title == "Reserve the full required programme period"
+            },
+        )
     }
 
     @Test
-    fun `profile setup persists and removes optional door facts explicitly`() = runTest(dispatcher) {
+    fun `profile setup preserves original scales and optional evidence`() = runTest(dispatcher) {
         val viewModel = ProfileSetupViewModel(repository)
         advanceUntilIdle()
 
         viewModel.onUiEvent(ProfileSetupUiEvent.StudyLevelChanged(StudyLevelOption.UNDERGRADUATE))
         viewModel.onUiEvent(ProfileSetupUiEvent.FieldOfStudyChanged("Computer Science"))
         viewModel.onUiEvent(ProfileSetupUiEvent.NationalityChanged("VN"))
-        viewModel.onUiEvent(ProfileSetupUiEvent.GpaChanged("3.6"))
+        viewModel.onUiEvent(ProfileSetupUiEvent.ResidencyChanged("SG"))
+        viewModel.onUiEvent(ProfileSetupUiEvent.GpaScaleChanged(GpaScaleOption.TEN))
+        viewModel.onUiEvent(ProfileSetupUiEvent.GpaChanged("8.5"))
         viewModel.onUiEvent(ProfileSetupUiEvent.IeltsChanged("6.5"))
         viewModel.onUiEvent(ProfileSetupUiEvent.AgeChanged("20"))
         viewModel.onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged("6"))
         viewModel.onUiEvent(ProfileSetupUiEvent.DegreeCompletedChanged(false))
-        viewModel.onUiEvent(ProfileSetupUiEvent.AvailableFullPeriodChanged(false))
+        viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectTitleChanged("Local coding club"))
+        viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectSummaryChanged("Peer Kotlin workshops"))
+        viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectEvidenceChanged("portfolio/project-1"))
         viewModel.onUiEvent(ProfileSetupUiEvent.Save)
         advanceUntilIdle()
 
         val saved = repository.getProfile().getOrThrow()
-        assertEquals(FactValue.NumberValue(3.6, "4.0 scale"), saved.facts[FactKey.GPA]?.value)
+        assertEquals(FactValue.NumberValue(8.5, "10.0 scale"), saved.facts[FactKey.GPA]?.value)
+        assertEquals(FactValue.EnumValue("SG"), saved.facts[FactKey.RESIDENCY]?.value)
         assertEquals(FactValue.NumberValue(20.0, "years"), saved.facts[FactKey.AGE]?.value)
         assertEquals(FactValue.NumberValue(6.0, "months"), saved.facts[FactKey.EXPERIENCE_MONTHS]?.value)
         assertEquals(FactValue.BooleanValue(false), saved.facts[FactKey.DEGREE_COMPLETED]?.value)
-        assertEquals(FactValue.BooleanValue(false), saved.facts[FactKey.AVAILABLE_FULL_PERIOD]?.value)
+        val projectValue = saved.facts[FactKey.COMMUNITY_PROJECT]?.value as FactValue.TextValue
+        assertEquals("Local coding club", GrowthEvidenceEncoding.decode(projectValue.value).primary)
+        assertEquals("portfolio/project-1", saved.facts[FactKey.COMMUNITY_PROJECT]?.evidence?.reference)
+        assertNull(saved.facts[FactKey.AVAILABLE_FULL_PERIOD])
 
         viewModel.onUiEvent(ProfileSetupUiEvent.AgeChanged(""))
         viewModel.onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(""))
         viewModel.onUiEvent(ProfileSetupUiEvent.DegreeCompletedChanged(null))
-        viewModel.onUiEvent(ProfileSetupUiEvent.AvailableFullPeriodChanged(null))
+        viewModel.onUiEvent(ProfileSetupUiEvent.ResidencyChanged(""))
+        viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectTitleChanged(""))
+        viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectSummaryChanged(""))
+        viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectEvidenceChanged(""))
         viewModel.onUiEvent(ProfileSetupUiEvent.Save)
         advanceUntilIdle()
 
@@ -242,7 +267,8 @@ class PersistedProfileViewModelTest {
         assertNull(updated.facts[FactKey.AGE])
         assertNull(updated.facts[FactKey.EXPERIENCE_MONTHS])
         assertNull(updated.facts[FactKey.DEGREE_COMPLETED])
-        assertNull(updated.facts[FactKey.AVAILABLE_FULL_PERIOD])
+        assertNull(updated.facts[FactKey.RESIDENCY])
+        assertNull(updated.facts[FactKey.COMMUNITY_PROJECT])
     }
 
     @Test
@@ -272,7 +298,7 @@ class PersistedProfileViewModelTest {
         val action = frontier.uiState.value.actions.first()
         assertEquals("6.5 band", action.currentLabel)
         assertEquals(action.id, frontier.uiState.value.selectedActionId)
-        assertTrue(action.doorComparisons.any { it.previewStateLabel == "Open" })
+        assertTrue(action.doorComparisons.any { it.previewStateLabel == "Current checks passed" })
         val scenario = ScenarioPreviewViewModel(
             actionId = action.id,
             scenarioEvaluator = scenarioEvaluator,
@@ -320,6 +346,33 @@ class PersistedProfileViewModelTest {
         assertTrue(scenario.uiState.value.openedDoors.isEmpty())
         assertTrue(scenario.uiState.value.progressedDoors.isEmpty())
         assertEquals(5, scenario.uiState.value.unchangedDoors.size)
+    }
+
+    @Test
+    fun `scoped scenario names its programme boundary and affects only that door`() = runTest(dispatcher) {
+        saveIelts(6.5)
+        opportunityPackRepository.importPack(
+            BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson(),
+        ).getOrThrow()
+        val scenario = ScenarioPreviewViewModel(
+            actionId = "oecd-full-period-availability",
+            scenarioEvaluator = scenarioEvaluator,
+            profileRepository = repository,
+            opportunityPackRepository = opportunityPackRepository,
+            planRepository = planRepository,
+            currentLocalDateProvider = currentLocalDateProvider,
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            "Would satisfy this programme-specific check if confirmed.",
+            scenario.uiState.value.scopeNotice,
+        )
+        assertEquals(
+            listOf("oecd-internship-rolling"),
+            (scenario.uiState.value.openedDoors + scenario.uiState.value.progressedDoors)
+                .map { it.id },
+        )
     }
 
     @Test

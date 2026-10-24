@@ -9,6 +9,7 @@ import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
@@ -16,6 +17,7 @@ import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
@@ -172,10 +174,16 @@ class FrontierViewModel(
             FrontierActionUiState(
                 id = action.template.id,
                 title = action.template.title,
-                currentLabel = activeProfile.facts[action.template.targetFactKey]
-                    ?.value
-                    ?.displayValue()
-                    ?: "Not set",
+                currentLabel = when (val target = action.template.target) {
+                    is ActionTarget.ProfileFactTarget -> activeProfile.facts[target.factKey]
+                        ?.value
+                        ?.displayValue()
+                        ?: "Not set"
+
+                    is ActionTarget.OpportunityRuleTarget -> activeProfile.ruleAssertions[
+                        RuleRef(target.opportunityId, target.ruleId),
+                    ]?.value?.displayValue() ?: "Not confirmed"
+                },
                 targetLabel = action.template.targetValue.displayValue(),
                 newlyOpenCount = action.newlyOpenOpportunityIds.size,
                 improvedCount = action.improvedOpportunityIds.size,
@@ -187,7 +195,33 @@ class FrontierViewModel(
                 durationLabel = "${action.template.minimumDurationDays} days",
                 effortLabel = action.template.effort.readable(),
                 costLabel = action.template.costBand.readable(),
-                explanation = action.explanation,
+                explanation = buildString {
+                    append("Would address a checked requirement across ")
+                    append(action.improvedOpportunityIds.size)
+                    append(if (action.improvedOpportunityIds.size == 1) " door." else " doors.")
+                    if (action.newlyOpenOpportunityIds.isNotEmpty()) {
+                        append(" ")
+                        append(action.newlyOpenOpportunityIds.size)
+                        append(
+                            if (action.newlyOpenOpportunityIds.size == 1) {
+                                " would pass current checks."
+                            } else {
+                                " would pass current checks."
+                            },
+                        )
+                    }
+                    if (action.timingUnverifiedOpportunityIds.isNotEmpty()) {
+                        append(" ")
+                        append(action.timingUnverifiedOpportunityIds.size)
+                        append(
+                            if (action.timingUnverifiedOpportunityIds.size == 1) {
+                                " still needs a deadline check."
+                            } else {
+                                " still need a deadline check."
+                            },
+                        )
+                    }
+                },
                 doorTitles = action.improvedOpportunityIds.mapNotNull { opportunitiesById[it]?.title },
                 doorComparisons = action.improvedOpportunityIds.mapNotNull { opportunityId ->
                     val opportunity = opportunitiesById[opportunityId] ?: return@mapNotNull null
@@ -196,8 +230,8 @@ class FrontierViewModel(
                     FrontierDoorComparisonUiState(
                         id = opportunityId,
                         title = opportunity.title,
-                        actualStateLabel = before.readable(),
-                        previewStateLabel = after.readable(),
+                        actualStateLabel = before.trustLabel(),
+                        previewStateLabel = after.trustLabel(),
                         isNewlyOpen = opportunityId in action.newlyOpenOpportunityIds,
                         isSaved = opportunityId in action.improvedSavedOpportunityIds,
                         requiresDeadlineCheck = opportunityId in action.timingUnverifiedOpportunityIds,
@@ -232,7 +266,13 @@ class FrontierViewModel(
         )
     }
 
-    private fun EligibilityState.readable(): String = name.readableEnumName()
+    private fun EligibilityState.trustLabel(): String = when (this) {
+        EligibilityState.OPEN -> "Current checks passed"
+        EligibilityState.HAS_GAPS -> "Needs action"
+        EligibilityState.NEEDS_INFO -> "Needs verification"
+        EligibilityState.NOT_ACTIONABLE -> "Not available this cycle"
+        EligibilityState.CLOSED -> "Closed"
+    }
 
     private fun EffortLevel.readable(): String = name.readableEnumName()
 
@@ -243,7 +283,7 @@ class FrontierViewModel(
         FrontierExclusionReason.ABOVE_MAX_EFFORT -> "Above your effort limit"
         FrontierExclusionReason.ABOVE_MAX_COST -> "Above your cost limit"
         FrontierExclusionReason.MISSES_KNOWN_DEADLINES -> "Would miss a known deadline"
-        FrontierExclusionReason.NO_VERIFIED_IMPACT -> "No verified hard-gap impact"
+        FrontierExclusionReason.NO_VERIFIED_IMPACT -> "No checked requirement changes"
         FrontierExclusionReason.DOMINATED -> "A stronger milestone uses no more resources"
     }
 

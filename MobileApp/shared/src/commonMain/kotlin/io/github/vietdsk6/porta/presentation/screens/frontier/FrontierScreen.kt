@@ -1,6 +1,7 @@
 package io.github.vietdsk6.porta.presentation.screens.frontier
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,11 +26,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -68,7 +74,7 @@ fun FrontierScreen(
     ScreenWithToolbar(
         modifier = modifier.testTag("frontier-screen"),
         isScrollableContent = false,
-        title = "Action Frontier",
+        title = "Next moves",
         includeBottomInsets = false,
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -98,11 +104,29 @@ private fun CompactFrontierContent(
     onPreviewScenario: (String) -> Unit,
     onOpenActivePlan: () -> Unit,
 ) {
+    val recommendedAction = uiState.actions.firstOrNull()
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("frontier-compact-content"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { FrontierIntroduction(uiState = uiState) }
+        recommendedAction?.let { action ->
+            item {
+                FrontierCard(
+                    action = action,
+                    eyebrow = "RECOMMENDED NEXT MOVE",
+                    isRecommended = true,
+                    isSelected = false,
+                    isSelectable = false,
+                    showExplanation = true,
+                    onSelect = {},
+                    onPreview = { onPreviewScenario(action.id) },
+                )
+            }
+        }
+        uiState.activePlan?.let { plan ->
+            item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
+        }
         item {
             FrontierControls(
                 uiState = uiState,
@@ -110,31 +134,36 @@ private fun CompactFrontierContent(
                 collapsible = true,
             )
         }
-        if (uiState.actions.isNotEmpty()) {
-            item {
-                FrontierPlot(
-                    actions = uiState.actions,
-                    horizonDays = uiState.horizonDays,
-                    selectedActionId = uiState.selectedActionId,
-                    onActionSelected = { onUiEvent(FrontierUiEvent.ActionSelected(it)) },
-                )
-            }
-        }
-        uiState.activePlan?.let { plan ->
-            item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
-        }
         if (uiState.actions.isEmpty()) {
             item { NoFeasibleActionCard(uiState.exclusions) }
         } else {
-            items(uiState.actions, key = FrontierActionUiState::id) { action ->
+            if (uiState.actions.size > 1) {
+                item {
+                    SectionIntroduction(
+                        title = "Alternatives",
+                        description = "Other steps that fit the limits you set.",
+                    )
+                }
+            }
+            items(uiState.actions.drop(1), key = FrontierActionUiState::id) { action ->
                 FrontierCard(
                     action = action,
+                    eyebrow = "ALTERNATIVE",
+                    isRecommended = false,
                     isSelected = false,
                     isSelectable = false,
                     showExplanation = true,
                     onSelect = {},
                     onPreview = { onPreviewScenario(action.id) },
                 )
+            }
+            if (uiState.actions.size >= 2) {
+                item {
+                    FrontierTradeOffsCard(
+                        uiState = uiState,
+                        onUiEvent = onUiEvent,
+                    )
+                }
             }
         }
         if (uiState.exclusions.isNotEmpty()) {
@@ -186,6 +215,8 @@ private fun WideFrontierContent(
                     items(uiState.actions, key = FrontierActionUiState::id) { action ->
                         FrontierCard(
                             action = action,
+                            eyebrow = if (action.id == selectedAction?.id) "SELECTED NEXT MOVE" else "ALTERNATIVE",
+                            isRecommended = action == uiState.actions.firstOrNull(),
                             isSelected = action.id == selectedAction?.id,
                             isSelectable = true,
                             showExplanation = false,
@@ -244,10 +275,76 @@ private fun FrontierIntroduction(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Choose limits you can honor. Porta shows what fits and explains what does not.",
+            text = "Start with one measurable step, then preview which checked requirements it could change.",
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyLarge,
         )
+    }
+}
+
+@Composable
+private fun SectionIntroduction(title: String, description: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, style = AppTheme.typography.h5)
+        Text(
+            text = description,
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
+private fun FrontierTradeOffsCard(
+    uiState: FrontierUiState,
+    onUiEvent: (FrontierUiEvent) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("frontier-trade-offs-toggle")
+                .semantics {
+                    contentDescription = "Action impact map comparison, " +
+                        if (expanded) "expanded" else "collapsed"
+                }
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = if (expanded) "Hide trade-offs" else "Compare trade-offs",
+                ) { expanded = !expanded },
+            color = AppTheme.colors.surfaceContainer,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Compare trade-offs", style = AppTheme.typography.h6)
+                    Text(
+                        "Action Frontier · time, impact and cost",
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodySmall,
+                    )
+                }
+                Text(
+                    text = if (expanded) "Hide" else "Compare",
+                    color = AppTheme.colors.primary,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+        if (expanded) {
+            FrontierPlot(
+                actions = uiState.actions,
+                horizonDays = uiState.horizonDays,
+                selectedActionId = uiState.selectedActionId,
+                onActionSelected = { onUiEvent(FrontierUiEvent.ActionSelected(it)) },
+            )
+        }
     }
 }
 
@@ -273,6 +370,8 @@ private fun ActivePlanPinnedCard(plan: ActivePlanSummaryUiState, onOpen: () -> U
 @Composable
 private fun FrontierCard(
     action: FrontierActionUiState,
+    eyebrow: String,
+    isRecommended: Boolean,
     isSelected: Boolean,
     isSelectable: Boolean,
     showExplanation: Boolean,
@@ -303,24 +402,34 @@ private fun FrontierCard(
         ),
         border = BorderStroke(
             width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) AppTheme.colors.primary else AppTheme.colors.primary.copy(alpha = 0.55f),
+            color = if (isSelected || isRecommended) {
+                AppTheme.colors.primary
+            } else {
+                AppTheme.colors.outline.copy(alpha = 0.35f)
+            },
         ),
-        shape = RoundedCornerShape(topStart = 38.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 38.dp),
+        shape = if (isRecommended) {
+            RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        } else {
+            RoundedCornerShape(16.dp)
+        },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             Text(
-                text = if (isSelected) "SELECTED MILESTONE" else "PARETO FRONTIER",
+                text = eyebrow,
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
             )
             Text(action.title, style = AppTheme.typography.h5)
             Text(
                 text = buildString {
-                    append("${action.improvedCount} hard gaps resolved")
-                    if (action.newlyOpenCount > 0) append(" · ${action.newlyOpenCount} open")
+                    append("${action.improvedCount} ${if (action.improvedCount == 1) "door" else "doors"} affected")
+                    if (action.newlyOpenCount > 0) {
+                        append(" · ${action.newlyOpenCount} would pass current checks")
+                    }
                     if (action.savedDoorCount > 0) append(" · ${action.savedDoorCount} saved")
                 },
                 color = PORTA_TEAL,
@@ -338,12 +447,12 @@ private fun FrontierCard(
                     style = AppTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = action.doorTitles.joinToString(prefix = "Moves forward: ", separator = " · "),
+                    text = action.doorTitles.joinToString(prefix = "Affected doors: ", separator = " · "),
                     style = AppTheme.typography.bodyMedium,
                 )
             }
             Button(modifier = Modifier.fillMaxWidth(), onClick = onPreview) {
-                Text(if (isSelectable) "Open full preview" else "Preview what changes")
+                Text("Preview changes")
             }
         }
     }
@@ -365,10 +474,10 @@ private fun FrontierComparisonPanel(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("ACTUAL VS WHAT-IF", color = AppTheme.colors.primary, fontWeight = FontWeight.ExtraBold)
+                Text("SIMULATION PREVIEW", color = AppTheme.colors.primary, fontWeight = FontWeight.ExtraBold)
                 Text(action.title, style = AppTheme.typography.h4, color = AppTheme.colors.text.primary)
                 Text(
-                    text = "A read-only comparison. Nothing here changes your saved profile.",
+                    text = "Simulation — your saved profile is unchanged.",
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.text.secondary,
                 )
@@ -412,7 +521,7 @@ private fun FrontierComparisonPanel(
             }
             if (action.doorComparisons.isEmpty()) {
                 Text(
-                    text = "Open the full preview to inspect this milestone.",
+                    text = "Preview this step to inspect its checked requirement.",
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.text.secondary,
                 )
@@ -421,7 +530,7 @@ private fun FrontierComparisonPanel(
                 modifier = Modifier.fillMaxWidth().testTag("frontier-open-preview-${action.id}"),
                 onClick = onOpenFullPreview,
             ) {
-                Text("Open full preview")
+                Text("Preview changes")
             }
         }
     }
@@ -473,7 +582,7 @@ private fun DoorComparisonHeader() {
     ) {
         ComparisonHeaderLabel("Door", Modifier.weight(1.4f))
         ComparisonHeaderLabel("Actual", Modifier.weight(0.8f))
-        ComparisonHeaderLabel("Preview", Modifier.weight(0.8f))
+        ComparisonHeaderLabel("Simulated", Modifier.weight(0.8f))
     }
 }
 
@@ -583,12 +692,12 @@ private fun NoFeasibleActionCard(exclusions: List<FrontierExcludedActionUiState>
     ) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = if (exclusions.isEmpty()) "No verified next step yet" else "Nothing fits these limits",
+                text = if (exclusions.isEmpty()) "No checked next step yet" else "Nothing fits these limits",
                 style = AppTheme.typography.h6,
             )
             Text(
                 text = if (exclusions.isEmpty()) {
-                    "No encoded hard gap currently maps to a controllable milestone. Check your profile facts and pack."
+                    "No checked requirement currently maps to a controllable milestone. Check your profile facts and pack."
                 } else {
                     "Porta did not silently hide the candidates. Review the reasons below or widen one limit."
                 },
@@ -612,7 +721,7 @@ private fun ExcludedActionsCard(exclusions: List<FrontierExcludedActionUiState>)
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("What did not fit · ${exclusions.size}", style = AppTheme.typography.h6)
+                Text("Outside your limits · ${exclusions.size}", style = AppTheme.typography.h6)
                 Text(
                     text = "These are candidates, not recommendations under your current limits.",
                     color = AppTheme.colors.text.secondary,
@@ -660,7 +769,7 @@ private fun NoSelectionCard() {
 }
 
 private val WIDE_FRONTIER_BREAKPOINT = 900.dp
-private val PORTA_TEAL = Color(0xFF2DD4BF)
+private val PORTA_TEAL = Color(0xFF167D73)
 
 @Preview
 @Composable
@@ -708,14 +817,14 @@ private val previewState = FrontierUiState(
             durationLabel = "45 days",
             effortLabel = "Medium",
             costLabel = "Low",
-            explanation = "Resolves an encoded hard-rule gap in four opportunities. Two become open.",
+            explanation = "Addresses a published requirement in four opportunities. Two would pass their current checks.",
             doorTitles = listOf("Aurora", "Forge", "Horizon", "Spark"),
             doorComparisons = listOf(
                 FrontierDoorComparisonUiState(
                     id = "aurora",
                     title = "Aurora Scholars",
-                    actualStateLabel = "Has gaps",
-                    previewStateLabel = "Open",
+                    actualStateLabel = "Needs action",
+                    previewStateLabel = "Current checks passed",
                     isNewlyOpen = true,
                     isSaved = true,
                     requiresDeadlineCheck = false,
@@ -723,8 +832,8 @@ private val previewState = FrontierUiState(
                 FrontierDoorComparisonUiState(
                     id = "erasmus",
                     title = "Erasmus Mundus Joint Masters",
-                    actualStateLabel = "Has gaps",
-                    previewStateLabel = "Needs info",
+                    actualStateLabel = "Needs action",
+                    previewStateLabel = "Needs verification",
                     isNewlyOpen = false,
                     isSaved = false,
                     requiresDeadlineCheck = true,
@@ -745,7 +854,7 @@ private val previewState = FrontierUiState(
             durationLabel = "7 days",
             effortLabel = "Low",
             costLabel = "Free",
-            explanation = "Resolves enrollment evidence gaps in two saved opportunities.",
+            explanation = "Addresses an enrollment-evidence check in two saved opportunities.",
             doorTitles = listOf("Kotlin Student Coding Competition", "Global Student Challenge"),
         ),
         FrontierActionUiState(
@@ -762,7 +871,7 @@ private val previewState = FrontierUiState(
             durationLabel = "90 days",
             effortLabel = "High",
             costLabel = "Medium",
-            explanation = "Resolves a published project requirement in three opportunities.",
+            explanation = "Addresses a published project requirement in three opportunities.",
             doorTitles = listOf("Impact Fellows", "Civic Builders", "Student Changemakers"),
         ),
     ),

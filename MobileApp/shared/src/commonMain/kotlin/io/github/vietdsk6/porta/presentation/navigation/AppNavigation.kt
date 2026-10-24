@@ -88,7 +88,7 @@ private fun PortaBottomNavigationDoorsPreview() {
     PortaBottomNavigationPreview(selectedIndex = 0)
 }
 
-@Preview(name = "Frontier selected", widthDp = 390)
+@Preview(name = "Next moves selected", widthDp = 390)
 @Composable
 private fun PortaBottomNavigationFrontierPreview() {
     PortaBottomNavigationPreview(selectedIndex = 1)

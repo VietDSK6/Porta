@@ -1,6 +1,7 @@
 package io.github.vietdsk6.porta.domain.usecase
 
 import io.github.vietdsk6.porta.domain.model.ActionFrontierEvaluation
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.Deadline
@@ -11,8 +12,12 @@ import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.findAtomicRule
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import kotlinx.datetime.LocalDate
@@ -50,8 +55,14 @@ class ActionFrontierEngine(
             val templates = opportunity.actionTemplates.associateBy(ActionTemplate::id)
             baseline.getValue(opportunity.id).rules.mapNotNull { receipt ->
                 receipt.actionTemplateId
-                    ?.takeIf { receipt.result == RuleResult.FAIL }
                     ?.let(templates::get)
+                    ?.takeIf { template ->
+                        template.targetsReceipt(
+                            opportunityId = opportunity.id,
+                            ruleId = receipt.ruleId,
+                        )
+                    }
+                    ?.takeIf { template -> template.canAddress(receipt.result) }
             }
         }
             .groupBy { it.signature() }
@@ -80,11 +91,11 @@ class ActionFrontierEngine(
 
             val scenario = scenarioEvaluator.evaluate(
                 profile = profile,
-                overrides = mapOf(template.targetFactKey to template.targetValue),
+                overrides = template.scenarioOverrides(opportunityById),
                 opportunities = opportunities,
                 today = today,
             )
-            val resolvedHardGaps = scenario.resolvedHardGapOpportunityIds(template.targetFactKey)
+            val resolvedHardGaps = scenario.resolvedHardGapOpportunityIds(template.target)
             val improved = resolvedHardGaps
                 .filter { opportunityId ->
                     opportunityById[opportunityId]
@@ -218,11 +229,11 @@ class ActionFrontierEngine(
         timingUnverifiedCount: Int,
     ): String {
         val impact = buildString {
-            append("Resolves an encoded hard-rule gap in $improvedCount ")
+            append("Addresses a published check in $improvedCount ")
             append(if (improvedCount == 1) "opportunity" else "opportunities")
             append(". ")
             if (newlyOpenCount > 0) {
-                append("$newlyOpenCount become fully open under the encoded rules; ")
+                append("$newlyOpenCount would pass their current checks; ")
             }
             if (timingUnverifiedCount > 0) {
                 append("$timingUnverifiedCount still need deadline verification. ")
@@ -234,7 +245,64 @@ class ActionFrontierEngine(
             "Effort: ${template.effort.name.lowercase()}. Cost: ${template.costBand.name.lowercase()}."
     }
 
-    private fun ActionTemplate.signature(): String = "${targetFactKey.name}:${targetValue.displayValue()}"
+    private fun ActionTemplate.signature(): String = when (val actionTarget = target) {
+        is ActionTarget.ProfileFactTarget -> {
+            "profile:${actionTarget.factKey.name}:${actionTarget.value.displayValue()}"
+        }
+
+        is ActionTarget.OpportunityRuleTarget -> {
+            "rule:${actionTarget.opportunityId}:${actionTarget.ruleId}:${actionTarget.value.displayValue()}"
+        }
+    }
+
+    private fun ActionTemplate.targetsReceipt(
+        opportunityId: String,
+        ruleId: String,
+    ): Boolean = when (val actionTarget = target) {
+        is ActionTarget.ProfileFactTarget -> true
+
+        is ActionTarget.OpportunityRuleTarget -> {
+            actionTarget.opportunityId == opportunityId && actionTarget.ruleId == ruleId
+        }
+    }
+
+    private fun ActionTemplate.canAddress(result: RuleResult): Boolean = when (target) {
+        is ActionTarget.ProfileFactTarget -> result == RuleResult.FAIL
+
+        is ActionTarget.OpportunityRuleTarget -> {
+            result == RuleResult.FAIL || result == RuleResult.UNKNOWN
+        }
+    }
+
+    private fun ActionTemplate.scenarioOverrides(
+        opportunityById: Map<String, Opportunity>,
+    ): ScenarioOverrides = when (val actionTarget = target) {
+        is ActionTarget.ProfileFactTarget -> ScenarioOverrides(
+            profileFacts = mapOf(actionTarget.factKey to actionTarget.value),
+        )
+
+        is ActionTarget.OpportunityRuleTarget -> {
+            val currentRule = opportunityById[actionTarget.opportunityId]
+                ?.eligibilityRule
+                ?.findAtomicRule(actionTarget.ruleId)
+            if (
+                currentRule == null ||
+                currentRule.factKey != actionTarget.factKey ||
+                currentRule.fingerprint() != actionTarget.ruleFingerprint
+            ) {
+                ScenarioOverrides()
+            } else {
+                ScenarioOverrides(
+                    ruleAssertions = mapOf(
+                        RuleRef(
+                            opportunityId = actionTarget.opportunityId,
+                            ruleId = actionTarget.ruleId,
+                        ) to actionTarget.value,
+                    ),
+                )
+            }
+        }
+    }
 
     private fun ActionTemplate.isEthicallyActionable(): Boolean = targetActionability == Actionability.CONTROLLABLE ||
         targetActionability == Actionability.TIME_DEPENDENT

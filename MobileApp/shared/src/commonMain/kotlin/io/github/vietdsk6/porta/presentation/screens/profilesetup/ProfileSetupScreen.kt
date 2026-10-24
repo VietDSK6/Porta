@@ -3,23 +3,31 @@ package io.github.vietdsk6.porta.presentation.screens.profilesetup
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -67,7 +75,7 @@ fun ProfileSetupScreen(
     ScreenWithToolbar(
         modifier = modifier,
         isScrollableContent = true,
-        title = "Build your map",
+        title = "Edit academic profile",
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
@@ -79,9 +87,10 @@ fun ProfileSetupScreen(
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sectionSpacing),
         ) {
             ProfileSetupHeader()
-            StudyLevelField(uiState = uiState, onUiEvent = onUiEvent)
-            ProfileTextFields(uiState = uiState, onUiEvent = onUiEvent)
-            DoorRelevantFacts(uiState = uiState, onUiEvent = onUiEvent)
+            EssentialsSection(uiState = uiState, onUiEvent = onUiEvent)
+            AcademicRecordSection(uiState = uiState, onUiEvent = onUiEvent)
+            ExperienceEvidenceSection(uiState = uiState, onUiEvent = onUiEvent)
+            ContextSection(uiState = uiState, onUiEvent = onUiEvent)
             LocalDataNotice()
 
             uiState.error?.let { error ->
@@ -101,13 +110,13 @@ fun ProfileSetupScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("profile-setup-save"),
-                text = "Create my map",
+                text = "Save profile",
                 enabled = uiState.canSave,
                 isLoading = uiState.isSaving,
                 onClick = { onUiEvent(ProfileSetupUiEvent.Save) },
             )
             Text(
-                text = "You can add experience, projects, and evidence later. Unknown facts stay unknown.",
+                text = "Blank fields stay not provided. They are never interpreted as false or failed.",
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
@@ -119,20 +128,20 @@ fun ProfileSetupScreen(
 private fun ProfileSetupHeader() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "MINIMUM PROFILE",
+            text = "YOUR SOURCE OF TRUTH",
             color = AppTheme.colors.primary,
             style = AppTheme.typography.bodySmall,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp,
         )
         Text(
-            text = "Start with facts, not a perfect CV",
+            text = "Describe where you are now",
             color = AppTheme.colors.text.primary,
             style = AppTheme.typography.h3,
             fontWeight = FontWeight.ExtraBold,
         )
         Text(
-            text = "These facts let Porta evaluate published hard rules. They never become an admission prediction.",
+            text = "Porta checks published requirements against these values. It does not predict selection outcomes.",
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyExtraLarge,
         )
@@ -140,13 +149,13 @@ private fun ProfileSetupHeader() {
 }
 
 @Composable
-private fun StudyLevelField(
+private fun EssentialsSection(
     uiState: ProfileSetupUiState,
     onUiEvent: (ProfileSetupUiEvent) -> Unit,
 ) {
     FormSection(
-        title = "Current study level",
-        description = "Choose the level you are enrolled in now.",
+        title = "Essentials",
+        description = "The minimum context needed to build your door map.",
     ) {
         Row(
             modifier = Modifier
@@ -163,39 +172,42 @@ private fun StudyLevelField(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ProfileTextFields(
-    uiState: ProfileSetupUiState,
-    onUiEvent: (ProfileSetupUiEvent) -> Unit,
-) {
-    FormSection(
-        title = "Academic facts",
-        description = "Use your current values. IELTS is optional if you do not know it yet.",
-    ) {
         OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("profile-field-of-study"),
+            modifier = Modifier.fillMaxWidth().testTag("profile-field-of-study"),
             value = uiState.fieldOfStudy,
             onValueChange = { onUiEvent(ProfileSetupUiEvent.FieldOfStudyChanged(it)) },
             label = { Text("Field of study") },
             placeholder = { Text("Computer Science") },
             singleLine = true,
         )
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("profile-nationality"),
-            value = uiState.nationality,
-            onValueChange = { onUiEvent(ProfileSetupUiEvent.NationalityChanged(it)) },
-            label = { Text("Nationality") },
-            placeholder = { Text("VN") },
-            supportingText = { Text("Country name or two-letter code") },
-            singleLine = true,
+        BooleanFactField(
+            label = "Currently enrolled",
+            value = uiState.isEnrolled,
+            includeUnknown = true,
+            onChanged = { onUiEvent(ProfileSetupUiEvent.EnrolledChanged(it)) },
         )
+    }
+}
+
+@Composable
+private fun AcademicRecordSection(
+    uiState: ProfileSetupUiState,
+    onUiEvent: (ProfileSetupUiEvent) -> Unit,
+) {
+    FormSection(
+        title = "Academic record",
+        description = "Keep the original GPA scale. Porta never silently converts it.",
+    ) {
+        Text("GPA scale", style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.primary)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GpaScaleOption.entries.forEach { option ->
+                FilterChip(
+                    selected = uiState.gpaScale == option,
+                    onClick = { onUiEvent(ProfileSetupUiEvent.GpaScaleChanged(option)) },
+                    label = { Text(option.label) },
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
@@ -208,7 +220,7 @@ private fun ProfileTextFields(
                 onValueChange = { onUiEvent(ProfileSetupUiEvent.GpaChanged(it)) },
                 label = { Text("GPA") },
                 placeholder = { Text("3.6") },
-                suffix = { Text("/ 4.0") },
+                suffix = { Text("/ ${uiState.gpaScale.label}") },
                 supportingText = { uiState.gpaError?.let { Text(it) } },
                 isError = uiState.gpaError != null,
                 singleLine = true,
@@ -226,63 +238,209 @@ private fun ProfileTextFields(
                 singleLine = true,
             )
         }
-    }
-}
-
-@Composable
-private fun DoorRelevantFacts(
-    uiState: ProfileSetupUiState,
-    onUiEvent: (ProfileSetupUiEvent) -> Unit,
-) {
-    FormSection(
-        title = "Door-relevant facts",
-        description = "Optional facts below make the sourced door map and Action Frontier more specific.",
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
-        ) {
-            OutlinedTextField(
-                modifier = Modifier.weight(1f).testTag("profile-age"),
-                value = uiState.age,
-                onValueChange = { onUiEvent(ProfileSetupUiEvent.AgeChanged(it)) },
-                label = { Text("Age") },
-                placeholder = { Text("Optional") },
-                supportingText = { uiState.ageError?.let { Text(it) } },
-                isError = uiState.ageError != null,
-                singleLine = true,
-            )
-            OutlinedTextField(
-                modifier = Modifier.weight(1f).testTag("profile-experience-months"),
-                value = uiState.experienceMonths,
-                onValueChange = { onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(it)) },
-                label = { Text("Experience") },
-                placeholder = { Text("Optional") },
-                suffix = { Text("months") },
-                supportingText = { uiState.experienceMonthsError?.let { Text(it) } },
-                isError = uiState.experienceMonthsError != null,
-                singleLine = true,
-            )
-        }
-
-        BooleanFactField(
-            label = "Currently enrolled",
-            value = uiState.isEnrolled,
-            includeUnknown = false,
-            onChanged = { value -> value?.let { onUiEvent(ProfileSetupUiEvent.EnrolledChanged(it)) } },
-        )
         BooleanFactField(
             label = "First degree completed",
             value = uiState.isDegreeCompleted,
             includeUnknown = true,
             onChanged = { onUiEvent(ProfileSetupUiEvent.DegreeCompletedChanged(it)) },
         )
-        BooleanFactField(
-            label = "Available for the full programme period",
-            value = uiState.isAvailableFullPeriod,
-            includeUnknown = true,
-            onChanged = { onUiEvent(ProfileSetupUiEvent.AvailableFullPeriodChanged(it)) },
+    }
+}
+
+@Composable
+private fun ExperienceEvidenceSection(
+    uiState: ProfileSetupUiState,
+    onUiEvent: (ProfileSetupUiEvent) -> Unit,
+) {
+    FormSection(
+        title = "Experience and evidence",
+        description = "Growth evidence adds context. It never passes a published check automatically.",
+    ) {
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().testTag("profile-experience-months"),
+            value = uiState.experienceMonths,
+            onValueChange = { onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(it)) },
+            label = { Text("Relevant experience") },
+            placeholder = { Text("Not provided") },
+            suffix = { Text("months") },
+            supportingText = { uiState.experienceMonthsError?.let { Text(it) } },
+            isError = uiState.experienceMonthsError != null,
+            singleLine = true,
         )
+
+        GrowthEvidenceFields(
+            heading = "Community project",
+            firstLabel = "Project title",
+            firstValue = uiState.communityProjectTitle,
+            secondLabel = "Short summary",
+            secondValue = uiState.communityProjectSummary,
+            evidenceValue = uiState.communityProjectEvidenceReference,
+            tagPrefix = "community-project",
+            onFirstChanged = { onUiEvent(ProfileSetupUiEvent.CommunityProjectTitleChanged(it)) },
+            onSecondChanged = { onUiEvent(ProfileSetupUiEvent.CommunityProjectSummaryChanged(it)) },
+            onEvidenceChanged = { onUiEvent(ProfileSetupUiEvent.CommunityProjectEvidenceChanged(it)) },
+        )
+        GrowthEvidenceFields(
+            heading = "Leadership",
+            firstLabel = "Role",
+            firstValue = uiState.leadershipRole,
+            secondLabel = "Team or activity",
+            secondValue = uiState.leadershipTitle,
+            evidenceValue = uiState.leadershipEvidenceReference,
+            tagPrefix = "leadership",
+            onFirstChanged = { onUiEvent(ProfileSetupUiEvent.LeadershipRoleChanged(it)) },
+            onSecondChanged = { onUiEvent(ProfileSetupUiEvent.LeadershipTitleChanged(it)) },
+            onEvidenceChanged = { onUiEvent(ProfileSetupUiEvent.LeadershipEvidenceChanged(it)) },
+        )
+    }
+}
+
+@Composable
+private fun ContextSection(
+    uiState: ProfileSetupUiState,
+    onUiEvent: (ProfileSetupUiEvent) -> Unit,
+) {
+    FormSection(
+        title = "Context",
+        description = "Used only when an official rule depends on it; never suggested as something to change.",
+    ) {
+        CountrySelector(
+            label = "Nationality",
+            selectedCode = uiState.nationality,
+            testTag = "profile-nationality",
+            onSelected = { onUiEvent(ProfileSetupUiEvent.NationalityChanged(it)) },
+        )
+        CountrySelector(
+            label = "Country of residence",
+            selectedCode = uiState.residency,
+            testTag = "profile-residency",
+            onSelected = { onUiEvent(ProfileSetupUiEvent.ResidencyChanged(it)) },
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().testTag("profile-age"),
+            value = uiState.age,
+            onValueChange = { onUiEvent(ProfileSetupUiEvent.AgeChanged(it)) },
+            label = { Text("Age") },
+            placeholder = { Text("Not provided") },
+            supportingText = { uiState.ageError?.let { Text(it) } },
+            isError = uiState.ageError != null,
+            singleLine = true,
+        )
+    }
+}
+
+@Composable
+private fun GrowthEvidenceFields(
+    heading: String,
+    firstLabel: String,
+    firstValue: String,
+    secondLabel: String,
+    secondValue: String,
+    evidenceValue: String,
+    tagPrefix: String,
+    onFirstChanged: (String) -> Unit,
+    onSecondChanged: (String) -> Unit,
+    onEvidenceChanged: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = heading,
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.text.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().testTag("profile-$tagPrefix-primary"),
+            value = firstValue,
+            onValueChange = onFirstChanged,
+            label = { Text(firstLabel) },
+            placeholder = { Text("Not provided") },
+            singleLine = true,
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().testTag("profile-$tagPrefix-secondary"),
+            value = secondValue,
+            onValueChange = onSecondChanged,
+            label = { Text(secondLabel) },
+            placeholder = { Text("Not provided") },
+            minLines = 2,
+            maxLines = 4,
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth().testTag("profile-$tagPrefix-evidence"),
+            value = evidenceValue,
+            onValueChange = onEvidenceChanged,
+            label = { Text("Evidence reference (optional)") },
+            placeholder = { Text("URL, document name, or portfolio reference") },
+            singleLine = true,
+        )
+    }
+}
+
+@Composable
+private fun CountrySelector(
+    label: String,
+    selectedCode: String,
+    testTag: String,
+    onSelected: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val selectedCountry = countryForStoredValue(selectedCode)
+    val visibleCountries = remember(query) {
+        val normalized = query.trim()
+        ISO_COUNTRIES.filter { country ->
+            normalized.isBlank() ||
+                country.name.contains(normalized, ignoreCase = true) ||
+                country.alpha2.contains(normalized, ignoreCase = true)
+        }.take(20)
+    }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth().testTag(testTag),
+            onClick = { expanded = true },
+        ) {
+            Text(
+                text = selectedCountry?.let { "$label · ${it.displayName}" } ?: "$label · Not provided",
+                modifier = Modifier.fillMaxWidth(),
+                color = if (selectedCountry == null) AppTheme.colors.text.secondary else AppTheme.colors.text.primary,
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+                query = ""
+            },
+            modifier = Modifier.widthIn(min = 300.dp, max = 520.dp).heightIn(max = 420.dp),
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth(),
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Search countries") },
+                singleLine = true,
+            )
+            DropdownMenuItem(
+                text = { Text("Not provided") },
+                onClick = {
+                    onSelected("")
+                    expanded = false
+                    query = ""
+                },
+            )
+            visibleCountries.forEach { country ->
+                DropdownMenuItem(
+                    text = { Text(country.displayName) },
+                    onClick = {
+                        onSelected(country.alpha2)
+                        expanded = false
+                        query = ""
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -381,12 +539,17 @@ private fun ProfileSetupScreenPreview() {
                 studyLevel = StudyLevelOption.UNDERGRADUATE,
                 fieldOfStudy = "Computer Science",
                 nationality = "VN",
+                residency = "VN",
                 gpa = "3.6",
                 ielts = "6.5",
                 age = "20",
                 experienceMonths = "6",
+                isEnrolled = true,
                 isDegreeCompleted = false,
-                isAvailableFullPeriod = false,
+                communityProjectTitle = "Local coding club",
+                communityProjectSummary = "Built a peer-led Kotlin workshop series.",
+                leadershipRole = "Student mentor",
+                leadershipTitle = "Faculty peer network",
             ),
             onUiEvent = {},
             onNavigateBack = {},
