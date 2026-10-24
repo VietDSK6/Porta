@@ -1,42 +1,66 @@
 package io.github.vietdsk6.porta.presentation.screens.onboarding
 
+import io.github.vietdsk6.porta.domain.model.OpportunityCategory
+
 data class OnBoardingUiState(
     val currentStep: Int = 0,
     val selectedGoal: OnboardingGoal? = null,
     val sampleIelts: Double = 6.5,
+    val demoDoors: List<OnboardingDemoDoorUiState> = emptyList(),
     val isReceiptExpanded: Boolean = false,
     val completion: OnboardingCompletion? = null,
     val isLoading: Boolean = true,
+) {
+    val satisfiedIeltsRequirementCount: Int
+        get() = demoDoors.count(OnboardingDemoDoorUiState::isRequirementMet)
+
+    val isDemoComplete: Boolean
+        get() = demoDoors.isNotEmpty() && satisfiedIeltsRequirementCount == demoDoors.size
+}
+
+data class OnboardingDemoDoorUiState(
+    val opportunityId: String,
+    val title: String,
+    val category: OpportunityCategory,
+    val requiredIelts: Double,
+    val isRequirementMet: Boolean,
 )
 
 enum class OnboardingGoal(
     val storageValue: String,
     val label: String,
     val description: String,
+    val category: OpportunityCategory,
 ) {
     SCHOLARSHIPS(
         storageValue = "scholarships",
         label = "Scholarships",
-        description = "Funding from schools, foundations, and organizations",
+        description = "Fund your education",
+        category = OpportunityCategory.SCHOLARSHIP,
     ),
     INTERNSHIPS(
         storageValue = "internships",
         label = "Internships",
-        description = "Roles that turn skills into evidence and experience",
+        description = "Gain real-world experience",
+        category = OpportunityCategory.INTERNSHIP,
     ),
     EXCHANGES(
         storageValue = "exchanges",
         label = "Exchange programs",
-        description = "Academic and cultural programs beyond your campus",
+        description = "Study somewhere new",
+        category = OpportunityCategory.ACADEMIC_PROGRAM,
     ),
     COMPETITIONS(
         storageValue = "competitions",
         label = "Student competitions",
         description = "Challenges where projects and teamwork create proof",
+        category = OpportunityCategory.STUDENT_CONTEST,
     ),
     ;
 
     companion object {
+        val selectableEntries: List<OnboardingGoal> = listOf(SCHOLARSHIPS, INTERNSHIPS, EXCHANGES)
+
         fun fromStorageValue(value: String?): OnboardingGoal? = entries.firstOrNull { it.storageValue == value }
     }
 }
@@ -60,7 +84,7 @@ sealed interface OnBoardingUiEvent {
 
     data class SampleIeltsChanged(val value: Double) : OnBoardingUiEvent
 
-    data object TryIeltsSeven : OnBoardingUiEvent
+    data object ResetDemo : OnBoardingUiEvent
 
     data object ReceiptToggled : OnBoardingUiEvent
 

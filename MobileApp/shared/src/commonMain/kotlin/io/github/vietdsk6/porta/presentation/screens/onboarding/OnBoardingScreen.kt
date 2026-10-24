@@ -12,6 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.LogoImage
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 
 enum class OnBoardingScreenStyle {
     STYLE1,
@@ -101,6 +102,11 @@ private fun OnBoardingScreenStyle1Preview() {
             style = OnBoardingScreenStyle.STYLE1,
             uiState = OnBoardingUiState(
                 selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                demoDoors = buildOnboardingDemoDoors(
+                    eligibilityEvaluator = EligibilityEvaluator(),
+                    sampleIelts = SAMPLE_IELTS_BASELINE,
+                    selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                ),
                 isLoading = false,
             ),
             onUiEvent = {},
@@ -118,6 +124,11 @@ private fun OnBoardingScreenStyle2Preview() {
                 currentStep = 2,
                 selectedGoal = OnboardingGoal.SCHOLARSHIPS,
                 sampleIelts = 7.0,
+                demoDoors = buildOnboardingDemoDoors(
+                    eligibilityEvaluator = EligibilityEvaluator(),
+                    sampleIelts = SAMPLE_IELTS_TARGET,
+                    selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                ),
                 isReceiptExpanded = true,
                 isLoading = false,
             ),

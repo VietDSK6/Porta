@@ -2,7 +2,13 @@ package io.github.vietdsk6.porta.presentation.screens.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
+import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.Opportunity
+import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,8 +18,18 @@ import kotlin.math.roundToInt
 
 class OnBoardingViewModel(
     private val userPreferences: UserPreferences,
+    private val eligibilityEvaluator: EligibilityEvaluator,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(OnBoardingUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(
+        OnBoardingUiState(
+            demoDoors = buildOnboardingDemoDoors(
+                eligibilityEvaluator = eligibilityEvaluator,
+                sampleIelts = SAMPLE_IELTS_BASELINE,
+                selectedGoal = null,
+            ),
+            isLoading = true,
+        ),
+    )
     val uiState: StateFlow<OnBoardingUiState> = _uiState.asStateFlow()
 
     init {
@@ -24,11 +40,29 @@ class OnBoardingViewModel(
         when (event) {
             is OnBoardingUiEvent.GoalSelected -> {
                 userPreferences.putString(UserPreferences.KEY_OPPORTUNITY_GOAL, event.goal.storageValue)
-                _uiState.update { it.copy(selectedGoal = event.goal) }
+                _uiState.update { state ->
+                    state.copy(
+                        selectedGoal = event.goal,
+                        demoDoors = buildOnboardingDemoDoors(
+                            eligibilityEvaluator = eligibilityEvaluator,
+                            sampleIelts = state.sampleIelts,
+                            selectedGoal = event.goal,
+                        ),
+                    )
+                }
             }
 
             OnBoardingUiEvent.Next -> _uiState.update { state ->
-                state.copy(currentStep = (state.currentStep + 1).coerceAtMost(LAST_STEP))
+                val mayAdvance = when (state.currentStep) {
+                    0 -> state.selectedGoal != null
+                    1 -> state.isDemoComplete
+                    else -> true
+                }
+                if (mayAdvance) {
+                    state.copy(currentStep = (state.currentStep + 1).coerceAtMost(LAST_STEP))
+                } else {
+                    state
+                }
             }
 
             OnBoardingUiEvent.Back -> _uiState.update { state ->
@@ -37,10 +71,27 @@ class OnBoardingViewModel(
 
             is OnBoardingUiEvent.SampleIeltsChanged -> _uiState.update { state ->
                 val halfBandValue = (event.value * 2).roundToInt() / 2.0
-                state.copy(sampleIelts = halfBandValue.coerceIn(6.0, 8.0))
+                val sampleIelts = halfBandValue.coerceIn(SAMPLE_IELTS_BASELINE, SAMPLE_IELTS_TARGET)
+                state.copy(
+                    sampleIelts = sampleIelts,
+                    demoDoors = buildOnboardingDemoDoors(
+                        eligibilityEvaluator = eligibilityEvaluator,
+                        sampleIelts = sampleIelts,
+                        selectedGoal = state.selectedGoal,
+                    ),
+                )
             }
 
-            OnBoardingUiEvent.TryIeltsSeven -> _uiState.update { it.copy(sampleIelts = 7.0) }
+            OnBoardingUiEvent.ResetDemo -> _uiState.update { state ->
+                state.copy(
+                    sampleIelts = SAMPLE_IELTS_BASELINE,
+                    demoDoors = buildOnboardingDemoDoors(
+                        eligibilityEvaluator = eligibilityEvaluator,
+                        sampleIelts = SAMPLE_IELTS_BASELINE,
+                        selectedGoal = state.selectedGoal,
+                    ),
+                )
+            }
 
             OnBoardingUiEvent.ReceiptToggled -> _uiState.update {
                 it.copy(isReceiptExpanded = !it.isReceiptExpanded)
@@ -68,11 +119,16 @@ class OnBoardingViewModel(
     private fun restoreOnboardingState() = viewModelScope.launch {
         val selectedGoal = OnboardingGoal.fromStorageValue(
             userPreferences.getString(UserPreferences.KEY_OPPORTUNITY_GOAL),
-        )
+        )?.takeIf(OnboardingGoal.selectableEntries::contains)
         if (userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN)) {
             _uiState.update {
                 it.copy(
                     selectedGoal = selectedGoal,
+                    demoDoors = buildOnboardingDemoDoors(
+                        eligibilityEvaluator = eligibilityEvaluator,
+                        sampleIelts = it.sampleIelts,
+                        selectedGoal = selectedGoal,
+                    ),
                     completion = OnboardingCompletion(
                         destination = OnboardingDestination.SAMPLE_MAP,
                         isNewUser = false,
@@ -80,7 +136,17 @@ class OnBoardingViewModel(
                 )
             }
         } else {
-            _uiState.update { it.copy(selectedGoal = selectedGoal, isLoading = false) }
+            _uiState.update {
+                it.copy(
+                    selectedGoal = selectedGoal,
+                    demoDoors = buildOnboardingDemoDoors(
+                        eligibilityEvaluator = eligibilityEvaluator,
+                        sampleIelts = it.sampleIelts,
+                        selectedGoal = selectedGoal,
+                    ),
+                    isLoading = false,
+                )
+            }
         }
     }
 
@@ -88,3 +154,49 @@ class OnBoardingViewModel(
         const val LAST_STEP = 3
     }
 }
+
+internal const val SAMPLE_IELTS_BASELINE = 6.5
+internal const val SAMPLE_IELTS_TARGET = 7.0
+
+internal fun buildOnboardingDemoDoors(
+    eligibilityEvaluator: EligibilityEvaluator,
+    sampleIelts: Double,
+    selectedGoal: OnboardingGoal?,
+): List<OnboardingDemoDoorUiState> {
+    val baselineProfile = PortaSampleData.profile.withOverrides(
+        mapOf(FactKey.IELTS_SCORE to FactValue.NumberValue(SAMPLE_IELTS_BASELINE, "band")),
+    )
+    val targetProfile = baselineProfile.withOverrides(
+        mapOf(FactKey.IELTS_SCORE to FactValue.NumberValue(SAMPLE_IELTS_TARGET, "band")),
+    )
+    val currentProfile = baselineProfile.withOverrides(
+        mapOf(FactKey.IELTS_SCORE to FactValue.NumberValue(sampleIelts, "band")),
+    )
+
+    return PortaSampleData.opportunities.mapNotNull { opportunity ->
+        val baselineRule = opportunity.ieltsRuleResult(eligibilityEvaluator, baselineProfile)
+        val targetRule = opportunity.ieltsRuleResult(eligibilityEvaluator, targetProfile)
+        if (baselineRule?.result == RuleResult.PASS || targetRule?.result != RuleResult.PASS) {
+            return@mapNotNull null
+        }
+        val currentRule = opportunity.ieltsRuleResult(eligibilityEvaluator, currentProfile)
+        val requiredIelts = (targetRule.expected as? FactValue.NumberValue)?.amount
+            ?: return@mapNotNull null
+        OnboardingDemoDoorUiState(
+            opportunityId = opportunity.id,
+            title = opportunity.title,
+            category = opportunity.category,
+            requiredIelts = requiredIelts,
+            isRequirementMet = currentRule?.result == RuleResult.PASS,
+        )
+    }.sortedByDescending { door -> door.category == selectedGoal?.category }
+}
+
+private fun Opportunity.ieltsRuleResult(
+    eligibilityEvaluator: EligibilityEvaluator,
+    profile: io.github.vietdsk6.porta.domain.model.ProfileSnapshot,
+) = eligibilityEvaluator.evaluate(
+    profile = profile,
+    opportunity = this,
+    today = PortaSampleData.referenceDate,
+).rules.firstOrNull { it.factKey == FactKey.IELTS_SCORE }
