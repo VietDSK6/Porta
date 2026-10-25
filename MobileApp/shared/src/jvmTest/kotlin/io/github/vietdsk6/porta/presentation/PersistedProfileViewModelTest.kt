@@ -276,6 +276,7 @@ class PersistedProfileViewModelTest {
         val viewModel = OpportunityDetailViewModel(
             opportunityId = "aurora",
             eligibilityEvaluator = eligibilityEvaluator,
+            actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
             profileRepository = repository,
             opportunityPackRepository = opportunityPackRepository,
             currentLocalDateProvider = currentLocalDateProvider,
@@ -342,8 +343,9 @@ class PersistedProfileViewModelTest {
         assertTrue(frontier.uiState.value.actions.isEmpty())
         assertTrue(frontier.uiState.value.exclusions.isNotEmpty())
         assertTrue(scenario.uiState.value.openedDoors.isEmpty())
-        assertTrue(scenario.uiState.value.progressedDoors.isEmpty())
-        assertEquals(5, scenario.uiState.value.unchangedDoors.size)
+        assertEquals(4, scenario.uiState.value.progressedDoors.size)
+        assertTrue(scenario.uiState.value.progressedDoors.all { it.timingWarning != null })
+        assertEquals(1, scenario.uiState.value.unchangedDoors.size)
     }
 
     @Test
@@ -375,6 +377,11 @@ class PersistedProfileViewModelTest {
             (scenario.uiState.value.openedDoors + scenario.uiState.value.progressedDoors)
                 .map { it.id },
         )
+        val oecd = (scenario.uiState.value.openedDoors + scenario.uiState.value.progressedDoors).single()
+        assertEquals(listOf("oecd-availability"), oecd.changedRules.map { it.id })
+        assertTrue(oecd.changedRules.single().resultTransitionLabel.contains("Check passed"))
+        assertTrue(oecd.remainingBlockers.any { it.startsWith("Still needs information:") })
+        assertTrue(oecd.remainingBlockers.any { it.startsWith("Still needs source review:") })
     }
 
     @Test

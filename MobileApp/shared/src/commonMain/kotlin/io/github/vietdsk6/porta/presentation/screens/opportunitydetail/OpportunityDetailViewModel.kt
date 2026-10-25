@@ -9,7 +9,9 @@ import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackPro
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.components.requirementAssessmentLabel
 import io.github.vietdsk6.porta.presentation.components.timingLabel
@@ -24,6 +26,7 @@ import kotlinx.coroutines.launch
 class OpportunityDetailViewModel(
     private val opportunityId: String,
     private val eligibilityEvaluator: EligibilityEvaluator,
+    private val actionFrontierEngine: ActionFrontierEngine,
     private val profileRepository: ProfileRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
@@ -71,10 +74,16 @@ class OpportunityDetailViewModel(
     ): OpportunityDetailUiState = opportunities
         .firstOrNull { it.id == opportunityId }
         ?.let { opportunity ->
+            val today = currentLocalDateProvider.today()
             val receipt = eligibilityEvaluator.evaluate(
                 profile,
                 opportunity,
-                currentLocalDateProvider.today(),
+                today,
+            )
+            val relatedAction = actionFrontierEngine.relevantActionFor(
+                profile = profile,
+                opportunity = opportunity,
+                today = today,
             )
             OpportunityDetailUiState(
                 id = opportunity.id,
@@ -100,7 +109,22 @@ class OpportunityDetailViewModel(
                     )
                 },
                 softCriteria = opportunity.softCriteria,
-                relatedActionId = receipt.rules.firstNotNullOfOrNull { it.actionTemplateId },
+                relatedActionId = relatedAction?.id,
+                relatedActionTitle = relatedAction?.title.orEmpty(),
+                nextStepGuidance = when {
+                    relatedAction != null ->
+                        "This milestone addresses an unmet encoded check. Preview it before changing your saved profile."
+
+                    receipt.rules.any { it.result == RuleResult.FAIL && it.actionTemplateId != null } ->
+                        "A linked milestone does not fit the published timing. Recheck the official cycle before planning it."
+
+                    receipt.rules.any {
+                        it.result == RuleResult.UNKNOWN || it.result == RuleResult.REVIEW
+                    } -> "No safe profile change can be inferred yet. Verify the questions below with the official source."
+
+                    else -> "Porta has no evidence-backed profile change to suggest for this door."
+                },
+                canOpenSource = opportunity.sourceUrl.startsWith("https://"),
                 isSampleProfile = isSampleProfile,
                 isSampleCatalog = isSampleCatalog,
             )

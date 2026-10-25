@@ -110,6 +110,32 @@ data class ScenarioResult(
     val baseline: Map<String, EligibilityReceipt>,
     val simulated: Map<String, EligibilityReceipt>,
     val deltas: List<DoorStateDelta>,
+    val impacts: List<ScenarioImpactReceipt> = emptyList(),
+)
+
+/**
+ * Check-level differences produced by an in-memory scenario. [remainingRules] deliberately keeps
+ * failed, unknown, and manual-review checks so a rule improvement cannot be presented as admission.
+ */
+data class ScenarioImpactReceipt(
+    val opportunityId: String,
+    val beforeState: EligibilityState,
+    val afterState: EligibilityState,
+    val changedRules: List<ScenarioRuleDelta>,
+    val remainingRules: List<RuleReceipt>,
+    val deadline: Deadline,
+)
+
+data class ScenarioRuleDelta(
+    val ruleId: String,
+    val explanation: String,
+    val factKey: FactKey?,
+    val beforeResult: RuleResult,
+    val afterResult: RuleResult,
+    val beforeActual: FactValue?,
+    val afterActual: FactValue?,
+    val expected: FactValue?,
+    val sourceNote: String?,
 )
 
 data class FrontierAction(

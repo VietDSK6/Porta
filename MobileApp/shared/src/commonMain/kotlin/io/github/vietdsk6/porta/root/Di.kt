@@ -166,7 +166,7 @@ private val presentationModule = module {
     viewModelOf(::OnBoardingViewModel)
     viewModelOf(::ProfileSetupViewModel)
     viewModelOf(::DoorsViewModel)
-    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get(), get(), get()) }
+    viewModel { (opportunityId: String) -> OpportunityDetailViewModel(opportunityId, get(), get(), get(), get(), get()) }
     viewModelOf(::FrontierViewModel)
     viewModel { (actionId: String) -> ScenarioPreviewViewModel(actionId, get(), get(), get(), get(), get()) }
     viewModelOf(::ActivePlanViewModel)

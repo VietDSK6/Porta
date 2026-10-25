@@ -11,6 +11,9 @@ import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
+import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
+import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
@@ -37,7 +40,25 @@ class BundledOpportunityPackProviderTest {
         assertEquals(15, opportunities.size)
         assertTrue(opportunities.all { it.eligibilityRule.id.isNotBlank() })
         assertTrue(opportunities.all { it.sourceUrl.startsWith("https://") })
-        assertTrue(opportunities.all { it.lastCheckedOn.toString() == PortaContestPackData.REVIEWED_ON })
+        assertTrue(
+            opportunities.all {
+                it.lastCheckedOn.toString() in setOf(
+                    PortaContestPackData.REVIEWED_ON,
+                    PortaContestPackData.VERTICAL_SLICE_REVIEWED_ON,
+                )
+            },
+        )
+        assertEquals(
+            setOf(
+                "erasmus-mundus-joint-masters",
+                "daad-epos-2027-2028",
+                "jj-wbgsp-2027-window-1",
+                "oecd-internship-rolling",
+            ),
+            opportunities
+                .filter { it.lastCheckedOn.toString() == PortaContestPackData.VERTICAL_SLICE_REVIEWED_ON }
+                .mapTo(mutableSetOf()) { it.id },
+        )
         assertFalse(opportunities.any { "example.invalid" in it.sourceUrl })
         assertTrue(opportunities.count { it.softCriteria.isNotEmpty() } >= 3)
         assertTrue(opportunities.sumOf { it.actionTemplates.size } >= 5)
@@ -157,6 +178,92 @@ class BundledOpportunityPackProviderTest {
         }
         assertEquals(2, availability.sumOf { it.improvedSavedOpportunityIds.size })
     }
+
+    @Test
+    fun `real vertical slice exposes exact sourced progress and remaining blockers`() {
+        val opportunities = bundledOpportunities()
+        val evaluator = ScenarioEvaluator(EligibilityEvaluator())
+        val baseline = profile(
+            FactKey.AGE to FactValue.NumberValue(24.0, "years"),
+            FactKey.ENROLLED to FactValue.BooleanValue(true),
+            FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(false),
+            FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(6.0, "months"),
+            FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(false),
+        )
+
+        val degreeAction = opportunities
+            .first { it.id == "erasmus-mundus-joint-masters" }
+            .actionTemplates
+            .single()
+        val degreeScenario = evaluator.evaluate(
+            profile = baseline,
+            overrides = degreeAction.target.asScenarioOverrides(),
+            opportunities = opportunities,
+            today = LocalDate(2026, 10, 25),
+        )
+        val degreeImpacts = degreeScenario.impacts.associateBy { it.opportunityId }
+        listOf(
+            "erasmus-mundus-joint-masters" to "erasmus-degree-complete",
+            "daad-epos-2027-2028" to "daad-degree",
+            "jj-wbgsp-2027-window-1" to "jj-degree",
+        ).forEach { (opportunityId, ruleId) ->
+            val impact = assertNotNull(degreeImpacts[opportunityId])
+            val delta = assertNotNull(impact.changedRules.singleOrNull { it.ruleId == ruleId })
+            assertEquals(RuleResult.FAIL, delta.beforeResult)
+            assertEquals(RuleResult.PASS, delta.afterResult)
+            assertTrue(delta.sourceNote?.contains(PortaContestPackData.VERTICAL_SLICE_REVIEWED_ON) == true)
+            assertTrue(impact.afterState != EligibilityState.OPEN)
+        }
+        assertTrue(
+            degreeImpacts
+                .getValue("erasmus-mundus-joint-masters")
+                .remainingRules
+                .isEmpty(),
+            "The final-year alternative must not remain a blocker once the completed-degree branch passes.",
+        )
+        listOf("daad-epos-2027-2028", "jj-wbgsp-2027-window-1").forEach { opportunityId ->
+            assertTrue(degreeImpacts.getValue(opportunityId).remainingRules.isNotEmpty())
+        }
+
+        val experienceAction = opportunities
+            .first { it.id == "jj-wbgsp-2027-window-1" }
+            .actionTemplates
+            .first { it.targetFactKey == FactKey.EXPERIENCE_MONTHS }
+        val experienceScenario = evaluator.evaluate(
+            profile = baseline,
+            overrides = experienceAction.target.asScenarioOverrides(),
+            opportunities = opportunities,
+            today = LocalDate(2026, 10, 25),
+        )
+        assertEquals(
+            setOf("daad-epos-2027-2028", "jj-wbgsp-2027-window-1"),
+            experienceScenario
+                .resolvedHardGapOpportunityIds(experienceAction.target)
+                .toSet(),
+        )
+
+        val oecdAction = opportunities
+            .first { it.id == "oecd-internship-rolling" }
+            .actionTemplates
+            .first { it.targetFactKey == FactKey.AVAILABLE_FULL_PERIOD }
+        val oecdScenario = evaluator.evaluate(
+            profile = baseline,
+            overrides = oecdAction.target.asScenarioOverrides(),
+            opportunities = opportunities,
+            today = LocalDate(2026, 10, 25),
+        )
+        assertEquals(
+            listOf("oecd-internship-rolling"),
+            oecdScenario.impacts.map { it.opportunityId },
+        )
+        assertTrue(oecdScenario.impacts.single().remainingRules.any { it.result == RuleResult.REVIEW })
+    }
+
+    private fun bundledOpportunities() = assertNotNull(
+        OpportunityPackParser(OpportunityPackCodec(), OpportunityPackValidator())
+            .parse(BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson())
+            .document,
+    ).opportunities
 }
 
 private fun profile(vararg values: Pair<FactKey, FactValue>): ProfileSnapshot = ProfileSnapshot(

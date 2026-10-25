@@ -22,6 +22,7 @@ import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ActionFrontierEngineTest {
@@ -494,6 +495,67 @@ class ActionFrontierEngineTest {
         assertEquals(
             setOf(FrontierExclusionReason.NO_VERIFIED_IMPACT),
             evaluation.exclusions.single().reasons,
+        )
+    }
+
+    @Test
+    fun `detail candidate ignores passed rules and actions that miss the deadline`() {
+        val passedAction = template(
+            id = "passed-language",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+        )
+        val unmetAction = template(
+            id = "unmet-gpa",
+            key = FactKey.GPA,
+            target = FactValue.NumberValue(4.0, "4.0 scale"),
+        )
+        val opportunity = Opportunity(
+            id = "two-rules",
+            title = "Two-rule test",
+            provider = "Test provider",
+            category = OpportunityCategory.SCHOLARSHIP,
+            cycle = "test-only",
+            sourceUrl = "https://example.invalid/two-rules",
+            lastCheckedOn = today,
+            deadline = Deadline.Known(LocalDate(2027, 6, 1)),
+            eligibilityRule = RuleNode.All(
+                id = "two-rules-root",
+                children = listOf(
+                    RuleNode.Atomic(
+                        id = "language-rule",
+                        factKey = FactKey.IELTS_SCORE,
+                        operator = Operator.GREATER_THAN_OR_EQUAL,
+                        expected = FactValue.NumberValue(7.0, "band"),
+                        explanation = "Language check",
+                        actionability = Actionability.CONTROLLABLE,
+                        actionTemplateId = passedAction.id,
+                    ),
+                    RuleNode.Atomic(
+                        id = "gpa-rule",
+                        factKey = FactKey.GPA,
+                        operator = Operator.GREATER_THAN_OR_EQUAL,
+                        expected = FactValue.NumberValue(4.0, "4.0 scale"),
+                        explanation = "GPA check",
+                        actionability = Actionability.CONTROLLABLE,
+                        actionTemplateId = unmetAction.id,
+                    ),
+                ),
+            ),
+            actionTemplates = listOf(passedAction, unmetAction),
+        )
+        val profile = profileOf(
+            FactKey.IELTS_SCORE to FactValue.NumberValue(7.0, "band"),
+            FactKey.GPA to FactValue.NumberValue(3.5, "4.0 scale"),
+        )
+
+        assertEquals("unmet-gpa", engine.relevantActionFor(profile, opportunity, today)?.id)
+        assertNull(
+            engine.relevantActionFor(
+                profile = profile,
+                opportunity = opportunity.copy(deadline = Deadline.Known(LocalDate(2026, 10, 25))),
+                today = today,
+            ),
         )
     }
 

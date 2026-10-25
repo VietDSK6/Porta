@@ -13,10 +13,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,11 +39,17 @@ fun OpportunityDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
     OpportunityDetailScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
         onPreviewAction = onPreviewAction,
+        onOpenSource = { url ->
+            if (url.startsWith("https://")) {
+                runCatching { uriHandler.openUri(url) }
+            }
+        },
         modifier = modifier.fillMaxSize(),
     )
 }
@@ -52,6 +60,7 @@ fun OpportunityDetailScreen(
     onUiEvent: (OpportunityDetailUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
     onPreviewAction: (String) -> Unit,
+    onOpenSource: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ScreenWithToolbar(
@@ -84,16 +93,26 @@ fun OpportunityDetailScreen(
                     accent = PORTA_AMBER,
                 )
             }
-            uiState.relatedActionId?.let { actionId ->
-                item {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            onUiEvent(OpportunityDetailUiEvent.Acknowledged)
-                            onPreviewAction(actionId)
-                        },
-                    ) {
-                        Text("Preview this profile change")
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Suggested next move", style = AppTheme.typography.h6)
+                    Text(
+                        uiState.nextStepGuidance,
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodyMedium,
+                    )
+                    uiState.relatedActionId?.let { actionId ->
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                onUiEvent(OpportunityDetailUiEvent.Acknowledged)
+                                onPreviewAction(actionId)
+                            },
+                        ) {
+                            Text(
+                                uiState.relatedActionTitle.ifBlank { "Preview this profile change" },
+                            )
+                        }
                     }
                 }
             }
@@ -114,7 +133,7 @@ fun OpportunityDetailScreen(
                 )
             }
             item { SoftSelectionFactors(uiState.softCriteria) }
-            item { SourceDetails(uiState) }
+            item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
         }
     }
 }
@@ -219,14 +238,23 @@ private fun SoftSelectionFactors(criteria: List<String>) {
 }
 
 @Composable
-private fun SourceDetails(uiState: OpportunityDetailUiState) {
+private fun SourceDetails(
+    uiState: OpportunityDetailUiState,
+    onOpenSource: (String) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Source and last review", style = AppTheme.typography.h6)
         if (uiState.sourceSection.isNotBlank()) {
             Text("Section: ${uiState.sourceSection}", color = AppTheme.colors.text.primary)
         }
         Text(uiState.checkedLabel, color = AppTheme.colors.text.primary)
-        Text(uiState.sourceUrl, color = AppTheme.colors.primary, style = AppTheme.typography.bodySmall)
+        if (uiState.canOpenSource) {
+            TextButton(onClick = { onOpenSource(uiState.sourceUrl) }) {
+                Text("Open official source")
+            }
+        } else {
+            Text("Official source unavailable", color = AppTheme.colors.text.secondary)
+        }
         Text(uiState.disclaimer, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
     }
 }

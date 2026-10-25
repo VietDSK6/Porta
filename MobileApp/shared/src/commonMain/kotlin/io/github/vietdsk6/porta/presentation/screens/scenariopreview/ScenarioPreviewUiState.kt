@@ -22,6 +22,18 @@ data class ScenarioDoorUiState(
     val stateLabel: String,
     val actualStateLabel: String = "",
     val simulatedStateLabel: String = "",
+    val changedRules: List<ScenarioRuleChangeUiState> = emptyList(),
+    val remainingBlockers: List<String> = emptyList(),
+    val timingLabel: String = "",
+    val timingWarning: String? = null,
+)
+
+data class ScenarioRuleChangeUiState(
+    val id: String,
+    val explanation: String,
+    val beforeLabel: String,
+    val afterLabel: String,
+    val resultTransitionLabel: String,
 )
 
 sealed interface ScenarioPreviewUiEvent {

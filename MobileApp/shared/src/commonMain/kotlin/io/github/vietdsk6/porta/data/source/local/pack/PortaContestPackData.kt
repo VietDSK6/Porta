@@ -17,6 +17,7 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
  */
 internal object PortaContestPackData {
     const val REVIEWED_ON = "2026-10-21"
+    const val VERTICAL_SLICE_REVIEWED_ON = "2026-10-25"
 
     fun create(): OpportunityPackDto = OpportunityPackDto(
         schemaVersion = OpportunityPackCodec.CURRENT_SCHEMA_VERSION,
@@ -128,14 +129,14 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants may apply with a completed bachelor's degree.",
-                    sourceNote = checked(source, "What you need"),
+                    sourceNote = checked(source, "What you need", VERTICAL_SLICE_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
                 manual(
                     id = "erasmus-final-year",
                     explanation = "Final-year applicants must confirm they will graduate before their selected master's begins.",
-                    sourceNote = checked(source, "What you need"),
+                    sourceNote = checked(source, "What you need", VERTICAL_SLICE_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Scholarships are awarded to the best-ranked students."),
@@ -144,6 +145,7 @@ internal object PortaContestPackData {
                 "Confirm the exact programme deadline; the EU page says most applications fall between October and January",
             ),
             actions = listOf(degreeAction),
+            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
         )
     }
 
@@ -323,7 +325,7 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants need an appropriate first university degree.",
-                    sourceNote = checked(source, "Requirements"),
+                    sourceNote = checked(source, "Requirements", VERTICAL_SLICE_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
@@ -333,7 +335,7 @@ internal object PortaContestPackData {
                     operator = Operator.GREATER_THAN_OR_EQUAL,
                     expected = number(24.0, "months"),
                     explanation = "The general EPOS criteria require at least two years of professional experience.",
-                    sourceNote = checked(source, "Requirements"),
+                    sourceNote = checked(source, "Requirements", VERTICAL_SLICE_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = experienceAction.id,
                 ),
@@ -341,17 +343,22 @@ internal object PortaContestPackData {
                     id = "daad-experience-relevance",
                     explanation = "Confirm that the experience is relevant, post-degree where required, and " +
                         "accepted by the selected EPOS course.",
-                    sourceNote = checked(source, "Requirements and selected course page"),
+                    sourceNote = checked(
+                        source,
+                        "Requirements and selected course page",
+                        VERTICAL_SLICE_REVIEWED_ON,
+                    ),
                 ),
                 manual(
                     id = "daad-country-course",
                     explanation = "Confirm developing-country scope, course fit, language requirements and the course-specific deadline.",
-                    sourceNote = checked(source, "EPOS country and course lists"),
+                    sourceNote = checked(source, "EPOS country and course lists", VERTICAL_SLICE_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Above-average academic performance", "Development motivation"),
             readinessItems = listOf("Apply to the selected university/course, not directly to DAAD unless instructed"),
             actions = listOf(degreeAction, experienceAction),
+            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
         )
     }
 
@@ -376,7 +383,7 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants must hold a bachelor's degree or equivalent.",
-                    sourceNote = checked(source, "Who is Eligible to Apply?"),
+                    sourceNote = checked(source, "Who is Eligible to Apply?", VERTICAL_SLICE_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
@@ -386,26 +393,36 @@ internal object PortaContestPackData {
                     operator = Operator.GREATER_THAN_OR_EQUAL,
                     expected = number(36.0, "months"),
                     explanation = "The broad criteria require at least three years of paid development-related employment.",
-                    sourceNote = checked(source, "Who is Eligible to Apply?"),
+                    sourceNote = checked(source, "Who is Eligible to Apply?", VERTICAL_SLICE_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = experienceAction.id,
+                ),
+                manual(
+                    id = "jj-degree-timing",
+                    explanation = "Confirm the bachelor's degree was earned at least three years before the application deadline.",
+                    sourceNote = checked(source, "Who is Eligible to Apply?", VERTICAL_SLICE_REVIEWED_ON),
                 ),
                 manual(
                     id = "jj-experience-timing",
                     explanation = "Confirm the work is eligible, paid, development-related, post-degree and " +
                         "within the official six-year counting window.",
-                    sourceNote = checked(source, "Who is Eligible to Apply? and application guidelines"),
+                    sourceNote = checked(
+                        source,
+                        "Who is Eligible to Apply? and application guidelines",
+                        VERTICAL_SLICE_REVIEWED_ON,
+                    ),
                 ),
                 manual(
                     id = "jj-country-admission",
                     explanation = "Confirm eligible nationality, no disqualifying dual citizenship, and " +
                         "unconditional admission to a participating programme.",
-                    sourceNote = checked(source, "2027 Application Cycle"),
+                    sourceNote = checked(source, "2027 Application Cycle", VERTICAL_SLICE_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Commitment to supporting the applicant's country's development"),
             readinessItems = listOf("The university must shortlist the admitted candidate before the application link is issued"),
             actions = listOf(degreeAction, experienceAction),
+            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
         )
     }
 
@@ -435,7 +452,7 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants must remain enrolled in a full-time accredited degree for the internship.",
-                    sourceNote = checked(source, "Who can apply?"),
+                    sourceNote = checked(source, "Who can apply?", VERTICAL_SLICE_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = enrollmentAction.id,
                 ),
@@ -445,19 +462,24 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants must be available for at least one month.",
-                    sourceNote = checked(source, "Who can apply? and Internship duration"),
+                    sourceNote = checked(
+                        source,
+                        "Who can apply? and Internship duration",
+                        VERTICAL_SLICE_REVIEWED_ON,
+                    ),
                     actionability = Actionability.CONTROLLABLE,
                     actionTemplateId = availabilityAction.id,
                 ),
                 manual(
                     id = "oecd-field-language",
                     explanation = "Confirm a relevant study field and the official-language expectations for the intended team.",
-                    sourceNote = checked(source, "Who can apply?"),
+                    sourceNote = checked(source, "Who can apply?", VERTICAL_SLICE_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Quantitative and IT skills", "Drafting and communication skills"),
             readinessItems = listOf("State accurate availability; OECD recruits on a rolling basis"),
             actions = listOf(enrollmentAction, availabilityAction),
+            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
         )
     }
 
@@ -779,6 +801,7 @@ internal object PortaContestPackData {
         readinessItems: List<String> = emptyList(),
         actions: List<ActionTemplateDto> = emptyList(),
         archived: Boolean = false,
+        lastCheckedOn: String = REVIEWED_ON,
     ): OpportunityDto = OpportunityDto(
         id = id,
         title = title,
@@ -787,7 +810,7 @@ internal object PortaContestPackData {
         cycle = cycle,
         sourceUrl = sourceUrl,
         sourceSection = sourceSection,
-        lastCheckedOn = REVIEWED_ON,
+        lastCheckedOn = lastCheckedOn,
         deadline = deadline,
         eligibilityRule = rule,
         softCriteria = softCriteria,
@@ -927,7 +950,11 @@ internal object PortaContestPackData {
 
     private fun number(amount: Double, unit: String): FactValueDto = FactValueDto.NumberValue(amount, unit)
 
-    private fun checked(source: String, section: String): String = "$section on the official provider page ($source), reviewed $REVIEWED_ON."
+    private fun checked(
+        source: String,
+        section: String,
+        reviewedOn: String = REVIEWED_ON,
+    ): String = "$section on the official provider page ($source), reviewed $reviewedOn."
 
     private fun planningNote(
         source: String,

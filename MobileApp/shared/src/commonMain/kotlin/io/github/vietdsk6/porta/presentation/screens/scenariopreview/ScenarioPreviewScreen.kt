@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -83,7 +84,7 @@ fun ScenarioPreviewScreen(
             return@ScreenWithToolbar
         }
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().testTag("scenario-preview-content"),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item {
@@ -115,6 +116,19 @@ fun ScenarioPreviewScreen(
             }
             if (uiState.openedDoors.isEmpty() && uiState.progressedDoors.isEmpty()) {
                 item { NoChangedDoorsCard() }
+            }
+            if (uiState.unchangedDoors.isNotEmpty()) {
+                item {
+                    Text(
+                        text = if (uiState.unchangedDoors.size == 1) {
+                            "1 other door is unchanged."
+                        } else {
+                            "${uiState.unchangedDoors.size} other doors are unchanged."
+                        },
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodyMedium,
+                    )
+                }
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -242,6 +256,36 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
                 )
                 ScenarioStateTransition(door)
                 Text(door.stateLabel, color = PORTA_TEAL, fontWeight = FontWeight.Bold)
+                door.changedRules.forEach { change ->
+                    HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("Changed check", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                        Text(change.explanation, style = AppTheme.typography.bodyMedium)
+                        Text(
+                            "${change.beforeLabel} → ${change.afterLabel}",
+                            color = AppTheme.colors.text.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            change.resultTransitionLabel,
+                            color = AppTheme.colors.text.secondary,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                if (door.remainingBlockers.isNotEmpty()) {
+                    HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("Still unresolved", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                        door.remainingBlockers.forEach { blocker ->
+                            Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+                        }
+                    }
+                }
+                Text(door.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+                door.timingWarning?.let { warning ->
+                    Text(warning, color = PORTA_AMBER, style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -306,6 +350,7 @@ private fun ErrorState(message: String, onNavigateBack: () -> Unit) {
 }
 
 private val PORTA_TEAL = Color(0xFF167D73)
+private val PORTA_AMBER = Color(0xFFA66B1F)
 private const val DOOR_TRANSITION_DURATION_MILLIS = 220
 
 @Preview

@@ -5,8 +5,13 @@ import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleNode
+import io.github.vietdsk6.porta.domain.model.RuleReceipt
+import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.ScenarioImpactReceipt
 import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.ScenarioResult
+import io.github.vietdsk6.porta.domain.model.ScenarioRuleDelta
 import io.github.vietdsk6.porta.domain.model.findAtomicRule
 import kotlinx.datetime.LocalDate
 
@@ -64,11 +69,79 @@ class ScenarioEvaluator(
                 )
             }
         }
+        val impacts = opportunities.mapNotNull impact@{ opportunity ->
+            val beforeReceipt = baseline.getValue(opportunity.id)
+            val afterReceipt = simulated.getValue(opportunity.id)
+            val afterRules = afterReceipt.rules.associateBy { it.ruleId }
+            val changedRules = beforeReceipt.rules.mapNotNull rule@{ beforeRule ->
+                val afterRule = afterRules[beforeRule.ruleId] ?: return@rule null
+                if (beforeRule.result == afterRule.result) {
+                    return@rule null
+                }
+                ScenarioRuleDelta(
+                    ruleId = beforeRule.ruleId,
+                    explanation = afterRule.explanation,
+                    factKey = afterRule.factKey,
+                    beforeResult = beforeRule.result,
+                    afterResult = afterRule.result,
+                    beforeActual = beforeRule.actual,
+                    afterActual = afterRule.actual,
+                    expected = afterRule.expected,
+                    sourceNote = afterRule.sourceNote,
+                )
+            }
+            if (changedRules.isEmpty()) return@impact null
+            ScenarioImpactReceipt(
+                opportunityId = opportunity.id,
+                beforeState = beforeReceipt.state,
+                afterState = afterReceipt.state,
+                changedRules = changedRules,
+                remainingRules = opportunity.eligibilityRule.remainingRuleReceipts(afterRules),
+                deadline = afterReceipt.deadline,
+            )
+        }
 
         return ScenarioResult(
             baseline = baseline,
             simulated = simulated,
             deltas = deltas,
+            impacts = impacts,
         )
+    }
+
+    /**
+     * Returns unresolved leaf receipts while preserving the rule tree's ALL/ANY semantics.
+     * Once any alternative branch passes, its sibling branches are no longer blockers.
+     */
+    private fun RuleNode.remainingRuleReceipts(
+        receiptsByRuleId: Map<String, RuleReceipt>,
+    ): List<RuleReceipt> = when (this) {
+        is RuleNode.All -> children.flatMap { child ->
+            child.remainingRuleReceipts(receiptsByRuleId)
+        }
+
+        is RuleNode.Any -> if (children.any { child -> child.isSatisfied(receiptsByRuleId) }) {
+            emptyList()
+        } else {
+            children.flatMap { child -> child.remainingRuleReceipts(receiptsByRuleId) }
+        }
+
+        is RuleNode.Atomic,
+        is RuleNode.ManualCheck,
+        -> listOfNotNull(receiptsByRuleId[id]).filter { receipt ->
+            receipt.result != RuleResult.PASS
+        }
+    }
+
+    private fun RuleNode.isSatisfied(
+        receiptsByRuleId: Map<String, RuleReceipt>,
+    ): Boolean = when (this) {
+        is RuleNode.All -> children.all { child -> child.isSatisfied(receiptsByRuleId) }
+
+        is RuleNode.Any -> children.any { child -> child.isSatisfied(receiptsByRuleId) }
+
+        is RuleNode.Atomic,
+        is RuleNode.ManualCheck,
+        -> receiptsByRuleId[id]?.result == RuleResult.PASS
     }
 }

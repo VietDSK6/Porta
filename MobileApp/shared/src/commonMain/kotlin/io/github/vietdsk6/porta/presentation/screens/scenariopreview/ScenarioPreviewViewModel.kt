@@ -7,12 +7,16 @@ import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.ActionTarget
+import io.github.vietdsk6.porta.domain.model.ActionTemplate
+import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleRef
+import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.ScenarioImpactReceipt
 import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
@@ -26,6 +30,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class ScenarioPreviewViewModel(
     private val actionId: String,
@@ -143,56 +148,26 @@ class ScenarioPreviewViewModel(
             today = today,
         )
         val opportunitiesById = activeOpportunities.associateBy { it.id }
-        val improvedIds = scenario.resolvedHardGapOpportunityIds(action.target)
-            .filter { opportunityId ->
-                opportunitiesById[opportunityId]
-                    ?.isFeasibleForPlanning(
-                        today = today,
-                        minimumDurationDays = action.minimumDurationDays,
-                    )
-                    ?: false
-            }
-            .toSet()
-        val wouldPassCurrentChecks = scenario.deltas
-            .filter {
-                it.opportunityId in improvedIds &&
-                    it.before != EligibilityState.OPEN &&
-                    it.after == EligibilityState.OPEN
-            }
-            .mapNotNull { delta ->
-                opportunitiesById[delta.opportunityId]?.let { opportunity ->
-                    ScenarioDoorUiState(
-                        id = opportunity.id,
-                        title = opportunity.title,
-                        stateLabel = "Would pass current checks",
-                        actualStateLabel = delta.before.trustLabel(),
-                        simulatedStateLabel = delta.after.trustLabel(),
-                    )
-                }
-            }
+        val addressedIds = scenario.resolvedHardGapOpportunityIds(action.target).toSet()
+        val impactedDoors = scenario.impacts.mapNotNull { impact ->
+            val opportunity = opportunitiesById[impact.opportunityId] ?: return@mapNotNull null
+            impact.toUiState(
+                opportunity = opportunity,
+                action = action,
+                today = today,
+                addressesCheckedRequirement = impact.opportunityId in addressedIds,
+            )
+        }
+        val wouldPassCurrentChecks = impactedDoors.filter { door ->
+            door.id in addressedIds &&
+                door.timingWarning == null &&
+                scenario.simulated.getValue(door.id).state == EligibilityState.OPEN
+        }
         val passedIds = wouldPassCurrentChecks.map(ScenarioDoorUiState::id).toSet()
-        val progressed = improvedIds
-            .filterNot(passedIds::contains)
-            .mapNotNull { opportunityId ->
-                opportunitiesById[opportunityId]?.let { opportunity ->
-                    val before = scenario.baseline.getValue(opportunityId).state
-                    val after = scenario.simulated.getValue(opportunityId).state
-                    val outcome = if (after == EligibilityState.NEEDS_INFO) {
-                        "Still needs information or source review"
-                    } else {
-                        "Would address one checked requirement"
-                    }
-                    ScenarioDoorUiState(
-                        id = opportunity.id,
-                        title = opportunity.title,
-                        stateLabel = outcome,
-                        actualStateLabel = before.trustLabel(),
-                        simulatedStateLabel = after.trustLabel(),
-                    )
-                }
-            }
+        val progressed = impactedDoors.filterNot { it.id in passedIds }
+        val impactedIds = impactedDoors.map(ScenarioDoorUiState::id).toSet()
         val unchanged = activeOpportunities
-            .filterNot { it.id in improvedIds }
+            .filterNot { it.id in impactedIds }
             .map { opportunity ->
                 val state = scenario.baseline.getValue(opportunity.id).state
                 ScenarioDoorUiState(
@@ -223,6 +198,69 @@ class ScenarioPreviewViewModel(
     private fun FactKey.readable(): String = when (this) {
         FactKey.IELTS_SCORE -> "IELTS"
         else -> name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+    }
+
+    private fun ScenarioImpactReceipt.toUiState(
+        opportunity: Opportunity,
+        action: ActionTemplate,
+        today: LocalDate,
+        addressesCheckedRequirement: Boolean,
+    ): ScenarioDoorUiState {
+        val timingFeasible = opportunity.isFeasibleForPlanning(today, action.minimumDurationDays)
+        val changedToPass = changedRules.any { it.beforeResult != RuleResult.PASS && it.afterResult == RuleResult.PASS }
+        val outcome = when {
+            !timingFeasible -> "A check changes, but this estimate misses the published deadline"
+
+            afterState == EligibilityState.OPEN && addressesCheckedRequirement -> "Would pass current checks"
+
+            changedToPass && afterState == EligibilityState.NEEDS_INFO ->
+                "Would address a checked requirement; verification remains"
+
+            changedToPass -> "Would address one checked requirement"
+
+            else -> "The value changes, but the encoded check result does not"
+        }
+        return ScenarioDoorUiState(
+            id = opportunity.id,
+            title = opportunity.title,
+            stateLabel = outcome,
+            actualStateLabel = beforeState.trustLabel(),
+            simulatedStateLabel = afterState.trustLabel(),
+            changedRules = changedRules.map { delta ->
+                ScenarioRuleChangeUiState(
+                    id = delta.ruleId,
+                    explanation = delta.explanation,
+                    beforeLabel = delta.beforeActual?.displayValue() ?: "Not provided",
+                    afterLabel = delta.afterActual?.displayValue() ?: "Not provided",
+                    resultTransitionLabel = "${delta.beforeResult.readable()} → ${delta.afterResult.readable()}",
+                )
+            },
+            remainingBlockers = remainingRules.map { rule ->
+                when (rule.result) {
+                    RuleResult.FAIL -> "Still needs action: ${rule.explanation}"
+                    RuleResult.UNKNOWN -> "Still needs information: ${rule.explanation}"
+                    RuleResult.REVIEW -> "Still needs source review: ${rule.explanation}"
+                    RuleResult.PASS -> error("Passed rules are not remaining blockers.")
+                }
+            },
+            timingLabel = when (val publishedDeadline = deadline) {
+                is Deadline.Known -> "Published deadline: ${publishedDeadline.date}"
+                Deadline.Tba -> "Deadline: TBA — verify before planning"
+                Deadline.Missing -> "No single published deadline — check the live source"
+            },
+            timingWarning = if (timingFeasible) {
+                null
+            } else {
+                "The ${action.minimumDurationDays}-day Porta estimate extends beyond the published deadline."
+            },
+        )
+    }
+
+    private fun RuleResult.readable(): String = when (this) {
+        RuleResult.PASS -> "Check passed"
+        RuleResult.FAIL -> "Needs action"
+        RuleResult.UNKNOWN -> "Information missing"
+        RuleResult.REVIEW -> "Source review needed"
     }
 
     private companion object {

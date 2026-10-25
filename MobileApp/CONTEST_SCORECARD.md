@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 24 October 2026
+> Last updated: 25 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -59,6 +59,9 @@ Current evidence:
 - [x] Constraint-aware Action Frontier now persists time/effort/cost/saved-door priorities, reacts to Room-backed
   saves, diagnoses excluded milestones, and exposes a selectable impact map; domain, ViewModel and Compose UI tests
   cover the ranking and disclosure behavior.
+- [x] Wave B validates four official-source vertical-slice records and exposes check-level What-if receipts: exact
+  result transitions, remaining failed/unknown/manual checks, deadline feasibility, programme-scoped impact and a
+  source-opening path. Detail CTAs now bind only to an unmet, actionable rule that can fit its published deadline.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 

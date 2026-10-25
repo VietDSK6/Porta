@@ -4,6 +4,10 @@
 > interpretation of public provider pages. It is not an endorsement, partnership, or guarantee of
 > eligibility. Always confirm the live source before acting.
 
+> Wave B vertical-slice recheck: **25 October 2026**. Erasmus Mundus, DAAD EPOS,
+> JJ/WBGSP and OECD were read again against the official sources for the scripted scenarios below.
+> Other records retain their 21 October review date.
+
 ## Encoding policy
 
 - `ATOMIC` is used only when the published condition maps directly to a typed Porta fact.
@@ -13,6 +17,25 @@
 - `TBA` and rolling deadlines never inherit a date from an older cycle.
 - Action duration, effort and cost are labelled Porta planning estimates; providers do not publish
   those estimates.
+
+## Source-backed vertical-slice fixtures
+
+These fixtures test check-level progress, not admission probability or provider approval. A changed
+typed check may still leave manual conditions or deadline uncertainty, so none of these fixtures is
+allowed to claim that an applicant will be accepted.
+
+| Fixture | Baseline → scenario | Exact encoded change | What must remain visible |
+|---|---|---|---|
+| First-degree milestone | `degreeCompleted=false → true` | The published first-degree check changes for Erasmus Mundus and DAAD EPOS. The JJ/WBGSP degree-presence check also changes, but its three-year timing rule remains manual and its known deadline may make a new completion plan infeasible. | Programme-specific entry rules, degree timing, course fit and TBA deadlines remain unresolved. |
+| Experience milestone | `experienceMonths=6 → 36` | The 24-month DAAD EPOS and 36-month JJ/WBGSP duration checks change from fail to pass. | Relevance, paid/post-degree timing, counting windows, country and admission rules remain manual. |
+| OECD availability confirmation | no OECD assertion → confirmed for the OECD availability rule | Only `oecd-availability` changes; the assertion is scoped to that programme and rule fingerprint. | Field/language fit and the rolling application source check remain unresolved; no other programme inherits the assertion. |
+
+Official wording rechecked for these fixtures:
+
+- [Erasmus Mundus — What you need](https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters): bachelor degree, final-year, or recognised equivalent route; programme-specific requirements and dates.
+- [DAAD EPOS — Requirements](https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777): related bachelor degree and at least two years of relevant professional experience after the first degree.
+- [JJ/WBGSP — Who is Eligible to Apply?](https://www.worldbank.org/en/programs/scholarships/jj-wbgsp): bachelor degree earned at least three years before the deadline and three years of qualifying paid development-related employment in the stated window.
+- [OECD internships — Who can apply?](https://www.oecd.org/en/about/careers/internships.html): full-time degree enrolment for the placement and availability for at least one month.
 
 ## Records
 

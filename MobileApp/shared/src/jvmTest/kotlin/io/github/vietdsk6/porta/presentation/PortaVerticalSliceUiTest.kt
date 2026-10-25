@@ -36,6 +36,7 @@ import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoo
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiEvent
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiState
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioRuleChangeUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -225,10 +226,23 @@ class PortaVerticalSliceUiTest {
     @Test
     fun `scenario keeps what-if label visible and saves only on explicit action`() = runComposeUiTest {
         val events = mutableListOf<ScenarioPreviewUiEvent>()
+        val changedDoor = scenarioState.openedDoors.first().copy(
+            changedRules = listOf(
+                ScenarioRuleChangeUiState(
+                    id = "ielts",
+                    explanation = "Requires IELTS 7.0 or above.",
+                    beforeLabel = "6.5 band",
+                    afterLabel = "7.0 band",
+                    resultTransitionLabel = "Needs action → Check passed",
+                ),
+            ),
+            remainingBlockers = listOf("Still needs source review: Confirm the programme deadline."),
+            timingLabel = "Deadline: TBA — verify before planning",
+        )
         setContent {
             AppTheme {
                 ScenarioPreviewScreen(
-                    uiState = scenarioState.copy(openedDoors = scenarioState.openedDoors.take(1)),
+                    uiState = scenarioState.copy(openedDoors = listOf(changedDoor)),
                     onUiEvent = { events += it },
                     onNavigateBack = {},
                     onBuildProfile = {},
@@ -238,6 +252,10 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithText("Simulation — your saved profile is unchanged.").assertExists()
         onNodeWithText("1 door is affected by this simulation.").assertExists()
+        onNodeWithText("Changed check").assertExists()
+        onNodeWithText("Needs action → Check passed").assertExists()
+        onNodeWithText("Still unresolved").assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
     }

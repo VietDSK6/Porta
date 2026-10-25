@@ -12,6 +12,7 @@ import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleReceipt
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
@@ -26,6 +27,35 @@ class ActionFrontierEngine(
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val scenarioEvaluator: ScenarioEvaluator,
 ) {
+    /** Returns the first unmet, ethically actionable check that can still fit its published deadline. */
+    fun relevantActionFor(
+        profile: ProfileSnapshot,
+        opportunity: Opportunity,
+        today: LocalDate,
+    ): ActionTemplate? {
+        val templates = opportunity.actionTemplates.associateBy(ActionTemplate::id)
+        return eligibilityEvaluator.evaluate(profile, opportunity, today)
+            .rules
+            .mapNotNull { receipt ->
+                val template = receipt.actionTemplateId?.let(templates::get) ?: return@mapNotNull null
+                RelevantCandidate(receipt = receipt, template = template)
+            }
+            .filter { candidate ->
+                candidate.template.targetsReceipt(opportunity.id, candidate.receipt) &&
+                    candidate.template.canAddress(candidate.receipt.result) &&
+                    candidate.template.isEthicallyActionable() &&
+                    opportunity.isFeasibleForPlanning(today, candidate.template.minimumDurationDays)
+            }
+            .minWithOrNull(
+                compareBy<RelevantCandidate> { if (it.receipt.result == RuleResult.FAIL) 0 else 1 }
+                    .thenBy { it.template.minimumDurationDays }
+                    .thenBy { it.template.effort.rank }
+                    .thenBy { it.template.costBand.rank }
+                    .thenBy { it.template.id },
+            )
+            ?.template
+    }
+
     fun build(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,
@@ -57,10 +87,7 @@ class ActionFrontierEngine(
                 receipt.actionTemplateId
                     ?.let(templates::get)
                     ?.takeIf { template ->
-                        template.targetsReceipt(
-                            opportunityId = opportunity.id,
-                            ruleId = receipt.ruleId,
-                        )
+                        template.targetsReceipt(opportunityId = opportunity.id, receipt = receipt)
                     }
                     ?.takeIf { template -> template.canAddress(receipt.result) }
             }
@@ -257,12 +284,15 @@ class ActionFrontierEngine(
 
     private fun ActionTemplate.targetsReceipt(
         opportunityId: String,
-        ruleId: String,
+        receipt: RuleReceipt,
     ): Boolean = when (val actionTarget = target) {
-        is ActionTarget.ProfileFactTarget -> true
+        is ActionTarget.ProfileFactTarget -> receipt.actionTemplateId == id && receipt.factKey == actionTarget.factKey
 
         is ActionTarget.OpportunityRuleTarget -> {
-            actionTarget.opportunityId == opportunityId && actionTarget.ruleId == ruleId
+            receipt.actionTemplateId == id &&
+                actionTarget.opportunityId == opportunityId &&
+                actionTarget.ruleId == receipt.ruleId &&
+                receipt.factKey == actionTarget.factKey
         }
     }
 
@@ -306,4 +336,9 @@ class ActionFrontierEngine(
 
     private fun ActionTemplate.isEthicallyActionable(): Boolean = targetActionability == Actionability.CONTROLLABLE ||
         targetActionability == Actionability.TIME_DEPENDENT
+
+    private data class RelevantCandidate(
+        val receipt: RuleReceipt,
+        val template: ActionTemplate,
+    )
 }
