@@ -36,6 +36,7 @@ fun OpportunityDetailScreen(
     viewModel: OpportunityDetailViewModel,
     onNavigateBack: () -> Unit,
     onPreviewAction: (String) -> Unit,
+    onEditProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -45,6 +46,7 @@ fun OpportunityDetailScreen(
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
         onPreviewAction = onPreviewAction,
+        onEditProfile = onEditProfile,
         onOpenSource = { url ->
             if (url.startsWith("https://")) {
                 runCatching { uriHandler.openUri(url) }
@@ -60,6 +62,7 @@ fun OpportunityDetailScreen(
     onUiEvent: (OpportunityDetailUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
     onPreviewAction: (String) -> Unit,
+    onEditProfile: () -> Unit = {},
     onOpenSource: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -116,6 +119,15 @@ fun OpportunityDetailScreen(
                     }
                 }
             }
+            if (uiState.informationTasks.isNotEmpty()) {
+                item {
+                    InformationTasksSection(
+                        tasks = uiState.informationTasks,
+                        onEditProfile = onEditProfile,
+                        onOpenSource = { onOpenSource(uiState.sourceUrl) },
+                    )
+                }
+            }
             item {
                 RuleSection(
                     title = "Needs information or source review",
@@ -134,6 +146,57 @@ fun OpportunityDetailScreen(
             }
             item { SoftSelectionFactors(uiState.softCriteria) }
             item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
+        }
+    }
+}
+
+@Composable
+private fun InformationTasksSection(
+    tasks: List<InformationTaskUiState>,
+    onEditProfile: () -> Unit,
+    onOpenSource: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Information tasks", style = AppTheme.typography.h6)
+        Text(
+            "These tasks only fill missing information. They do not improve a check until you save a real answer and Porta evaluates it.",
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+        )
+        tasks.forEach { task ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().testTag("information-task-${task.id}"),
+                color = AppTheme.colors.alternative,
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(task.title, fontWeight = FontWeight.Bold, style = AppTheme.typography.bodyLarge)
+                    Text(task.question, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
+                    if (task.sourceNote.isNotBlank()) {
+                        Text(
+                            task.sourceNote,
+                            color = AppTheme.colors.text.secondary,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = when (task.destination) {
+                            InformationTaskDestination.ACADEMIC_PROFILE -> onEditProfile
+                            InformationTaskDestination.OFFICIAL_SOURCE -> onOpenSource
+                        },
+                    ) {
+                        Text(
+                            when (task.destination) {
+                                InformationTaskDestination.ACADEMIC_PROFILE -> "Update academic profile"
+                                InformationTaskDestination.OFFICIAL_SOURCE -> "Check official source"
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -311,6 +374,7 @@ private fun OpportunityDetailScreenPreview() {
             onUiEvent = {},
             onNavigateBack = {},
             onPreviewAction = {},
+            onEditProfile = {},
         )
     }
 }

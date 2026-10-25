@@ -1,6 +1,7 @@
 package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
 
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleResult
 
 data class OpportunityDetailUiState(
@@ -21,6 +22,7 @@ data class OpportunityDetailUiState(
     val relatedActionId: String? = null,
     val relatedActionTitle: String = "",
     val nextStepGuidance: String = "",
+    val informationTasks: List<InformationTaskUiState> = emptyList(),
     val canOpenSource: Boolean = false,
     val isSampleProfile: Boolean = true,
     val isSampleCatalog: Boolean = true,
@@ -35,6 +37,20 @@ data class RuleReceiptUiState(
     val expectedLabel: String,
     val sourceNote: String,
 )
+
+data class InformationTaskUiState(
+    val id: String,
+    val factKey: FactKey,
+    val title: String,
+    val question: String,
+    val sourceNote: String,
+    val destination: InformationTaskDestination,
+)
+
+enum class InformationTaskDestination {
+    ACADEMIC_PROFILE,
+    OFFICIAL_SOURCE,
+}
 
 sealed interface OpportunityDetailUiEvent {
     data object Acknowledged : OpportunityDetailUiEvent

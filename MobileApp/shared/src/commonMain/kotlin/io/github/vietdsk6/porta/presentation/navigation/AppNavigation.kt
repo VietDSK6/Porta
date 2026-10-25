@@ -231,6 +231,9 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             onPreviewAction = { actionId ->
                 navigator.navigate(ScenarioPreviewScreenRoute(actionId = actionId))
             },
+            onEditProfile = {
+                navigator.navigate(ProfileSetupScreenRoute(returnToProfile = true))
+            },
         )
     }
 

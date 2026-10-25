@@ -24,6 +24,7 @@ import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
+import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
@@ -31,6 +32,7 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiEvent
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
+import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.InformationTaskDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GpaScaleOption
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
@@ -285,6 +287,57 @@ class PersistedProfileViewModelTest {
 
         assertFalse(viewModel.uiState.value.isSampleProfile)
         assertEquals("7.0 band", viewModel.uiState.value.rules.single().actualLabel)
+    }
+
+    @Test
+    fun `missing sourced facts create information tasks without claiming profile improvement`() = runTest(dispatcher) {
+        opportunityPackRepository.importPack(
+            BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson(),
+        ).getOrThrow()
+        saveIelts(6.5)
+
+        fun detail(opportunityId: String) = OpportunityDetailViewModel(
+            opportunityId = opportunityId,
+            eligibilityEvaluator = eligibilityEvaluator,
+            actionFrontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator),
+            profileRepository = repository,
+            opportunityPackRepository = opportunityPackRepository,
+            currentLocalDateProvider = currentLocalDateProvider,
+        )
+
+        val daad = detail("daad-epos-2027-2028")
+        val kotlinContest = detail("kotlin-student-coding-competition-2026")
+        val oecd = detail("oecd-internship-rolling")
+        advanceUntilIdle()
+
+        assertEquals(
+            setOf(FactKey.DEGREE_COMPLETED, FactKey.EXPERIENCE_MONTHS),
+            daad.uiState.value.informationTasks.mapTo(mutableSetOf()) { it.factKey },
+        )
+        assertTrue(
+            kotlinContest.uiState.value.informationTasks.any { task ->
+                task.factKey == FactKey.ENROLLED
+            },
+        )
+        assertTrue(
+            (daad.uiState.value.informationTasks + kotlinContest.uiState.value.informationTasks)
+                .all { task -> task.destination == InformationTaskDestination.ACADEMIC_PROFILE },
+        )
+        assertTrue(daad.uiState.value.informationTasks.all { it.sourceNote.isNotBlank() })
+        assertEquals(
+            InformationTaskDestination.OFFICIAL_SOURCE,
+            oecd.uiState.value.informationTasks
+                .single { it.factKey == FactKey.AVAILABLE_FULL_PERIOD }
+                .destination,
+        )
+        assertNull(daad.uiState.value.relatedActionId)
+        assertNull(kotlinContest.uiState.value.relatedActionId)
+        assertTrue(daad.uiState.value.nextStepGuidance.contains("not progress"))
+        assertEquals(EligibilityState.NEEDS_INFO, daad.uiState.value.state)
+        assertTrue(daad.uiState.value.rules.none { rule -> rule.result == RuleResult.PASS })
+
+        val savedFacts = repository.getProfile().getOrThrow().facts
+        assertEquals(setOf(FactKey.IELTS_SCORE), savedFacts.keys)
     }
 
     @Test

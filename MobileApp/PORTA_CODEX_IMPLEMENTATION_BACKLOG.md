@@ -105,10 +105,10 @@
 5. Choose result labels that are truthful even if overall stays NEEDS_INFO.
 
 **Done when:**
-- [ ] At least 3 real-data scenario fixtures with official-source-backed check changes.
-- [ ] Each fixture: baseline, scenario, exact changed checks, remaining unknown/manual, timing state.
-- [ ] No invented eligibility or source claims.
-- [ ] One particularly legible demo of one legitimate action affecting >1 real opportunity **if official data permits**; otherwise explain absence, don't force it.
+- [x] At least 3 real-data scenario fixtures with official-source-backed check changes.
+- [x] Each fixture: baseline, scenario, exact changed checks, remaining unknown/manual, timing state.
+- [x] No invented eligibility or source claims.
+- [x] One particularly legible demo of one legitimate action affecting >1 real opportunity **if official data permits**; otherwise explain absence, don't force it.
 
 **Files:** `PortaContestPackData.kt`, `OPPORTUNITY_PACK_SOURCES.md`, `BundledOpportunityPackProviderTest.kt`.
 
@@ -119,10 +119,10 @@
 **Work:** derive CTA from rule receipts and candidate engine; require exact opportunity/rule association and constraints; if none, explicit no-action/verification state. Show source URL as clickable using safe URI handling.
 
 **Done when:**
-- [ ] Detail CTA never previews a passed/irrelevant rule.
-- [ ] No template? No fake “next move”; show honest manual next step.
-- [ ] Official URL opens correctly, with metadata date/source.
-- [ ] Saved state preserved across navigation.
+- [x] Detail CTA never previews a passed/irrelevant rule.
+- [x] No template? No fake “next move”; show honest manual next step.
+- [x] Official URL opens correctly, with metadata date/source.
+- [x] Saved state preserved across navigation.
 
 **Files:** `OpportunityDetailViewModel.kt`, `OpportunityDetailScreen.kt`, `ActionFrontierEngine.kt`.
 
@@ -133,10 +133,10 @@
 **Work:** create reusable impact receipt model with previous/current rule result, per-opportunity status, untouched blockers, timing. Distinguish `improved rule` from `newly OPEN`, from `pending verification`. Keep hypothetical memory-only, plan does not auto-confirm.
 
 **Done when:**
-- [ ] Every preview says exactly what changes and what does not.
-- [ ] TBA deadline/manual conditions remain explicit.
-- [ ] Profile actual unchanged after preview/Add to plan/plan completed.
-- [ ] Exact changed rule tests in ScenarioEvaluator and UI.
+- [x] Every preview says exactly what changes and what does not.
+- [x] TBA deadline/manual conditions remain explicit.
+- [x] Profile actual unchanged after preview/Add to plan/plan completed.
+- [x] Exact changed rule tests in ScenarioEvaluator and UI.
 
 **Files:** `ScenarioEvaluator.kt`, `ScenarioPreviewViewModel.kt`, preview screen, actual update tests.
 
@@ -146,7 +146,10 @@
 
 **Work:** create a non-unlocking `VERIFY_INFO` task or contextual profile prompt, linked to exact question/source; never treat it as improvement in eligibility score until actual fact entered and re-evaluated.
 
-**Done when:** missing degree/enrollment/experience data shows honest actionable prompt; cannot silently create PASS; no unsupported rule auto-filled.
+**Done when:**
+- [x] Missing degree/enrollment/experience data shows an honest contextual information task.
+- [x] Profile facts and programme-scoped checks route to the correct profile/source destination.
+- [x] Creating or opening an information task cannot write a fact, create PASS, or count as frontier impact.
 
 ## C1 — Next moves information hierarchy
 

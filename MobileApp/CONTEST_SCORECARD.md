@@ -62,6 +62,9 @@ Current evidence:
 - [x] Wave B validates four official-source vertical-slice records and exposes check-level What-if receipts: exact
   result transitions, remaining failed/unknown/manual checks, deadline feasibility, programme-scoped impact and a
   source-opening path. Detail CTAs now bind only to an unmet, actionable rule that can fit its published deadline.
+- [x] Missing real facts now create source-linked information tasks instead of simulated improvements: global facts
+  route to explicit profile editing, scoped checks route to the official programme source, and tests prove that
+  opening either path neither writes a fact nor creates a passing result.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 

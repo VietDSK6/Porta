@@ -19,6 +19,7 @@ import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorCardUiState
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
@@ -29,6 +30,8 @@ import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierExcludedAc
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiState
+import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.InformationTaskDestination
+import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.InformationTaskUiState
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailScreen
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailUiState
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.RuleReceiptUiState
@@ -307,6 +310,42 @@ class PortaVerticalSliceUiTest {
         onNodeWithTag("opportunity-detail-content").performScrollToIndex(6)
         onNodeWithText("Source and last review").assertExists()
         onNodeWithText("Sample data only.").assertExists()
+    }
+
+    @Test
+    fun `missing fact task opens profile without claiming progress`() = runComposeUiTest {
+        var editRequested = false
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 390.dp, height = 700.dp)) {
+                    OpportunityDetailScreen(
+                        uiState = receiptState.copy(
+                            nextStepGuidance = "Adding information is not progress by itself.",
+                            informationTasks = listOf(
+                                InformationTaskUiState(
+                                    id = "degree-status",
+                                    factKey = FactKey.DEGREE_COMPLETED,
+                                    title = "Add your degree completion status",
+                                    question = "Applicants must hold a bachelor's degree or equivalent.",
+                                    sourceNote = "Official eligibility section, reviewed 2026-10-25.",
+                                    destination = InformationTaskDestination.ACADEMIC_PROFILE,
+                                ),
+                            ),
+                        ),
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onPreviewAction = {},
+                        onEditProfile = { editRequested = true },
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(4)
+        onNodeWithTag("information-task-degree-status").assertIsDisplayed()
+        onNodeWithText("Update academic profile").performClick()
+        runOnIdle { assertTrue(editRequested) }
+        onNodeWithText("These tasks only fill missing information.", substring = true).assertExists()
     }
 
     private val doorsState = DoorsUiState(

@@ -6,7 +6,9 @@ import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Deadline
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
@@ -85,6 +87,25 @@ class OpportunityDetailViewModel(
                 opportunity = opportunity,
                 today = today,
             )
+            val informationTasks = receipt.rules.mapNotNull { rule ->
+                if (rule.result != RuleResult.UNKNOWN || rule.factKey == null) return@mapNotNull null
+                val target = rule.actionTemplateId
+                    ?.let { actionId -> opportunity.actionTemplates.firstOrNull { it.id == actionId } }
+                    ?.target
+                val destination = if (target is ActionTarget.OpportunityRuleTarget) {
+                    InformationTaskDestination.OFFICIAL_SOURCE
+                } else {
+                    InformationTaskDestination.ACADEMIC_PROFILE
+                }
+                InformationTaskUiState(
+                    id = rule.ruleId,
+                    factKey = rule.factKey,
+                    title = rule.factKey.informationTaskTitle(),
+                    question = rule.explanation,
+                    sourceNote = rule.sourceNote.orEmpty(),
+                    destination = destination,
+                )
+            }
             OpportunityDetailUiState(
                 id = opportunity.id,
                 title = opportunity.title,
@@ -115,6 +136,9 @@ class OpportunityDetailViewModel(
                     relatedAction != null ->
                         "This milestone addresses an unmet encoded check. Preview it before changing your saved profile."
 
+                    informationTasks.isNotEmpty() ->
+                        "Porta needs facts from you before it can suggest a legitimate milestone. Adding information is not progress by itself."
+
                     receipt.rules.any { it.result == RuleResult.FAIL && it.actionTemplateId != null } ->
                         "A linked milestone does not fit the published timing. Recheck the official cycle before planning it."
 
@@ -124,6 +148,7 @@ class OpportunityDetailViewModel(
 
                     else -> "Porta has no evidence-backed profile change to suggest for this door."
                 },
+                informationTasks = informationTasks,
                 canOpenSource = opportunity.sourceUrl.startsWith("https://"),
                 isSampleProfile = isSampleProfile,
                 isSampleCatalog = isSampleCatalog,
@@ -134,5 +159,12 @@ class OpportunityDetailViewModel(
         is Deadline.Known -> "Deadline $date"
         Deadline.Missing -> "Deadline missing"
         Deadline.Tba -> "Deadline TBA"
+    }
+
+    private fun FactKey.informationTaskTitle(): String = when (this) {
+        FactKey.DEGREE_COMPLETED -> "Add your degree completion status"
+        FactKey.ENROLLED -> "Add your current enrollment status"
+        FactKey.EXPERIENCE_MONTHS -> "Add your relevant experience duration"
+        else -> "Add your ${name.lowercase().replace('_', ' ')} information"
     }
 }
