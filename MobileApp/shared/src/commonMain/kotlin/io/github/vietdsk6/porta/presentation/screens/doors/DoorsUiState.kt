@@ -13,6 +13,8 @@ data class DoorsUiState(
     val needsInfoCount: Int = 0,
     val notAvailableCount: Int = 0,
     val closedCount: Int = 0,
+    val archivedCount: Int = 0,
+    val sourceReviewDueCount: Int = 0,
     val highlightedDoorIds: Set<String> = emptySet(),
 )
 
@@ -25,6 +27,8 @@ data class DoorCardUiState(
     val stateLabel: String,
     val deadlineLabel: String,
     val checkedLabel: String,
+    val isArchived: Boolean = false,
+    val sourceReviewNeedsAttention: Boolean = false,
     val isSaved: Boolean,
     val primaryReason: String,
 )
@@ -36,6 +40,7 @@ enum class DoorFilter(val label: String) {
     VERIFY("NEEDS INFORMATION"),
     NOT_AVAILABLE("NOT AVAILABLE THIS CYCLE"),
     CLOSED("CLOSED"),
+    ARCHIVED("ARCHIVED CYCLES"),
     SAVED("SAVED"),
 }
 

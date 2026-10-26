@@ -12,6 +12,7 @@ import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
+import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
@@ -239,6 +240,24 @@ class EligibilityEvaluatorTest {
 
         assertEquals(EligibilityState.OPEN, onDeadline.state)
         assertEquals(EligibilityState.CLOSED, afterDeadline.state)
+    }
+
+    @Test
+    fun `archived record is closed with an explicit archived cycle status`() {
+        val rule = atomic(
+            id = "enrolled",
+            key = FactKey.ENROLLED,
+            operator = Operator.EQUALS,
+            expected = FactValue.BooleanValue(true),
+        )
+        val receipt = evaluator.evaluate(
+            profile = profile(FactKey.ENROLLED to FactValue.BooleanValue(true)),
+            opportunity = opportunity(rule).copy(archived = true),
+            today = today,
+        )
+
+        assertEquals(EligibilityState.CLOSED, receipt.state)
+        assertEquals(OpportunityCycleStatus.ARCHIVED, receipt.cycleStatus)
     }
 
     @Test

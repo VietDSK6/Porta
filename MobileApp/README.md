@@ -27,6 +27,11 @@ hypothetical value into the actual profile; the student must confirm a real upda
 Programme-specific confirmations are scoped to one opportunity and one rule fingerprint. Confirming availability
 for one internship cannot silently change another programme, and a changed source rule makes an old assertion stale.
 
+Every opportunity shows the date Porta last reviewed its official source. Porta uses a visible 90-day catalog
+maintenance window to flag records for another manual review; this is an internal stewardship signal, not a claim
+that a provider independently verified the data. The app re-evaluates deadlines when the local calendar day changes.
+Archived cycles remain inspectable but are separated from ordinary closed deadlines and excluded from action planning.
+
 Porta does **not** predict admission or scholarship success, turn soft selection criteria into pass/fail rules, scrape
 providers, submit applications, or use AI to decide eligibility.
 
@@ -162,6 +167,8 @@ platform work, including iOS.
 - Provider-specific, constituency-specific, legal, soft, or ambiguous conditions remain explicit manual checks.
 - Action duration, cost, and effort are Porta planning estimates, not provider claims.
 - TBA and rolling deadlines are never inferred from an older cycle.
+- Opportunity-pack imports show an added/changed/removed preview before activation. Profile facts and saved doors are
+  preserved; programme confirmations whose exact rule fingerprint changed remain stored but no longer satisfy checks.
 - The contest build has no cloud sync, automatic source refresh, or application submission.
 
 Always confirm the linked official source before acting on an opportunity.

@@ -204,6 +204,17 @@ remains part of the final D3 validation.
 
 **Done when:** archived and date-expired opportunities are correctly distinguished; re-evaluation occurs with local-date change; update path preserves or explicitly invalidates previous assertions safely.
 
+**Done:** opportunity lifecycle now distinguishes an archived record from a live-cycle record whose known deadline
+has passed, exposes a dedicated Archived filter/count, and excludes archived records from Action Frontier planning.
+Source dates use a documented 90-day Porta catalog-maintenance window; Doors, detail and Pack Inspector show the
+exact last-reviewed date and visibly flag records needing catalog review without calling them provider-verified.
+The shared local-date provider emits on resume and day rollover, and Doors, detail, Next moves, What-if, active plan
+and profile validation re-evaluate from that same clock; tests prove an open door closes after the injected day
+changes. JSON imports and bundled-pack restoration now stop at a user-approved diff preview showing added, changed,
+removed and unchanged records, source-review warnings and the number of stored programme confirmations whose exact
+rule fingerprint will become stale. Saved doors and profile data remain; stale assertions remain auditable but the
+eligibility engine does not apply them.
+
 ## D2 — Clear / reset semantics
 
 **Work:** define `Clear profile` (profile only) vs `Reset all local Porta data` (profile/assertions/saves/plans/pack/preferences as stated). Include confirmations; tests prove removed/retained state exactly.

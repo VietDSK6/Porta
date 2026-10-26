@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -55,6 +56,35 @@ class OpportunityPackRepositoryTest {
     }
 
     @Test
+    fun `preview reports a version diff without activating the candidate`() = runTest {
+        val dao = FakeOpportunityPackDao()
+        val repository = repository(dao)
+        val activeJson = codec.encode(validPack())
+        val candidateJson = codec.encode(
+            validPack().copy(
+                version = 2,
+                opportunities = validPack().opportunities.map { opportunity ->
+                    opportunity.copy(title = "Updated synthetic door")
+                },
+            ),
+        )
+        repository.importPack(activeJson, importedAtEpochMillis = 10L).getOrThrow()
+
+        val preview = repository.previewImport(candidateJson, importedAtEpochMillis = 20L).getOrThrow()
+
+        assertEquals(1, preview.diff.previousVersion)
+        assertEquals(2, preview.diff.candidateVersion)
+        assertEquals(setOf("synthetic-door"), preview.diff.changedOpportunityIds)
+        assertFalse(preview.diff.addedOpportunityIds.isNotEmpty())
+        assertEquals(1, dao.upsertCount)
+        assertEquals(activeJson, dao.getActive()?.rawJson)
+
+        repository.importPack(candidateJson, importedAtEpochMillis = 20L).getOrThrow()
+        assertEquals(2, dao.upsertCount)
+        assertEquals(candidateJson, dao.getActive()?.rawJson)
+    }
+
+    @Test
     fun `changed content with reused version is rejected`() = runTest {
         val dao = FakeOpportunityPackDao()
         val repository = repository(dao)
@@ -62,8 +92,11 @@ class OpportunityPackRepositoryTest {
         val changedJson = codec.encode(validPack().copy(name = "Changed without version bump"))
 
         repository.importPack(firstJson, importedAtEpochMillis = 10L).getOrThrow()
+        val previewConflict = repository.previewImport(changedJson, importedAtEpochMillis = 20L)
         val conflict = repository.importPack(changedJson, importedAtEpochMillis = 20L)
 
+        assertTrue(previewConflict.isFailure)
+        assertIs<OpportunityPackVersionConflictException>(previewConflict.exceptionOrNull())
         assertTrue(conflict.isFailure)
         assertIs<OpportunityPackVersionConflictException>(conflict.exceptionOrNull())
         assertEquals(1, dao.upsertCount)

@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class ActivePlanViewModel(
     private val planRepository: PlanRepository,
@@ -39,7 +40,8 @@ class ActivePlanViewModel(
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
         operation,
-    ) { plan, profile, packResult, operation ->
+        currentLocalDateProvider.currentDate,
+    ) { plan, profile, packResult, operation, today ->
         val activePack = packResult.getOrNull()
         val opportunities = activePack?.opportunities ?: PortaSampleData.opportunities
         ActivePlanUiState(
@@ -47,7 +49,7 @@ class ActivePlanViewModel(
             isWorking = operation.isWorking,
             isSampleCatalog = activePack == null ||
                 activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
-            plan = plan?.toUiState(profile, opportunities),
+            plan = plan?.toUiState(profile, opportunities, today),
             error = operation.error,
         )
     }.stateIn(
@@ -82,6 +84,7 @@ class ActivePlanViewModel(
     private fun PlanItem.toUiState(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,
+        today: LocalDate,
     ): ActivePlanCardUiState {
         val action = opportunities
             .flatMap { it.actionTemplates }
@@ -89,7 +92,6 @@ class ActivePlanViewModel(
         val affectedDoors = if (profile.facts.isEmpty()) {
             emptyList()
         } else {
-            val today = currentLocalDateProvider.today()
             scenarioEvaluator.evaluate(
                 profile = profile,
                 overrides = target.asScenarioOverrides(),

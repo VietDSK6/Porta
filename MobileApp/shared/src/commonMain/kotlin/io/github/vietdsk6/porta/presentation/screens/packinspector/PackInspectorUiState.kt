@@ -6,7 +6,7 @@ data class PackInspectorUiState(
     val activePack: ActivePackUiState? = null,
     val selectedOpportunityId: String? = null,
     val diagnostics: List<PackDiagnosticUiState> = emptyList(),
-    val isRestoreConfirmationVisible: Boolean = false,
+    val pendingUpdate: PendingPackUpdateUiState? = null,
     val message: String? = null,
 )
 
@@ -24,6 +24,7 @@ data class ActivePackUiState(
     val isBundledPack: Boolean,
     val providers: List<String>,
     val opportunities: List<PackOpportunityUiState>,
+    val sourceReviewStatusLabel: String = "",
 )
 
 data class PackOpportunityUiState(
@@ -35,6 +36,19 @@ data class PackOpportunityUiState(
     val sourceUrl: String,
     val sourceSection: String?,
     val ruleNodes: List<RuleNodeUiState>,
+    val sourceReviewNeedsAttention: Boolean = false,
+)
+
+data class PendingPackUpdateUiState(
+    val fileName: String,
+    val packName: String,
+    val versionTransitionLabel: String,
+    val addedCount: Int,
+    val removedCount: Int,
+    val changedCount: Int,
+    val unchangedCount: Int,
+    val staleAssertionCount: Int,
+    val sourceReviewDueCount: Int,
 )
 
 data class RuleNodeUiState(
@@ -64,15 +78,15 @@ sealed interface PackInspectorUiEvent {
 
     data object ImportReadFailed : PackInspectorUiEvent
 
+    data object ImportPreviewCancelled : PackInspectorUiEvent
+
+    data object ImportPreviewConfirmed : PackInspectorUiEvent
+
     data object ExportActivePack : PackInspectorUiEvent
 
     data object ExportDiagnostics : PackInspectorUiEvent
 
     data object RestoreBundledRequested : PackInspectorUiEvent
-
-    data object RestoreBundledCancelled : PackInspectorUiEvent
-
-    data object RestoreBundledConfirmed : PackInspectorUiEvent
 
     data object MessageHandled : PackInspectorUiEvent
 }

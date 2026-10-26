@@ -17,8 +17,10 @@ import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
+import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
+import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class FrontierViewModel(
     private val actionFrontierEngine: ActionFrontierEngine,
@@ -44,6 +47,7 @@ class FrontierViewModel(
     private var isSampleProfile = true
     private var isSampleCatalog = true
     private var activeOpportunities = PortaSampleData.opportunities
+    private var activeDate = currentLocalDateProvider.today()
     private var persistedSavedIds = emptySet<String>()
     private var activePlan: ActivePlanSummaryUiState? = null
     private var selectedActionId: String? = null
@@ -65,17 +69,22 @@ class FrontierViewModel(
                 profileRepository.observeProfile(),
                 opportunityPackRepository.observeActive(),
                 savedOpportunityRepository.observeSavedIds(),
-            ) { profile, packResult, savedIds -> Triple(profile, packResult.getOrNull(), savedIds) }
-                .collect { (profile, pack, savedIds) ->
-                    isSampleProfile = profile.facts.isEmpty()
-                    activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
-                    activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
-                        ?: PortaSampleData.opportunities
-                    persistedSavedIds = savedIds
-                    isSampleCatalog = pack == null ||
-                        pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
-                    _uiState.value = buildState()
-                }
+                currentLocalDateProvider.currentDate,
+            ) { profile, packResult, savedIds, today ->
+                FrontierInputs(profile, packResult.getOrNull(), savedIds, today)
+            }.collect { inputs ->
+                val profile = inputs.profile
+                val pack = inputs.pack
+                isSampleProfile = profile.facts.isEmpty()
+                activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
+                activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
+                    ?: PortaSampleData.opportunities
+                persistedSavedIds = inputs.savedIds
+                activeDate = inputs.today
+                isSampleCatalog = pack == null ||
+                    pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
+                _uiState.value = buildState()
+            }
         }
         viewModelScope.launch {
             planRepository.observeCurrentPlan().collect { plan ->
@@ -171,7 +180,7 @@ class FrontierViewModel(
             opportunities = activeOpportunities,
             savedOpportunityIds = persistedSavedIds,
             constraints = constraints,
-            today = currentLocalDateProvider.today(),
+            today = activeDate,
         )
         val actions = evaluation.actions.map { action ->
             val moveKind = action.template.moveKind()
@@ -346,6 +355,13 @@ class FrontierViewModel(
     private fun String.readableEnumName(): String = lowercase()
         .replace('_', ' ')
         .replaceFirstChar(Char::uppercaseChar)
+
+    private data class FrontierInputs(
+        val profile: ProfileSnapshot,
+        val pack: OpportunityPackDocument?,
+        val savedIds: Set<String>,
+        val today: LocalDate,
+    )
 
     private companion object {
         val ALLOWED_HORIZONS = setOf(30, 90, 180, 365)

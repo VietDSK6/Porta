@@ -468,7 +468,22 @@ private fun SourceDetails(
         if (uiState.sourceSection.isNotBlank()) {
             Text("Section: ${uiState.sourceSection}", color = AppTheme.colors.text.primary)
         }
-        Text(uiState.checkedLabel, color = AppTheme.colors.text.primary)
+        Text(
+            uiState.checkedLabel,
+            color = if (uiState.sourceReviewNeedsAttention) {
+                PORTA_AMBER
+            } else {
+                AppTheme.colors.text.primary
+            },
+            fontWeight = if (uiState.sourceReviewNeedsAttention) FontWeight.SemiBold else FontWeight.Normal,
+        )
+        if (uiState.isArchived) {
+            Text(
+                "Archived records are retained for reference and are excluded from current planning.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodyMedium,
+            )
+        }
         if (uiState.canOpenSource) {
             TextButton(onClick = { onOpenSource(uiState.sourceUrl) }) {
                 Text("Open official source")

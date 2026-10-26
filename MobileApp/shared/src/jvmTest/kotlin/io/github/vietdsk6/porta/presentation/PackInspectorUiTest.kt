@@ -14,6 +14,7 @@ import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspector
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorUiEvent
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorUiState
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackOpportunityUiState
+import io.github.vietdsk6.porta.presentation.screens.packinspector.PendingPackUpdateUiState
 import io.github.vietdsk6.porta.presentation.screens.packinspector.RuleNodeUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -72,6 +73,40 @@ class PackInspectorUiTest {
         onNodeWithText("Hard rules require a source note.").assertExists()
         onNodeWithTag("pack-inspector-export-diagnostics").performScrollTo().performClick()
         assertEquals(PackInspectorUiEvent.ExportDiagnostics, events.last())
+    }
+
+    @Test
+    fun `candidate pack shows diff and stale confirmation warning before activation`() = runComposeUiTest {
+        val events = mutableListOf<PackInspectorUiEvent>()
+        setContent {
+            AppTheme {
+                PackInspectorScreen(
+                    uiState = activePackState.copy(
+                        pendingUpdate = PendingPackUpdateUiState(
+                            fileName = "candidate.json",
+                            packName = "Porta curated opportunity pack",
+                            versionTransitionLabel = "Version 1 → 2",
+                            addedCount = 2,
+                            removedCount = 1,
+                            changedCount = 3,
+                            unchangedCount = 9,
+                            staleAssertionCount = 1,
+                            sourceReviewDueCount = 2,
+                        ),
+                    ),
+                    onUiEvent = { events += it },
+                    onNavigateBack = {},
+                    onImportPack = {},
+                    onOpenSource = {},
+                )
+            }
+        }
+
+        onNodeWithTag("pack-update-preview").assertExists()
+        onNodeWithText("2 added · 3 changed · 1 removed · 9 unchanged").assertExists()
+        onNodeWithText("1 programme confirmation(s) will no longer match", substring = true).assertExists()
+        onNodeWithTag("pack-update-confirm").performClick()
+        assertEquals(PackInspectorUiEvent.ImportPreviewConfirmed, events.last())
     }
 
     private val activePackState = PackInspectorUiState(

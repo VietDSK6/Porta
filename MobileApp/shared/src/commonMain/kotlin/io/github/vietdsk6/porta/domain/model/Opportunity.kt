@@ -122,4 +122,5 @@ data class EligibilityReceipt(
     val rules: List<RuleReceipt>,
     val deadline: Deadline,
     val lastCheckedOn: LocalDate,
+    val cycleStatus: OpportunityCycleStatus = OpportunityCycleStatus.ACTIVE,
 )

@@ -87,6 +87,7 @@ fun DoorsScreen(
                         isSampleProfile = uiState.isSampleMode,
                         isSampleCatalog = uiState.isSampleCatalog,
                         doorCount = uiState.catalogDoorCount,
+                        sourceReviewDueCount = uiState.sourceReviewDueCount,
                     )
                     Text(
                         text = "See how your current profile compares with each published check.",
@@ -120,14 +121,24 @@ private fun ProfileAndPackContext(
     isSampleProfile: Boolean,
     isSampleCatalog: Boolean,
     doorCount: Int,
+    sourceReviewDueCount: Int,
 ) {
     if (!isSampleProfile && !isSampleCatalog) {
-        Text(
-            text = "$doorCount source-linked opportunities · checked on this device",
-            color = AppTheme.colors.primary,
-            fontWeight = FontWeight.Bold,
-            style = AppTheme.typography.bodySmall,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "$doorCount source-linked opportunities · checked on this device",
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.Bold,
+                style = AppTheme.typography.bodySmall,
+            )
+            if (sourceReviewDueCount > 0) {
+                Text(
+                    text = "$sourceReviewDueCount source records need a Porta catalog review. Open a door to confirm the live source.",
+                    color = PORTA_AMBER,
+                    style = AppTheme.typography.bodySmall,
+                )
+            }
+        }
         return
     }
 
@@ -176,6 +187,9 @@ private fun StateSummary(uiState: DoorsUiState) {
             }
             if (uiState.closedCount > 0) {
                 SummaryItem(uiState.closedCount, "CLOSED", PORTA_CORAL)
+            }
+            if (uiState.archivedCount > 0) {
+                SummaryItem(uiState.archivedCount, "ARCHIVED", AppTheme.colors.text.secondary)
             }
         }
     }
@@ -299,6 +313,12 @@ private fun DoorCard(
                 door.deadlineLabel,
                 color = AppTheme.colors.text.secondary,
                 fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                door.checkedLabel,
+                color = if (door.sourceReviewNeedsAttention) PORTA_AMBER else AppTheme.colors.text.secondary,
+                fontWeight = if (door.sourceReviewNeedsAttention) FontWeight.SemiBold else FontWeight.Normal,
                 style = AppTheme.typography.bodySmall,
             )
             if (door.isSaved) {

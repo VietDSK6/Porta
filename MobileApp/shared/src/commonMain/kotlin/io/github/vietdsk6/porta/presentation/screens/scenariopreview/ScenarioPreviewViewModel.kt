@@ -42,6 +42,7 @@ class ScenarioPreviewViewModel(
 ) : ViewModel() {
     private var activeProfile = PortaSampleData.profile
     private var activeOpportunities: List<Opportunity> = PortaSampleData.opportunities
+    private var activeDate = currentLocalDateProvider.today()
     private var isSampleProfile = true
     private val _uiState = MutableStateFlow(
         buildState(
@@ -56,11 +57,13 @@ class ScenarioPreviewViewModel(
             combine(
                 profileRepository.observeProfile(),
                 opportunityPackRepository.observeActive(),
-            ) { profile, packResult -> profile to packResult.getOrNull() }
-                .collect { (profile, pack) ->
+                currentLocalDateProvider.currentDate,
+            ) { profile, packResult, today -> Triple(profile, packResult.getOrNull(), today) }
+                .collect { (profile, pack, today) ->
                     isSampleProfile = profile.facts.isEmpty()
                     activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
                     activeOpportunities = pack?.opportunities ?: PortaSampleData.opportunities
+                    activeDate = today
                     _uiState.value = buildState(
                         profile = activeProfile,
                         isSampleProfile = isSampleProfile,
@@ -140,7 +143,7 @@ class ScenarioPreviewViewModel(
                 RuleRef(target.opportunityId, target.ruleId),
             ]?.value?.displayValue() ?: "Not confirmed"
         }
-        val today = currentLocalDateProvider.today()
+        val today = activeDate
         val scenario = scenarioEvaluator.evaluate(
             profile = profile,
             overrides = action.target.asScenarioOverrides(),

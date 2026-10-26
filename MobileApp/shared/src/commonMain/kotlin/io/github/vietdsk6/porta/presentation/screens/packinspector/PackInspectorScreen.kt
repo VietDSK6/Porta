@@ -141,27 +141,63 @@ fun PackInspectorScreen(
         }
     }
 
-    if (uiState.isRestoreConfirmationVisible) {
-        AlertDialog(
-            onDismissRequest = { onUiEvent(PackInspectorUiEvent.RestoreBundledCancelled) },
-            title = { Text("Restore Porta's curated pack?") },
-            text = {
-                Text(
-                    "The bundled 15-record pack will become active, while your current import remains stored locally.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { onUiEvent(PackInspectorUiEvent.RestoreBundledConfirmed) }) {
-                    Text("Restore curated pack")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onUiEvent(PackInspectorUiEvent.RestoreBundledCancelled) }) {
-                    Text("Cancel")
-                }
-            },
+    uiState.pendingUpdate?.let { pending ->
+        PackUpdatePreviewDialog(
+            pending = pending,
+            isWorking = uiState.isWorking,
+            onConfirm = { onUiEvent(PackInspectorUiEvent.ImportPreviewConfirmed) },
+            onCancel = { onUiEvent(PackInspectorUiEvent.ImportPreviewCancelled) },
         )
     }
+}
+
+@Composable
+private fun PackUpdatePreviewDialog(
+    pending: PendingPackUpdateUiState,
+    isWorking: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        modifier = Modifier.testTag("pack-update-preview"),
+        onDismissRequest = onCancel,
+        title = { Text("Review catalog changes") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${pending.packName} · ${pending.versionTransitionLabel}")
+                Text(
+                    "${pending.addedCount} added · ${pending.changedCount} changed · " +
+                        "${pending.removedCount} removed · ${pending.unchangedCount} unchanged",
+                )
+                if (pending.staleAssertionCount > 0) {
+                    Text(
+                        "${pending.staleAssertionCount} programme confirmation(s) will no longer match the new rule fingerprint. " +
+                            "They stay stored for audit but will not satisfy the updated checks.",
+                        color = AppTheme.colors.status.warning,
+                    )
+                }
+                if (pending.sourceReviewDueCount > 0) {
+                    Text(
+                        "${pending.sourceReviewDueCount} candidate source record(s) are outside Porta's review window or need date attention.",
+                        color = AppTheme.colors.status.warning,
+                    )
+                }
+                Text("Saved doors and your academic profile are preserved.")
+            }
+        },
+        confirmButton = {
+            TextButton(
+                modifier = Modifier.testTag("pack-update-confirm"),
+                enabled = !isWorking,
+                onClick = onConfirm,
+            ) {
+                Text("Activate pack")
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !isWorking, onClick = onCancel) { Text("Keep current pack") }
+        },
+    )
 }
 
 @Composable
@@ -189,8 +225,8 @@ private fun InspectorIntro() {
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
-                text = "Every import is validated as one atomic pack. Invalid files show precise diagnostics " +
-                    "and never replace the active catalog.",
+                text = "Every import is validated as one atomic pack, then paused for a change preview. " +
+                    "Invalid or unapproved files never replace the active catalog.",
                 style = AppTheme.typography.bodyLarge,
                 color = AppTheme.colors.text.secondary,
             )
@@ -331,6 +367,17 @@ private fun PackSummaryCard(
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyMedium,
             )
+            if (pack.sourceReviewStatusLabel.isNotBlank()) {
+                Text(
+                    pack.sourceReviewStatusLabel,
+                    color = if (pack.sourceReviewStatusLabel.startsWith("All records")) {
+                        AppTheme.colors.text.secondary
+                    } else {
+                        AppTheme.colors.status.warning
+                    },
+                    style = AppTheme.typography.bodyMedium,
+                )
+            }
             Text(pack.importedLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
 
             if (pack.providers.isNotEmpty()) {
@@ -405,7 +452,7 @@ private fun PackControls(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Imports replace the active catalog only after every record and typed rule passes validation.",
+                text = "Imports replace the active catalog only after validation and your review of the exact diff.",
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.secondary,
             )
@@ -546,7 +593,11 @@ private fun OpportunityList(
                     Text(
                         text = "${opportunity.categoryLabel} · ${opportunity.checkedLabel}",
                         style = AppTheme.typography.bodySmall,
-                        color = AppTheme.colors.primary,
+                        color = if (opportunity.sourceReviewNeedsAttention) {
+                            AppTheme.colors.status.warning
+                        } else {
+                            AppTheme.colors.primary
+                        },
                     )
                 }
             }

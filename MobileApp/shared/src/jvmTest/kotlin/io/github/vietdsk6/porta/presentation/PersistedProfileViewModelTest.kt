@@ -28,6 +28,7 @@ import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorFilter
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiEvent
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierMoveKind
@@ -187,6 +188,30 @@ class PersistedProfileViewModelTest {
     }
 
     @Test
+    fun `doors re-evaluate when the local calendar day changes`() = runTest(dispatcher) {
+        saveIelts(7.0)
+        var today = LocalDate(2027, 6, 1)
+        val dateProvider = CurrentLocalDateProvider { today }
+        val viewModel = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            dateProvider,
+        )
+        advanceUntilIdle()
+
+        assertEquals(5, viewModel.uiState.value.openCount)
+
+        today = LocalDate(2027, 6, 2)
+        assertTrue(dateProvider.refresh())
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.uiState.value.openCount)
+        assertEquals(5, viewModel.uiState.value.closedCount)
+    }
+
+    @Test
     fun `doors and frontier use the sourced bundled catalog`() = runTest(dispatcher) {
         opportunityPackRepository.importPack(
             BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson(),
@@ -214,6 +239,9 @@ class PersistedProfileViewModelTest {
         assertFalse(doors.uiState.value.isSampleCatalog)
         assertEquals(15, doors.uiState.value.catalogDoorCount)
         assertTrue(doors.uiState.value.doors.any { it.title == "Kotlin Student Coding Competition" })
+        assertEquals(1, doors.uiState.value.archivedCount)
+        doors.onUiEvent(DoorsUiEvent.FilterChanged(DoorFilter.ARCHIVED))
+        assertEquals(listOf("Swift Student Challenge"), doors.uiState.value.doors.map { it.title })
         assertFalse(frontier.uiState.value.isSampleCatalog)
         assertEquals(4, frontier.uiState.value.actions.size)
         assertTrue(frontier.uiState.value.actions.all { it.improvedCount == 1 })

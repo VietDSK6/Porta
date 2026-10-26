@@ -14,6 +14,8 @@ data class OpportunityDetailUiState(
     val timingLabel: String = "",
     val deadlineLabel: String = "",
     val checkedLabel: String = "",
+    val sourceReviewNeedsAttention: Boolean = false,
+    val isArchived: Boolean = false,
     val sourceUrl: String = "",
     val sourceSection: String = "",
     val disclaimer: String = "",

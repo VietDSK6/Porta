@@ -72,6 +72,9 @@ Current evidence:
 - [x] Progressive Profile gets students to source-linked Doors with only study level and field of study, then asks for
   optional facts in context from the exact missing rule. The form exposes why a value is needed, validates save-blocking
   input, distinguishes missing from failure, and uses date-of-birth boundaries for the sourced Schwarzman reference date.
+- [x] Pack lifecycle is explicit: source records display their manual review date and Porta's 90-day maintenance
+  signal; archived cycles are distinct from passed deadlines and excluded from planning; the shared local date refreshes
+  on resume/day rollover; pack imports show an approval diff and disclose which scoped confirmations become stale.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 
@@ -126,7 +129,7 @@ A green formatter alone must never be recorded as `20/20`.
 | Asset | Status | Definition of done |
 |---|---|---|
 | Product name and visual identity | IN PROGRESS | Porta now uses the Editorial Atlas palette, Newsreader/Manrope typography and trust-first core journey; capture final light/dark Android and Desktop media, then audit marks/assets. |
-| Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register and two-profile receipt tests; complete an independent second reading before submission. |
+| Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register, visible freshness policy, lifecycle handling and user-approved update diffs; complete an independent second reading before submission. |
 | README | IN PROGRESS | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and fresh-setup verification. |
 | Essay | TODO | Exactly 300 words and consistent with the actual submission. |
 | Screencast | TODO | 3–5 minutes; problem, magic moment, KMP proof, trust boundary, close. |

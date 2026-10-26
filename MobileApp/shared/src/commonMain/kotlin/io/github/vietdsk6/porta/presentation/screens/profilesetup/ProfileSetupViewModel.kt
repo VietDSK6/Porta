@@ -28,6 +28,11 @@ class ProfileSetupViewModel(
 
     init {
         viewModelScope.launch {
+            currentLocalDateProvider.currentDate.collect { today ->
+                _uiState.update { it.copy(validationDate = today) }
+            }
+        }
+        viewModelScope.launch {
             profileRepository.getProfile().onSuccess { profile ->
                 if (profile.facts.isNotEmpty()) {
                     val facts = profile.facts

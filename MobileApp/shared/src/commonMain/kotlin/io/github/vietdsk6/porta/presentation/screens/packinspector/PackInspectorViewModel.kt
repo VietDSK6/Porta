@@ -3,20 +3,27 @@ package io.github.vietdsk6.porta.presentation.screens.packinspector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.domain.model.DEFAULT_SOURCE_REVIEW_WINDOW_DAYS
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.InvalidOpportunityPackException
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
+import io.github.vietdsk6.porta.domain.model.OpportunityPackImportPreview
 import io.github.vietdsk6.porta.domain.model.OpportunityPackImportStatus
 import io.github.vietdsk6.porta.domain.model.OpportunityPackVersionConflictException
 import io.github.vietdsk6.porta.domain.model.PackDiagnostic
 import io.github.vietdsk6.porta.domain.model.PackDiagnosticSeverity
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.staleRuleAssertionsFor
+import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
+import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
 import io.github.vietdsk6.porta.util.extensions.asFormattedDate
 import io.github.vietdsk6.porta.util.file.FileManager
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,22 +31,27 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class PackInspectorViewModel(
     private val opportunityPackRepository: OpportunityPackRepository,
+    private val profileRepository: ProfileRepository,
     private val bundledPackProvider: BundledOpportunityPackProvider,
     private val fileManager: FileManager,
+    private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
     private val transientState = MutableStateFlow(PackInspectorTransientState())
 
     val uiState: StateFlow<PackInspectorUiState> = combine(
         opportunityPackRepository.observeActive(),
         transientState,
-    ) { activePackResult, transient ->
+        currentLocalDateProvider.currentDate,
+    ) { activePackResult, transient, today ->
         buildUiState(
             document = activePackResult.getOrNull(),
             loadError = activePackResult.exceptionOrNull(),
             transient = transient,
+            today = today,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -55,6 +67,12 @@ class PackInspectorViewModel(
 
             is PackInspectorUiEvent.ImportPack -> importPack(event.fileName, event.rawJson)
 
+            PackInspectorUiEvent.ImportPreviewCancelled -> transientState.update {
+                it.copy(pendingImport = null)
+            }
+
+            PackInspectorUiEvent.ImportPreviewConfirmed -> confirmPendingImport()
+
             PackInspectorUiEvent.ImportReadFailed -> showFailure(
                 "Porta could not read that JSON file. The active pack was not changed.",
             )
@@ -63,15 +81,10 @@ class PackInspectorViewModel(
 
             PackInspectorUiEvent.ExportDiagnostics -> exportDiagnostics()
 
-            PackInspectorUiEvent.RestoreBundledRequested -> transientState.update {
-                it.copy(isRestoreConfirmationVisible = true, message = null)
-            }
-
-            PackInspectorUiEvent.RestoreBundledCancelled -> transientState.update {
-                it.copy(isRestoreConfirmationVisible = false)
-            }
-
-            PackInspectorUiEvent.RestoreBundledConfirmed -> restoreBundledPack()
+            PackInspectorUiEvent.RestoreBundledRequested -> importPack(
+                fileName = "Porta bundled curated pack",
+                rawJson = bundledPackProvider.rawJson(),
+            )
 
             PackInspectorUiEvent.MessageHandled -> transientState.update { it.copy(message = null) }
         }
@@ -86,20 +99,69 @@ class PackInspectorViewModel(
                     message = null,
                 )
             }
-            opportunityPackRepository.importPack(rawJson).fold(
+            opportunityPackRepository.previewImport(rawJson).fold(
+                onSuccess = { preview ->
+                    val matchesActiveVersion = preview.diff.previousPackId == preview.diff.candidatePackId &&
+                        preview.diff.previousVersion == preview.diff.candidateVersion &&
+                        !preview.diff.hasChanges
+                    if (matchesActiveVersion) {
+                        transientState.update {
+                            it.copy(
+                                isWorking = false,
+                                pendingImport = null,
+                                message = "$fileName matches the active pack; nothing changed.",
+                            )
+                        }
+                        return@fold
+                    }
+                    val profile = profileRepository.getProfile().getOrNull()
+                    transientState.update {
+                        it.copy(
+                            isWorking = false,
+                            diagnostics = emptyList(),
+                            pendingImport = PendingPackImport(
+                                rawJson = rawJson,
+                                uiState = preview.toUiState(
+                                    fileName = fileName,
+                                    staleAssertionCount = profile
+                                        ?.staleRuleAssertionsFor(preview.document)
+                                        ?.size
+                                        ?: 0,
+                                    today = currentLocalDateProvider.today(),
+                                ),
+                            ),
+                            message = null,
+                        )
+                    }
+                },
+                onFailure = ::handleImportFailure,
+            )
+        }
+    }
+
+    private fun confirmPendingImport() {
+        val pending = transientState.value.pendingImport ?: return
+        viewModelScope.launch {
+            transientState.update { it.copy(isWorking = true, message = null) }
+            opportunityPackRepository.importPack(pending.rawJson).fold(
                 onSuccess = { result ->
                     val message = when (result.status) {
-                        OpportunityPackImportStatus.IMPORTED ->
-                            "$fileName passed validation and is now the active pack."
+                        OpportunityPackImportStatus.IMPORTED -> buildString {
+                            append("${pending.uiState.fileName} is now active. Saved doors and profile facts remain.")
+                            if (pending.uiState.staleAssertionCount > 0) {
+                                append(" ${pending.uiState.staleAssertionCount} programme confirmation(s) must be checked again.")
+                            }
+                        }
 
                         OpportunityPackImportStatus.NO_CHANGE ->
-                            "$fileName matches the active pack; nothing changed."
+                            "${pending.uiState.fileName} matches the active pack; nothing changed."
                     }
                     transientState.update {
                         it.copy(
                             isWorking = false,
                             selectedOpportunityId = result.document.opportunities.firstOrNull()?.id,
                             diagnostics = emptyList(),
+                            pendingImport = null,
                             message = message,
                         )
                     }
@@ -128,6 +190,7 @@ class PackInspectorViewModel(
             it.copy(
                 isWorking = false,
                 diagnostics = diagnostics,
+                pendingImport = null,
                 message = "Import rejected. The active pack is unchanged.",
             )
         }
@@ -175,33 +238,6 @@ class PackInspectorViewModel(
         }
     }
 
-    private fun restoreBundledPack() {
-        viewModelScope.launch {
-            transientState.update {
-                it.copy(
-                    isWorking = true,
-                    isRestoreConfirmationVisible = false,
-                    diagnostics = emptyList(),
-                    message = null,
-                )
-            }
-            opportunityPackRepository.importPack(bundledPackProvider.rawJson()).fold(
-                onSuccess = { result ->
-                    transientState.update {
-                        it.copy(
-                            isWorking = false,
-                            selectedOpportunityId = result.document.opportunities.firstOrNull()?.id,
-                            message = "The bundled curated opportunity pack is active.",
-                        )
-                    }
-                },
-                onFailure = {
-                    showFailure("Porta could not restore the bundled curated pack.")
-                },
-            )
-        }
-    }
-
     private suspend fun saveText(
         suggestedName: String,
         extension: String,
@@ -233,8 +269,9 @@ class PackInspectorViewModel(
         document: OpportunityPackDocument?,
         loadError: Throwable?,
         transient: PackInspectorTransientState,
+        today: LocalDate,
     ): PackInspectorUiState {
-        val activePack = document?.toUiState()
+        val activePack = document?.toUiState(today)
         val selectedId = transient.selectedOpportunityId
             ?.takeIf { candidate -> activePack?.opportunities?.any { it.id == candidate } == true }
             ?: activePack?.opportunities?.firstOrNull()?.id
@@ -244,16 +281,17 @@ class PackInspectorViewModel(
             activePack = activePack,
             selectedOpportunityId = selectedId,
             diagnostics = transient.diagnostics,
-            isRestoreConfirmationVisible = transient.isRestoreConfirmationVisible,
+            pendingUpdate = transient.pendingImport?.uiState,
             message = transient.message ?: loadError?.let {
                 "Porta could not read the active pack. Restore the bundled curated pack or import a valid pack."
             },
         )
     }
 
-    private fun OpportunityPackDocument.toUiState(): ActivePackUiState {
+    private fun OpportunityPackDocument.toUiState(today: LocalDate): ActivePackUiState {
         val dates = opportunities.map(Opportunity::lastCheckedOn).sorted()
         val providers = opportunities.map(Opportunity::provider).distinct().sorted()
+        val sourceReviewDueCount = opportunities.count { it.sourceReviewNeedsAttention(today) }
         return ActivePackUiState(
             id = metadata.id,
             name = metadata.name,
@@ -267,23 +305,47 @@ class PackInspectorViewModel(
                 dates.first() == dates.last() -> "Source records reviewed on ${dates.first()}"
                 else -> "Source records reviewed ${dates.first()} – ${dates.last()}"
             },
+            sourceReviewStatusLabel = if (sourceReviewDueCount == 0) {
+                "All records are within Porta's $DEFAULT_SOURCE_REVIEW_WINDOW_DAYS-day catalog review window."
+            } else {
+                "$sourceReviewDueCount records need a Porta catalog review. Confirm live sources before acting."
+            },
             importedLabel = "Imported ${metadata.importedAtEpochMillis.asFormattedDate()}",
             sourceUrl = metadata.sourceUrl,
             isBundledPack = metadata.id == BundledOpportunityPackProvider.PACK_ID,
             providers = providers,
-            opportunities = opportunities.map { it.toUiState() },
+            opportunities = opportunities.map { it.toUiState(today) },
         )
     }
 
-    private fun Opportunity.toUiState(): PackOpportunityUiState = PackOpportunityUiState(
+    private fun Opportunity.toUiState(today: LocalDate): PackOpportunityUiState = PackOpportunityUiState(
         id = id,
         title = title,
         provider = provider,
         categoryLabel = category.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar),
-        checkedLabel = "Source reviewed on $lastCheckedOn",
+        checkedLabel = sourceReviewLabel(today),
         sourceUrl = sourceUrl,
         sourceSection = sourceSection,
+        sourceReviewNeedsAttention = sourceReviewNeedsAttention(today),
         ruleNodes = eligibilityRule.flatten(),
+    )
+
+    private fun OpportunityPackImportPreview.toUiState(
+        fileName: String,
+        staleAssertionCount: Int,
+        today: LocalDate,
+    ): PendingPackUpdateUiState = PendingPackUpdateUiState(
+        fileName = fileName,
+        packName = document.metadata.name,
+        versionTransitionLabel = diff.previousVersion?.let { previous ->
+            "Version $previous → ${diff.candidateVersion}"
+        } ?: "New pack · version ${diff.candidateVersion}",
+        addedCount = diff.addedOpportunityIds.size,
+        removedCount = diff.removedOpportunityIds.size,
+        changedCount = diff.changedOpportunityIds.size,
+        unchangedCount = diff.unchangedOpportunityIds.size,
+        staleAssertionCount = staleAssertionCount,
+        sourceReviewDueCount = document.opportunities.count { it.sourceReviewNeedsAttention(today) },
     )
 
     private fun RuleNode.flatten(depth: Int = 0): List<RuleNodeUiState> = when (this) {
@@ -356,7 +418,12 @@ class PackInspectorViewModel(
         val isWorking: Boolean = false,
         val selectedOpportunityId: String? = null,
         val diagnostics: List<PackDiagnosticUiState> = emptyList(),
-        val isRestoreConfirmationVisible: Boolean = false,
+        val pendingImport: PendingPackImport? = null,
         val message: String? = null,
+    )
+
+    private data class PendingPackImport(
+        val rawJson: String,
+        val uiState: PendingPackUpdateUiState,
     )
 }

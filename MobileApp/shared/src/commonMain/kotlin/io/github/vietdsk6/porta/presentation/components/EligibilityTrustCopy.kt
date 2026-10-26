@@ -3,6 +3,7 @@ package io.github.vietdsk6.porta.presentation.components
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityReceipt
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.RuleResult
 
 /**
@@ -20,26 +21,32 @@ fun EligibilityState.trustLabel(): String = when (this) {
 }
 
 fun EligibilityReceipt.headlineLabel(): String = when {
+    cycleStatus == OpportunityCycleStatus.ARCHIVED -> "Archived cycle"
     state == EligibilityState.CLOSED -> state.trustLabel()
     rootResult == RuleResult.PASS && deadline !is Deadline.Known -> "Timing needs confirmation"
     else -> state.trustLabel()
 }
 
-fun EligibilityReceipt.requirementAssessmentLabel(): String = when (rootResult) {
-    RuleResult.PASS -> "Assessed rules passed"
+fun EligibilityReceipt.requirementAssessmentLabel(): String = if (cycleStatus == OpportunityCycleStatus.ARCHIVED) {
+    "Archived cycle"
+} else {
+    when (rootResult) {
+        RuleResult.PASS -> "Assessed rules passed"
 
-    RuleResult.FAIL -> when (state) {
-        EligibilityState.HAS_GAPS -> "Needs action"
-        EligibilityState.NOT_ACTIONABLE -> "Not available this cycle"
-        else -> state.trustLabel()
+        RuleResult.FAIL -> when (state) {
+            EligibilityState.HAS_GAPS -> "Needs action"
+            EligibilityState.NOT_ACTIONABLE -> "Not available this cycle"
+            else -> state.trustLabel()
+        }
+
+        RuleResult.UNKNOWN -> "Needs information"
+
+        RuleResult.REVIEW -> "Needs source review"
     }
-
-    RuleResult.UNKNOWN -> "Needs information"
-
-    RuleResult.REVIEW -> "Needs source review"
 }
 
 fun EligibilityReceipt.timingLabel(): String = when {
+    cycleStatus == OpportunityCycleStatus.ARCHIVED -> "Timing: archived cycle retained for reference"
     state == EligibilityState.CLOSED -> "Timing: application window closed"
     deadline is Deadline.Known -> "Timing: published deadline ${deadline.date}"
     deadline == Deadline.Tba -> "Timing: provider date not yet published"
@@ -47,6 +54,10 @@ fun EligibilityReceipt.timingLabel(): String = when {
 }
 
 fun EligibilityReceipt.trustSummary(): String = when {
+    cycleStatus == OpportunityCycleStatus.ARCHIVED -> {
+        "This record belongs to an archived cycle. Porta keeps it for reference but does not treat it as currently available."
+    }
+
     state == EligibilityState.CLOSED -> "The published application window is closed for this cycle."
 
     rootResult == RuleResult.PASS && deadline !is Deadline.Known -> {

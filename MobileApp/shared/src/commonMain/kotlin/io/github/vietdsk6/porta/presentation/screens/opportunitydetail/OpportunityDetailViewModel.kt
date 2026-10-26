@@ -10,12 +10,15 @@ import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Opportunity
+import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.components.requirementAssessmentLabel
+import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
+import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
 import io.github.vietdsk6.porta.presentation.components.timingLabel
 import io.github.vietdsk6.porta.presentation.components.trustSummary
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class OpportunityDetailViewModel(
     private val opportunityId: String,
@@ -39,6 +43,7 @@ class OpportunityDetailViewModel(
             opportunities = PortaSampleData.opportunities,
             isSampleProfile = true,
             isSampleCatalog = true,
+            today = currentLocalDateProvider.today(),
         ),
     )
     val uiState: StateFlow<OpportunityDetailUiState> = _uiState.asStateFlow()
@@ -48,8 +53,9 @@ class OpportunityDetailViewModel(
             combine(
                 profileRepository.observeProfile(),
                 opportunityPackRepository.observeActive(),
-            ) { profile, packResult -> profile to packResult.getOrNull() }
-                .collect { (profile, pack) ->
+                currentLocalDateProvider.currentDate,
+            ) { profile, packResult, today -> Triple(profile, packResult.getOrNull(), today) }
+                .collect { (profile, pack, today) ->
                     val isSampleProfile = profile.facts.isEmpty()
                     _uiState.value = buildState(
                         profile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile,
@@ -57,6 +63,7 @@ class OpportunityDetailViewModel(
                         isSampleProfile = isSampleProfile,
                         isSampleCatalog = pack == null ||
                             pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
+                        today = today,
                     )
                 }
         }
@@ -73,10 +80,10 @@ class OpportunityDetailViewModel(
         opportunities: List<Opportunity>,
         isSampleProfile: Boolean,
         isSampleCatalog: Boolean,
+        today: LocalDate,
     ): OpportunityDetailUiState = opportunities
         .firstOrNull { it.id == opportunityId }
         ?.let { opportunity ->
-            val today = currentLocalDateProvider.today()
             val receipt = eligibilityEvaluator.evaluate(
                 profile,
                 opportunity,
@@ -115,7 +122,9 @@ class OpportunityDetailViewModel(
                 conclusionSummary = receipt.trustSummary(),
                 timingLabel = receipt.timingLabel(),
                 deadlineLabel = opportunity.deadline.label(),
-                checkedLabel = "Source reviewed on ${opportunity.lastCheckedOn}",
+                checkedLabel = opportunity.sourceReviewLabel(today),
+                sourceReviewNeedsAttention = opportunity.sourceReviewNeedsAttention(today),
+                isArchived = receipt.cycleStatus == OpportunityCycleStatus.ARCHIVED,
                 sourceUrl = opportunity.sourceUrl,
                 sourceSection = opportunity.sourceSection.orEmpty(),
                 disclaimer = opportunity.disclaimer,

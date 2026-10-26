@@ -8,11 +8,13 @@ import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
+import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.RuleReceipt
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.cycleStatus
 import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 
@@ -23,8 +25,9 @@ class EligibilityEvaluator {
         today: LocalDate,
     ): EligibilityReceipt {
         val evaluation = evaluateRule(profile, opportunity, opportunity.eligibilityRule)
+        val cycleStatus = opportunity.cycleStatus(today)
         val state = when {
-            opportunity.deadline is Deadline.Known && opportunity.deadline.date < today -> {
+            cycleStatus in setOf(OpportunityCycleStatus.ARCHIVED, OpportunityCycleStatus.CLOSED) -> {
                 EligibilityState.CLOSED
             }
 
@@ -53,6 +56,7 @@ class EligibilityEvaluator {
             rules = evaluation.receipts,
             deadline = opportunity.deadline,
             lastCheckedOn = opportunity.lastCheckedOn,
+            cycleStatus = cycleStatus,
         )
     }
 

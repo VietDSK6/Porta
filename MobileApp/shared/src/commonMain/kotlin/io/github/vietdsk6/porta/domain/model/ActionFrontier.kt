@@ -176,12 +176,16 @@ enum class FrontierExclusionReason {
 fun Opportunity.isFeasibleForPlanning(
     today: LocalDate,
     minimumDurationDays: Int,
-): Boolean = when (val publishedDeadline = deadline) {
-    is Deadline.Known -> publishedDeadline.date.toEpochDays() - today.toEpochDays() >= minimumDurationDays
+): Boolean = if (archived) {
+    false
+} else {
+    when (val publishedDeadline = deadline) {
+        is Deadline.Known -> publishedDeadline.date.toEpochDays() - today.toEpochDays() >= minimumDurationDays
 
-    Deadline.Missing,
-    Deadline.Tba,
-    -> true
+        Deadline.Missing,
+        Deadline.Tba,
+        -> true
+    }
 }
 
 /**
