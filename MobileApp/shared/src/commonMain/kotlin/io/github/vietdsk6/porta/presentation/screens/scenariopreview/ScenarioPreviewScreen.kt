@@ -22,11 +22,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -93,15 +95,11 @@ fun ScenarioPreviewScreen(
             modifier = Modifier.fillMaxSize().testTag("scenario-preview-content"),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SimulationBanner()
-                    BeforeAfterCard(uiState)
-                }
-            }
+            item { SimulationBanner() }
             item {
                 ScenarioOutcomeSummary(uiState)
             }
+            item { BeforeAfterCard(uiState) }
             items(uiState.openedDoors, key = ScenarioDoorUiState::id) { door ->
                 ScenarioDoorCard(door = door)
             }
@@ -160,6 +158,15 @@ fun ScenarioPreviewScreen(
 @Composable
 private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
     val affectedCount = uiState.openedDoors.size + uiState.progressedDoors.size
+    val headline = when {
+        uiState.openedDoors.isNotEmpty() ->
+            "${uiState.openedDoors.size} ${if (uiState.openedDoors.size == 1) "door" else "doors"} would pass current checks"
+
+        uiState.progressedDoors.isNotEmpty() ->
+            "${uiState.progressedDoors.size} ${if (uiState.progressedDoors.size == 1) "door moves" else "doors move"} forward"
+
+        else -> "No checked conclusion changes"
+    }
     val announcement = buildList {
         add(
             if (affectedCount == 1) {
@@ -187,7 +194,7 @@ private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = "Changed doors",
+            text = headline,
             modifier = Modifier.semantics { heading() },
             style = AppTheme.typography.h5,
         )
@@ -280,6 +287,7 @@ private fun ValueCell(label: String, value: String, modifier: Modifier = Modifie
 @Composable
 private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
     var visible by remember(door.id) { mutableStateOf(false) }
+    var detailsExpanded by rememberSaveable(door.id) { mutableStateOf(false) }
     LaunchedEffect(door.id) { visible = true }
     AnimatedVisibility(
         visible = visible,
@@ -305,37 +313,86 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
                 )
                 ScenarioStateTransition(door)
                 Text(door.stateLabel, color = PORTA_TEAL, fontWeight = FontWeight.Bold)
-                door.changedRules.forEach { change ->
-                    HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text("Changed check", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                        Text(change.explanation, style = AppTheme.typography.bodyMedium)
-                        Text(
-                            "${change.beforeLabel} → ${change.afterLabel}",
-                            color = AppTheme.colors.text.primary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            change.resultTransitionLabel,
-                            color = AppTheme.colors.text.secondary,
-                            style = AppTheme.typography.bodySmall,
-                        )
-                    }
-                }
+                DoorChangeAtAGlance(door)
                 if (door.remainingBlockers.isNotEmpty()) {
-                    HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text("Still unresolved", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                        door.remainingBlockers.forEach { blocker ->
-                            Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-                        }
-                    }
+                    Text(
+                        text = if (door.remainingBlockers.size == 1) {
+                            "1 check still needs attention"
+                        } else {
+                            "${door.remainingBlockers.size} checks still need attention"
+                        },
+                        color = PORTA_AMBER,
+                        style = AppTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
-                Text(door.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
                 door.timingWarning?.let { warning ->
                     Text(warning, color = PORTA_AMBER, style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                 }
+                if (door.changedRules.isNotEmpty() || door.remainingBlockers.isNotEmpty() || door.timingLabel.isNotBlank()) {
+                    TextButton(
+                        modifier = Modifier.testTag("scenario-details-${door.id}"),
+                        onClick = { detailsExpanded = !detailsExpanded },
+                    ) {
+                        Text(if (detailsExpanded) "Hide check details" else "Review check details")
+                    }
+                }
+                if (detailsExpanded) {
+                    ScenarioDoorEvidence(door)
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun DoorChangeAtAGlance(door: ScenarioDoorUiState) {
+    if (door.changedRules.isEmpty()) return
+    Text(
+        text = if (door.changedRules.size == 1) {
+            "1 checked requirement changes in this scenario"
+        } else {
+            "${door.changedRules.size} checked requirements change in this scenario"
+        },
+        color = AppTheme.colors.text.primary,
+        style = AppTheme.typography.bodyMedium,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+@Composable
+private fun ScenarioDoorEvidence(door: ScenarioDoorUiState) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("scenario-evidence-${door.id}"),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
+        door.changedRules.forEach { change ->
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("Changed check", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                Text(change.explanation, style = AppTheme.typography.bodyMedium)
+                Text(
+                    "${change.beforeLabel} → ${change.afterLabel}",
+                    color = AppTheme.colors.text.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    change.resultTransitionLabel,
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+            }
+        }
+        if (door.remainingBlockers.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("Still unresolved", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                door.remainingBlockers.forEach { blocker ->
+                    Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+                }
+            }
+        }
+        if (door.timingLabel.isNotBlank()) {
+            Text(door.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }

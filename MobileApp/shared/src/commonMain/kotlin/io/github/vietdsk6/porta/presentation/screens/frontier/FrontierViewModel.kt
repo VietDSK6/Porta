@@ -284,6 +284,19 @@ class FrontierViewModel(
                     .map { it.readable() },
             )
         }
+        val suggestedGrowthHorizonDays = evaluation.exclusions
+            .asSequence()
+            .filter { exclusion ->
+                exclusion.reasons == setOf(FrontierExclusionReason.BEYOND_HORIZON) &&
+                    exclusion.template.moveKind() != FrontierMoveKind.VERIFY
+            }
+            .map { exclusion -> exclusion.template.minimumDurationDays }
+            .minOrNull()
+            ?.let { minimumDurationDays ->
+                ALLOWED_HORIZONS.sorted().firstOrNull { horizon ->
+                    horizon > constraints.horizonDays && horizon >= minimumDurationDays
+                }
+            }
         selectedActionId = selectedActionId
             ?.takeIf { selectedId -> actions.any { it.id == selectedId } }
             ?: actions.firstOrNull()?.id
@@ -298,6 +311,7 @@ class FrontierViewModel(
             activePlan = activePlan,
             actions = actions,
             exclusions = exclusions,
+            suggestedGrowthHorizonDays = suggestedGrowthHorizonDays,
             selectedActionId = selectedActionId,
         )
     }

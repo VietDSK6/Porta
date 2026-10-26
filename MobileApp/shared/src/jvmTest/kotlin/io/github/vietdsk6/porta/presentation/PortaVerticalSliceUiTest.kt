@@ -89,7 +89,8 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("15 source-linked opportunities · checked on this device").assertExists()
+        onNodeWithText("15 source-linked opportunities").assertExists()
+        onNodeWithText("Your saved profile is compared with checks encoded from published sources.").assertExists()
         onAllNodesWithText(
             "Your local facts are evaluated against published rules checked in the active offline pack.",
         ).assertCountEquals(0)
@@ -206,7 +207,7 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("RECOMMENDED NEXT MOVE · IMPROVE").assertExists()
+        onNodeWithText("SUGGESTED IMPROVEMENT").assertExists()
         onNodeWithTag("frontier-trade-offs-toggle").assertDoesNotExist()
         onNodeWithTag("frontier-impact-map").assertDoesNotExist()
     }
@@ -246,6 +247,48 @@ class PortaVerticalSliceUiTest {
         onNodeWithText("2 programme-specific checks share this planning pattern.").assertExists()
         onNodeWithTag("frontier-action-verify-oecd").assertExists()
         onNodeWithTag("frontier-action-verify-cern").assertExists()
+    }
+
+    @Test
+    fun `frontier treats verification as a suggestion and does not present an estimate as fact`() = runComposeUiTest {
+        val verification = frontierState.actions[1]
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 390.dp, height = 760.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(actions = listOf(verification)),
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("SUGGESTED VERIFICATION").assertExists()
+        onNodeWithText("Timing and effort depend on programme confirmation.").assertExists()
+        onNodeWithText("7 days").assertDoesNotExist()
+    }
+
+    @Test
+    fun `frontier reveals longer term growth moves without changing limits silently`() = runComposeUiTest {
+        val events = mutableListOf<FrontierUiEvent>()
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 390.dp, height = 760.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(suggestedGrowthHorizonDays = 180),
+                        onUiEvent = { events += it },
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("frontier-growth-horizon-prompt").assertExists()
+        onNodeWithTag("frontier-use-180-days").performScrollTo().performClick()
+        assertTrue(events.contains(FrontierUiEvent.HorizonChanged(180)))
     }
 
     @Test
@@ -387,10 +430,11 @@ class PortaVerticalSliceUiTest {
                 LiveRegionMode.Polite,
             ),
         )
+        onNodeWithTag("scenario-details-aurora").performScrollTo().performClick()
         onNodeWithText("Changed check").assertExists()
         onNodeWithText("Needs action → Check passed").assertExists()
         onNodeWithText("Still unresolved").assertExists()
-        onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(4)
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
     }
@@ -459,7 +503,7 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithText("6.5 band").assertExists()
         onNodeWithText("7.0 band").assertExists()
-        onNodeWithTag("opportunity-detail-content").performScrollToIndex(6)
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(7)
         onNodeWithText("Source and last review").assertExists()
         onNodeWithText("Sample data only.").assertExists()
     }

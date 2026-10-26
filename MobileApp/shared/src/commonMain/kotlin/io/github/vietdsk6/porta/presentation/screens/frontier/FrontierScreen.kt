@@ -118,13 +118,22 @@ private fun CompactFrontierContent(
             item {
                 FrontierCard(
                     action = action,
-                    eyebrow = "RECOMMENDED NEXT MOVE",
+                    eyebrow = action.kind.suggestionLabel(),
                     isRecommended = true,
                     isSelected = false,
                     isSelectable = false,
                     showExplanation = true,
                     onSelect = {},
                     onPreview = { onPreviewScenario(action.id) },
+                )
+            }
+        }
+        uiState.suggestedGrowthHorizonDays?.let { horizonDays ->
+            item {
+                GrowthHorizonPrompt(
+                    currentHorizonDays = uiState.horizonDays,
+                    suggestedHorizonDays = horizonDays,
+                    onUseHorizon = { onUiEvent(FrontierUiEvent.HorizonChanged(horizonDays)) },
                 )
             }
         }
@@ -205,13 +214,22 @@ private fun WideFrontierContent(
                     item {
                         FrontierCard(
                             action = action,
-                            eyebrow = "RECOMMENDED NEXT MOVE",
+                            eyebrow = action.kind.suggestionLabel(),
                             isRecommended = true,
                             isSelected = action.id == selectedAction?.id,
                             isSelectable = true,
                             showExplanation = true,
                             onSelect = { onUiEvent(FrontierUiEvent.ActionSelected(action.id)) },
                             onPreview = { onPreviewScenario(action.id) },
+                        )
+                    }
+                }
+                uiState.suggestedGrowthHorizonDays?.let { horizonDays ->
+                    item {
+                        GrowthHorizonPrompt(
+                            currentHorizonDays = uiState.horizonDays,
+                            suggestedHorizonDays = horizonDays,
+                            onUseHorizon = { onUiEvent(FrontierUiEvent.HorizonChanged(horizonDays)) },
                         )
                     }
                 }
@@ -392,16 +410,19 @@ private fun AlternativeActionRow(
                 fontWeight = FontWeight.SemiBold,
                 style = AppTheme.typography.bodyMedium,
             )
-            Text(
-                text = "${action.durationLabel} · ${action.effortLabel} effort · ${action.costLabel} cost",
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodySmall,
-            )
-            Text(
-                text = "${action.estimateSourceLabel} · ${action.impactBasisLabel}",
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodySmall,
-            )
+            if (action.kind == FrontierMoveKind.VERIFY) {
+                Text(
+                    text = "Timing and effort depend on programme confirmation.",
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+            } else {
+                Text(
+                    text = "${action.durationLabel} · ${action.effortLabel} effort · ${action.costLabel} cost",
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+            }
             TextButton(
                 modifier = Modifier.align(Alignment.End),
                 onClick = onPreview,
@@ -496,6 +517,7 @@ private fun FrontierCard(
     onSelect: () -> Unit,
     onPreview: () -> Unit,
 ) {
+    var detailsVisible by rememberSaveable(action.id) { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -537,7 +559,7 @@ private fun FrontierCard(
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             Text(
-                text = "$eyebrow · ${action.kind.label()}",
+                text = eyebrow,
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
             )
@@ -558,8 +580,16 @@ private fun FrontierCard(
                 color = PORTA_TEAL,
                 style = AppTheme.typography.h6,
             )
-            AdaptiveMetricPills(action)
-            if (showExplanation) {
+            if (action.kind == FrontierMoveKind.VERIFY) {
+                Text(
+                    text = "Timing and effort depend on programme confirmation.",
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+            } else {
+                AdaptiveMetricPills(action)
+            }
+            if (showExplanation && detailsVisible) {
                 Text(
                     text = action.explanation,
                     color = AppTheme.colors.text.secondary,
@@ -571,21 +601,63 @@ private fun FrontierCard(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (action.kind != FrontierMoveKind.VERIFY) {
+                        Text(
+                            text = action.estimateSourceLabel,
+                            color = AppTheme.colors.text.secondary,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                    Text(
+                        text = action.impactBasisLabel,
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodySmall,
+                    )
+                }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = action.estimateSourceLabel,
-                    color = AppTheme.colors.text.secondary,
-                    style = AppTheme.typography.bodySmall,
-                )
-                Text(
-                    text = action.impactBasisLabel,
-                    color = AppTheme.colors.text.secondary,
-                    style = AppTheme.typography.bodySmall,
-                )
+            if (showExplanation) {
+                TextButton(
+                    modifier = Modifier.align(Alignment.End).testTag("frontier-action-details-${action.id}"),
+                    onClick = { detailsVisible = !detailsVisible },
+                ) {
+                    Text(if (detailsVisible) "Hide reasoning" else "Why this move?")
+                }
             }
             Button(modifier = Modifier.fillMaxWidth(), onClick = onPreview) {
                 Text("Preview changes")
+            }
+        }
+    }
+}
+
+@Composable
+private fun GrowthHorizonPrompt(
+    currentHorizonDays: Int,
+    suggestedHorizonDays: Int,
+    onUseHorizon: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-growth-horizon-prompt"),
+        color = AppTheme.colors.alternative,
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("Growth moves need more time", style = AppTheme.typography.h6)
+            Text(
+                text = "Only shorter verification steps fit $currentHorizonDays days. " +
+                    "Use $suggestedHorizonDays days to compare longer-term profile changes.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodyMedium,
+            )
+            TextButton(
+                modifier = Modifier.align(Alignment.End).testTag("frontier-use-$suggestedHorizonDays-days"),
+                onClick = onUseHorizon,
+            ) {
+                Text("Use $suggestedHorizonDays days")
             }
         }
     }
@@ -874,6 +946,12 @@ private fun FrontierMoveKind.label(): String = when (this) {
     FrontierMoveKind.VERIFY -> "VERIFY"
     FrontierMoveKind.IMPROVE -> "IMPROVE"
     FrontierMoveKind.PREPARE -> "PREPARE"
+}
+
+private fun FrontierMoveKind.suggestionLabel(): String = when (this) {
+    FrontierMoveKind.VERIFY -> "SUGGESTED VERIFICATION"
+    FrontierMoveKind.IMPROVE -> "SUGGESTED IMPROVEMENT"
+    FrontierMoveKind.PREPARE -> "SUGGESTED PREPARATION"
 }
 
 private fun FrontierMoveKind.description(): String = when (this) {

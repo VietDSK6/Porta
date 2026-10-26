@@ -151,10 +151,16 @@ fun FactValue.displayValue(): String = when (this) {
     is FactValue.EnumValue -> value
 
     is FactValue.NumberValue -> if (unit.endsWith(" scale")) {
-        "$amount / ${unit.removeSuffix(" scale")}"
+        "${amount.displayNumber(unit)} / ${unit.removeSuffix(" scale")}"
     } else {
-        "$amount $unit".trim()
+        "${amount.displayNumber(unit)} $unit".trim()
     }
 
     is FactValue.TextValue -> value
+}
+
+private fun Double.displayNumber(unit: String): String = when {
+    unit == "band" -> toString()
+    toLong().toDouble() == this -> toLong().toString()
+    else -> toString()
 }

@@ -249,6 +249,7 @@ class PersistedProfileViewModelTest {
         assertTrue(frontier.uiState.value.actions.all { it.title.startsWith("Confirm full-period availability for ") })
         assertTrue(frontier.uiState.value.actions.all { it.kind == FrontierMoveKind.VERIFY })
         assertTrue(frontier.uiState.value.actions.all { "Porta assumption" in it.estimateSourceLabel })
+        assertEquals(180, frontier.uiState.value.suggestedGrowthHorizonDays)
         assertEquals(1, frontier.uiState.value.actionFamilies.size)
         assertEquals(4, frontier.uiState.value.actionFamilies.single().actions.size)
         assertFalse(frontier.uiState.value.hasMeaningfulTradeOffs)

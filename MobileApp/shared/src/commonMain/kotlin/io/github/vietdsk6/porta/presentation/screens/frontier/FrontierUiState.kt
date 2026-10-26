@@ -14,6 +14,7 @@ data class FrontierUiState(
     val activePlan: ActivePlanSummaryUiState? = null,
     val actions: List<FrontierActionUiState> = emptyList(),
     val exclusions: List<FrontierExcludedActionUiState> = emptyList(),
+    val suggestedGrowthHorizonDays: Int? = null,
     val selectedActionId: String? = null,
 ) {
     val actionFamilies: List<FrontierActionFamilyUiState>

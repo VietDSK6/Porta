@@ -23,9 +23,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -89,11 +93,6 @@ fun DoorsScreen(
                         doorCount = uiState.catalogDoorCount,
                         sourceReviewDueCount = uiState.sourceReviewDueCount,
                     )
-                    Text(
-                        text = "See how your current profile compares with each published check.",
-                        color = AppTheme.colors.text.secondary,
-                        style = AppTheme.typography.bodyLarge,
-                    )
                     StateSummary(uiState)
                 }
             }
@@ -126,10 +125,15 @@ private fun ProfileAndPackContext(
     if (!isSampleProfile && !isSampleCatalog) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "$doorCount source-linked opportunities · checked on this device",
+                text = "$doorCount source-linked opportunities",
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
                 style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                text = "Your saved profile is compared with checks encoded from published sources.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodyMedium,
             )
             if (sourceReviewDueCount > 0) {
                 Text(
@@ -174,57 +178,84 @@ private fun StateSummary(uiState: DoorsUiState) {
         color = AppTheme.colors.surfaceContainer,
         shape = RoundedCornerShape(12.dp),
     ) {
-        FlowRow(
+        Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            SummaryItem(uiState.openCount, "ASSESSED RULES PASSED", PORTA_TEAL)
-            SummaryItem(uiState.gapCount, "NEEDS ACTION", PORTA_AMBER)
-            SummaryItem(uiState.needsInfoCount, "NEEDS INFORMATION", AppTheme.colors.primary)
-            if (uiState.notAvailableCount > 0) {
-                SummaryItem(uiState.notAvailableCount, "NOT AVAILABLE THIS CYCLE", PORTA_CORAL)
-            }
-            if (uiState.closedCount > 0) {
-                SummaryItem(uiState.closedCount, "CLOSED", PORTA_CORAL)
-            }
-            if (uiState.archivedCount > 0) {
-                SummaryItem(uiState.archivedCount, "ARCHIVED", AppTheme.colors.text.secondary)
-            }
+            Text(
+                text = when {
+                    uiState.gapCount > 0 -> "${uiState.gapCount} ${uiState.gapCount.doorNoun()} have a next action"
+                    uiState.openCount > 0 -> "${uiState.openCount} ${uiState.openCount.doorNoun()} pass the checks Porta can assess"
+                    uiState.needsInfoCount > 0 -> "${uiState.needsInfoCount} ${uiState.needsInfoCount.doorNoun()} need information"
+                    else -> "No current door conclusion yet"
+                },
+                color = AppTheme.colors.text.primary,
+                fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.h6,
+            )
+            Text(
+                text = buildList {
+                    if (uiState.openCount > 0) add("${uiState.openCount} checks passed")
+                    if (uiState.needsInfoCount > 0) add("${uiState.needsInfoCount} need information")
+                    val inactiveCount = uiState.notAvailableCount + uiState.closedCount + uiState.archivedCount
+                    if (inactiveCount > 0) add("$inactiveCount inactive")
+                }.joinToString(" · ").ifBlank { "Open a door to inspect its published checks." },
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
         }
     }
 }
 
-@Composable
-private fun SummaryItem(value: Int, label: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Text(value.toString(), color = color, fontWeight = FontWeight.Bold)
-        Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-    }
-}
+private fun Int.doorNoun(): String = if (this == 1) "door" else "doors"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DoorFilterRow(selected: DoorFilter, onSelected: (DoorFilter) -> Unit) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        DoorFilter.entries.forEach { filter ->
-            FilterChip(
-                modifier = Modifier
-                    .defaultMinSize(minHeight = 48.dp)
-                    .testTag("door-filter-${filter.name}"),
-                selected = filter == selected,
-                onClick = { onSelected(filter) },
-                label = { Text(filter.label, style = AppTheme.typography.bodySmall) },
-            )
+    val primaryFilters = listOf(DoorFilter.ALL, DoorFilter.GAPS, DoorFilter.VERIFY, DoorFilter.SAVED)
+    val secondaryFilters = DoorFilter.entries.filterNot(primaryFilters::contains)
+    var showMore by rememberSaveable { mutableStateOf(selected in secondaryFilters) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            primaryFilters.forEach { filter -> DoorFilterChip(filter, selected, onSelected) }
+        }
+        TextButton(
+            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+            onClick = { showMore = !showMore },
+        ) {
+            Text(if (showMore) "Fewer filters" else "More filters")
+        }
+        if (showMore) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                secondaryFilters.forEach { filter -> DoorFilterChip(filter, selected, onSelected) }
+            }
         }
     }
+}
+
+@Composable
+private fun DoorFilterChip(
+    filter: DoorFilter,
+    selected: DoorFilter,
+    onSelected: (DoorFilter) -> Unit,
+) {
+    FilterChip(
+        modifier = Modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .testTag("door-filter-${filter.name}"),
+        selected = filter == selected,
+        onClick = { onSelected(filter) },
+        label = { Text(filter.label, style = AppTheme.typography.bodySmall) },
+    )
 }
 
 @Composable
@@ -303,7 +334,11 @@ private fun DoorCard(
                 color = AppTheme.colors.text.secondary,
             )
             Text(
-                door.primaryReason,
+                text = when (door.state) {
+                    EligibilityState.HAS_GAPS -> "Next requirement · ${door.primaryReason}"
+                    EligibilityState.NEEDS_INFO -> "Verify · ${door.primaryReason}"
+                    else -> door.primaryReason
+                },
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.primary,
                 maxLines = 3,
@@ -315,12 +350,14 @@ private fun DoorCard(
                 fontWeight = FontWeight.SemiBold,
                 style = AppTheme.typography.bodySmall,
             )
-            Text(
-                door.checkedLabel,
-                color = if (door.sourceReviewNeedsAttention) PORTA_AMBER else AppTheme.colors.text.secondary,
-                fontWeight = if (door.sourceReviewNeedsAttention) FontWeight.SemiBold else FontWeight.Normal,
-                style = AppTheme.typography.bodySmall,
-            )
+            if (door.sourceReviewNeedsAttention) {
+                Text(
+                    door.checkedLabel,
+                    color = PORTA_AMBER,
+                    fontWeight = FontWeight.SemiBold,
+                    style = AppTheme.typography.bodySmall,
+                )
+            }
             if (door.isSaved) {
                 Text(
                     "SAVED",
