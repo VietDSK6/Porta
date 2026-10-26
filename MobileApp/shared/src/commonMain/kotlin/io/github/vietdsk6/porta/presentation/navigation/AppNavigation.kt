@@ -212,6 +212,8 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         val viewModel = koinViewModel<ProfileSetupViewModel>()
         ProfileSetupScreen(
             viewModel = viewModel,
+            requestedFactKeyName = key.requestedFactKeyName,
+            requestContext = key.requestContext,
             onCompleted = {
                 if (key.returnToProfile) navigator.goBack() else navigator.set(DoorsScreenRoute)
             },
@@ -231,8 +233,14 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             onPreviewAction = { actionId ->
                 navigator.navigate(ScenarioPreviewScreenRoute(actionId = actionId))
             },
-            onEditProfile = {
-                navigator.navigate(ProfileSetupScreenRoute(returnToProfile = true))
+            onEditProfile = { factKey, context ->
+                navigator.navigate(
+                    ProfileSetupScreenRoute(
+                        returnToProfile = true,
+                        requestedFactKeyName = factKey.name,
+                        requestContext = context,
+                    ),
+                )
             },
         )
     }

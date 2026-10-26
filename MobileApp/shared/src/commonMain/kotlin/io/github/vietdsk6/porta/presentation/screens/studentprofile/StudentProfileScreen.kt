@@ -105,6 +105,7 @@ fun StudentProfileScreen(
                 else -> ProfileContent(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
+                    onEditProfile = onEditProfile,
                     onOpenPackInspector = onOpenPackInspector,
                 )
             }
@@ -235,9 +236,17 @@ private fun EmptyProfile(
 private fun ProfileContent(
     uiState: StudentProfileUiState,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
+    onEditProfile: () -> Unit,
     onOpenPackInspector: () -> Unit,
 ) {
     ProfileIdentity(uiState = uiState)
+
+    if (uiState.uncheckedFacts.isNotEmpty()) {
+        UncheckedFactsNotice(
+            facts = uiState.uncheckedFacts,
+            onEditProfile = onEditProfile,
+        )
+    }
 
     if (uiState.isSampleCatalog) {
         DemoPackNotice()
@@ -257,6 +266,77 @@ private fun ProfileContent(
         onExport = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
         onClear = { onUiEvent(StudentProfileUiEvent.ClearProfileRequested) },
     )
+}
+
+@Composable
+private fun UncheckedFactsNotice(
+    facts: List<UncheckedProfileFactUiState>,
+    onEditProfile: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("student-profile-unchecked"),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.32f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "NOT CHECKED YET",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodyExtraSmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.7.sp,
+            )
+            Text(
+                text = "${facts.size} missing ${if (facts.size == 1) "fact keeps" else "facts keep"} some door checks unknown.",
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.text.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            facts.take(4).forEach { fact ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = fact.label,
+                        modifier = Modifier.weight(1f),
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.text.primary,
+                    )
+                    Text(
+                        text = when (fact.dependentDoorCount) {
+                            1 -> "1 door"
+                            else -> "${fact.dependentDoorCount} doors"
+                        },
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.text.secondary,
+                    )
+                }
+            }
+            if (facts.size > 4) {
+                Text(
+                    text = "+${facts.size - 4} more optional facts",
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.text.secondary,
+                )
+            }
+            Text(
+                text = "Missing never means failed. Add a fact only when you know it.",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
+            TextButton(
+                modifier = Modifier.testTag("student-profile-add-missing"),
+                onClick = onEditProfile,
+            ) {
+                Text("Add profile facts")
+            }
+        }
+    }
 }
 
 @Composable

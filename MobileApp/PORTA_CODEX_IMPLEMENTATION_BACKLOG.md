@@ -174,6 +174,14 @@ tests. The original scoped targets remain independent; only their presentation i
 
 **Done when:** user can start viewing real source-linked insights without filling irrelevant project/leadership; save disabled has clear reason; changing profile recomputes.
 
+**Done:** profile creation now requires only study level and field of study; academic, experience/evidence and
+context facts are progressively disclosed with explicit provided/unchecked status. Opportunity information tasks
+deep-link to the relevant section and explain the source-backed question. GPA scale, IELTS half-band values, integer
+age/experience and date-of-birth inputs are validated with visible save-block reasons. Schwarzman's fixed 1 August
+2028 age checks now compare date-of-birth boundaries rather than today's age. The Profile tab lists missing facts and
+the number of affected doors without treating missing as failure; shared ViewModel, domain-boundary and Compose UI
+tests cover persistence, routing, validation and reactive recomputation.
+
 ## C3 — Responsive/accessibility
 
 **Work:** align desktop onboarding CTA to content max width, refine Desktop Doors detail approach, constrain long Profile input width, validate nav rail sizes; small Android and large font; focus/keyboard; reduced motion; hit targets ≥48dp where practical; live region for important changed-result summary.

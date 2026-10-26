@@ -411,7 +411,8 @@ class PortaVerticalSliceUiTest {
 
     @Test
     fun `missing fact task opens profile without claiming progress`() = runComposeUiTest {
-        var editRequested = false
+        var requestedFact: FactKey? = null
+        var requestContext = ""
         setContent {
             AppTheme {
                 Box(Modifier.size(width = 390.dp, height = 700.dp)) {
@@ -432,7 +433,10 @@ class PortaVerticalSliceUiTest {
                         onUiEvent = {},
                         onNavigateBack = {},
                         onPreviewAction = {},
-                        onEditProfile = { editRequested = true },
+                        onEditProfile = { factKey, context ->
+                            requestedFact = factKey
+                            requestContext = context
+                        },
                     )
                 }
             }
@@ -441,7 +445,10 @@ class PortaVerticalSliceUiTest {
         onNodeWithTag("opportunity-detail-content").performScrollToIndex(4)
         onNodeWithTag("information-task-degree-status").assertIsDisplayed()
         onNodeWithText("Update academic profile").performClick()
-        runOnIdle { assertTrue(editRequested) }
+        runOnIdle {
+            assertEquals(FactKey.DEGREE_COMPLETED, requestedFact)
+            assertTrue(requestContext.contains("bachelor's degree"))
+        }
         onNodeWithText("These tasks only fill missing information.", substring = true).assertExists()
     }
 

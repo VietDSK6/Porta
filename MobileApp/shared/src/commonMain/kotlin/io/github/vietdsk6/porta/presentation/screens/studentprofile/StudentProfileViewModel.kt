@@ -211,12 +211,30 @@ class StudentProfileViewModel(
                 )
             }
         }
+        val uncheckedFacts = opportunities
+            .flatMap { opportunity ->
+                opportunity.eligibilityRule.factKeys().map { key -> key to opportunity.title }
+            }
+            .filterNot { (key) -> key in facts || key == FactKey.AVAILABLE_FULL_PERIOD }
+            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+            .map { (key, doorTitles) ->
+                UncheckedProfileFactUiState(
+                    key = key,
+                    label = key.label(),
+                    dependentDoorCount = doorTitles.distinct().size,
+                )
+            }
+            .sortedWith(
+                compareByDescending<UncheckedProfileFactUiState> { it.dependentDoorCount }
+                    .thenBy { it.label },
+            )
         return StudentProfileUiState(
             isLoading = false,
             isWorking = transient.isWorking,
             hasRealProfile = facts.isNotEmpty(),
             factCount = facts.size,
             sections = sections,
+            uncheckedFacts = uncheckedFacts,
             isSampleCatalog = isSampleCatalog,
             expandedFactKey = transient.expandedFactKey,
             factPendingDelete = transient.factPendingDelete,
@@ -230,6 +248,13 @@ class StudentProfileViewModel(
         is RuleNode.Any -> children.any { it.uses(key) }
         is RuleNode.Atomic -> factKey == key
         is RuleNode.ManualCheck -> false
+    }
+
+    private fun RuleNode.factKeys(): Set<FactKey> = when (this) {
+        is RuleNode.All -> children.flatMapTo(mutableSetOf()) { it.factKeys() }
+        is RuleNode.Any -> children.flatMapTo(mutableSetOf()) { it.factKeys() }
+        is RuleNode.Atomic -> setOf(factKey)
+        is RuleNode.ManualCheck -> emptySet()
     }
 
     private fun FactValue.profileDisplayValue(key: FactKey): String = when {
@@ -261,6 +286,7 @@ class StudentProfileViewModel(
         FactKey.LEADERSHIP -> "Leadership"
         FactKey.ENROLLED -> "Currently enrolled"
         FactKey.AGE -> "Age"
+        FactKey.DATE_OF_BIRTH -> "Date of birth"
         FactKey.DEGREE_COMPLETED -> "Degree completed"
         FactKey.AVAILABLE_FULL_PERIOD -> "Available for full period"
     }
@@ -324,7 +350,12 @@ class StudentProfileViewModel(
             ProfileSectionDefinition(
                 title = "Context",
                 description = "Porta explains context-dependent rules but never recommends changing identity.",
-                keys = listOf(FactKey.NATIONALITY, FactKey.RESIDENCY, FactKey.AGE),
+                keys = listOf(
+                    FactKey.NATIONALITY,
+                    FactKey.RESIDENCY,
+                    FactKey.DATE_OF_BIRTH,
+                    FactKey.AGE,
+                ),
             ),
         )
     }

@@ -13,6 +13,7 @@ import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileFactU
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileScreen
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiEvent
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiState
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.UncheckedProfileFactUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -72,6 +73,34 @@ class StudentProfileUiTest {
         assertTrue(buildRequested)
         onNodeWithTag("student-profile-pack-inspector").performClick()
         assertTrue(inspectorRequested)
+    }
+
+    @Test
+    fun `profile names missing facts without treating them as failures`() = runComposeUiTest {
+        var editRequested = false
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState.copy(
+                        uncheckedFacts = listOf(
+                            UncheckedProfileFactUiState(
+                                key = FactKey.DEGREE_COMPLETED,
+                                label = "Degree completed",
+                                dependentDoorCount = 2,
+                            ),
+                        ),
+                    ),
+                    onUiEvent = {},
+                    onEditProfile = { editRequested = true },
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithTag("student-profile-unchecked").assertExists()
+        onNodeWithText("Missing never means failed.", substring = true).assertExists()
+        onNodeWithTag("student-profile-add-missing").performScrollTo().performClick()
+        assertTrue(editRequested)
     }
 
     private val actualProfileState = StudentProfileUiState(

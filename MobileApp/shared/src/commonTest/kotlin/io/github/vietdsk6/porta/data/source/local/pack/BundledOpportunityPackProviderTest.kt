@@ -93,6 +93,36 @@ class BundledOpportunityPackProviderTest {
     }
 
     @Test
+    fun `schwarzman age checks use date of birth at the published reference date`() {
+        val opportunity = bundledOpportunities().first { it.id == "schwarzman-scholars-2028-2029" }
+        val evaluator = EligibilityEvaluator()
+
+        fun result(dateOfBirth: LocalDate, ruleId: String): RuleResult = evaluator
+            .evaluate(
+                profile = profile(FactKey.DATE_OF_BIRTH to FactValue.DateValue(dateOfBirth)),
+                opportunity = opportunity,
+                today = LocalDate(2026, 10, 26),
+            ).rules.single { it.ruleId == ruleId }.result
+
+        assertEquals(
+            RuleResult.PASS,
+            result(LocalDate(2010, 8, 1), "schwarzman-age-min"),
+        )
+        assertEquals(
+            RuleResult.FAIL,
+            result(LocalDate(2010, 8, 2), "schwarzman-age-min"),
+        )
+        assertEquals(
+            RuleResult.FAIL,
+            result(LocalDate(1999, 8, 1), "schwarzman-age-max"),
+        )
+        assertEquals(
+            RuleResult.PASS,
+            result(LocalDate(1999, 8, 2), "schwarzman-age-max"),
+        )
+    }
+
+    @Test
     fun `every bundled record yields sourced receipts for contrasting profiles`() {
         val codec = OpportunityPackCodec()
         val document = assertNotNull(
@@ -103,6 +133,7 @@ class BundledOpportunityPackProviderTest {
         val profiles = listOf(
             profile(
                 FactKey.AGE to FactValue.NumberValue(20.0, "years"),
+                FactKey.DATE_OF_BIRTH to FactValue.DateValue(LocalDate(2006, 4, 12)),
                 FactKey.ENROLLED to FactValue.BooleanValue(true),
                 FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(false),
                 FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(false),
@@ -110,6 +141,7 @@ class BundledOpportunityPackProviderTest {
             ),
             profile(
                 FactKey.AGE to FactValue.NumberValue(30.0, "years"),
+                FactKey.DATE_OF_BIRTH to FactValue.DateValue(LocalDate(1990, 4, 12)),
                 FactKey.ENROLLED to FactValue.BooleanValue(false),
                 FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(true),
                 FactKey.AVAILABLE_FULL_PERIOD to FactValue.BooleanValue(true),

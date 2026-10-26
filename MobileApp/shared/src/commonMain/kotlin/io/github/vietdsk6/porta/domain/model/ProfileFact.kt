@@ -92,6 +92,7 @@ enum class FactKey {
     LEADERSHIP,
     ENROLLED,
     AGE,
+    DATE_OF_BIRTH,
     DEGREE_COMPLETED,
     AVAILABLE_FULL_PERIOD,
 }

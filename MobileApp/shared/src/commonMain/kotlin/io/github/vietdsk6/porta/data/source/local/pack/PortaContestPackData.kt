@@ -239,18 +239,18 @@ internal object PortaContestPackData {
                 "schwarzman-root",
                 atomic(
                     id = "schwarzman-age-min",
-                    factKey = FactKey.AGE,
-                    operator = Operator.GREATER_THAN_OR_EQUAL,
-                    expected = number(18.0, "years"),
+                    factKey = FactKey.DATE_OF_BIRTH,
+                    operator = Operator.DATE_BEFORE,
+                    expected = date("2010-08-02"),
                     explanation = "Candidates must be at least 18 as of 1 August in the enrollment year.",
                     sourceNote = checked(source, "Check Your Eligibility"),
                     actionability = Actionability.IMMUTABLE,
                 ),
                 atomic(
                     id = "schwarzman-age-max",
-                    factKey = FactKey.AGE,
-                    operator = Operator.LESS_THAN_OR_EQUAL,
-                    expected = number(28.0, "years"),
+                    factKey = FactKey.DATE_OF_BIRTH,
+                    operator = Operator.DATE_AFTER,
+                    expected = date("1999-08-01"),
                     explanation = "Candidates must not yet be 29 as of 1 August in the enrollment year.",
                     sourceNote = checked(source, "Check Your Eligibility"),
                     actionability = Actionability.IMMUTABLE,
@@ -947,6 +947,8 @@ internal object PortaContestPackData {
     )
 
     private fun bool(value: Boolean): FactValueDto = FactValueDto.BooleanValue(value)
+
+    private fun date(value: String): FactValueDto = FactValueDto.DateValue(value)
 
     private fun number(amount: Double, unit: String): FactValueDto = FactValueDto.NumberValue(amount, unit)
 

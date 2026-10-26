@@ -10,6 +10,7 @@ import io.github.vietdsk6.porta.domain.model.FactProvenance
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
+import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,8 +19,11 @@ import kotlinx.coroutines.launch
 
 class ProfileSetupViewModel(
     private val profileRepository: ProfileRepository,
+    private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(ProfileSetupUiState())
+    private val _uiState = MutableStateFlow(
+        ProfileSetupUiState(validationDate = currentLocalDateProvider.today()),
+    )
     val uiState: StateFlow<ProfileSetupUiState> = _uiState.asStateFlow()
 
     init {
@@ -47,6 +51,10 @@ class ProfileSetupViewModel(
                         age = (facts[FactKey.AGE]?.value as? FactValue.NumberValue)
                             ?.amount
                             ?.toInputText()
+                            .orEmpty(),
+                        dateOfBirth = (facts[FactKey.DATE_OF_BIRTH]?.value as? FactValue.DateValue)
+                            ?.value
+                            ?.toString()
                             .orEmpty(),
                         experienceMonths = (facts[FactKey.EXPERIENCE_MONTHS]?.value as? FactValue.NumberValue)
                             ?.amount
@@ -89,6 +97,8 @@ class ProfileSetupViewModel(
             is ProfileSetupUiEvent.IeltsChanged -> update { copy(ielts = event.value.filterNumeric()) }
 
             is ProfileSetupUiEvent.AgeChanged -> update { copy(age = event.value.filterNumeric()) }
+
+            is ProfileSetupUiEvent.DateOfBirthChanged -> update { copy(dateOfBirth = event.value.filterDate()) }
 
             is ProfileSetupUiEvent.ExperienceMonthsChanged -> {
                 update { copy(experienceMonths = event.value.filterNumeric()) }
@@ -172,6 +182,7 @@ class ProfileSetupViewModel(
             isEnrolled?.let { add(FactDraft(FactKey.ENROLLED, FactValue.BooleanValue(it))) }
             ieltsValue?.let { add(FactDraft(FactKey.IELTS_SCORE, FactValue.NumberValue(it, "band"))) }
             ageValue?.let { add(FactDraft(FactKey.AGE, FactValue.NumberValue(it, "years"))) }
+            dateOfBirthValue?.let { add(FactDraft(FactKey.DATE_OF_BIRTH, FactValue.DateValue(it))) }
             experienceMonthsValue?.let {
                 add(FactDraft(FactKey.EXPERIENCE_MONTHS, FactValue.NumberValue(it, "months")))
             }
@@ -217,7 +228,9 @@ class ProfileSetupViewModel(
         FactKey.EXPERIENCE_MONTHS,
         -> Actionability.TIME_DEPENDENT
 
-        FactKey.AGE -> Actionability.IMMUTABLE
+        FactKey.AGE,
+        FactKey.DATE_OF_BIRTH,
+        -> Actionability.IMMUTABLE
 
         FactKey.FIELD_OF_STUDY,
         FactKey.NATIONALITY,
@@ -234,6 +247,7 @@ class ProfileSetupViewModel(
         if (ieltsValue == null) add(FactKey.IELTS_SCORE)
         if (gpaValue == null) add(FactKey.GPA)
         if (ageValue == null) add(FactKey.AGE)
+        if (dateOfBirthValue == null) add(FactKey.DATE_OF_BIRTH)
         if (experienceMonthsValue == null) add(FactKey.EXPERIENCE_MONTHS)
         if (isDegreeCompleted == null) add(FactKey.DEGREE_COMPLETED)
         if (isEnrolled == null) add(FactKey.ENROLLED)
@@ -250,6 +264,8 @@ class ProfileSetupViewModel(
             val firstDot = value.indexOf('.')
             if (firstDot == -1) value else value.take(firstDot + 1) + value.drop(firstDot + 1).replace(".", "")
         }
+
+    private fun String.filterDate(): String = filter { it.isDigit() || it == '-' }.take(10)
 
     private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
 

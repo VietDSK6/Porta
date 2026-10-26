@@ -228,7 +228,7 @@ class PersistedProfileViewModelTest {
 
     @Test
     fun `profile setup preserves original scales and optional evidence`() = runTest(dispatcher) {
-        val viewModel = ProfileSetupViewModel(repository)
+        val viewModel = ProfileSetupViewModel(repository, currentLocalDateProvider)
         advanceUntilIdle()
 
         viewModel.onUiEvent(ProfileSetupUiEvent.StudyLevelChanged(StudyLevelOption.UNDERGRADUATE))
@@ -239,6 +239,7 @@ class PersistedProfileViewModelTest {
         viewModel.onUiEvent(ProfileSetupUiEvent.GpaChanged("8.5"))
         viewModel.onUiEvent(ProfileSetupUiEvent.IeltsChanged("6.5"))
         viewModel.onUiEvent(ProfileSetupUiEvent.AgeChanged("20"))
+        viewModel.onUiEvent(ProfileSetupUiEvent.DateOfBirthChanged("2006-05-14"))
         viewModel.onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged("6"))
         viewModel.onUiEvent(ProfileSetupUiEvent.DegreeCompletedChanged(false))
         viewModel.onUiEvent(ProfileSetupUiEvent.CommunityProjectTitleChanged("Local coding club"))
@@ -251,6 +252,10 @@ class PersistedProfileViewModelTest {
         assertEquals(FactValue.NumberValue(8.5, "10.0 scale"), saved.facts[FactKey.GPA]?.value)
         assertEquals(FactValue.EnumValue("SG"), saved.facts[FactKey.RESIDENCY]?.value)
         assertEquals(FactValue.NumberValue(20.0, "years"), saved.facts[FactKey.AGE]?.value)
+        assertEquals(
+            FactValue.DateValue(LocalDate(2006, 5, 14)),
+            saved.facts[FactKey.DATE_OF_BIRTH]?.value,
+        )
         assertEquals(FactValue.NumberValue(6.0, "months"), saved.facts[FactKey.EXPERIENCE_MONTHS]?.value)
         assertEquals(FactValue.BooleanValue(false), saved.facts[FactKey.DEGREE_COMPLETED]?.value)
         val projectValue = saved.facts[FactKey.COMMUNITY_PROJECT]?.value as FactValue.TextValue
@@ -259,6 +264,7 @@ class PersistedProfileViewModelTest {
         assertNull(saved.facts[FactKey.AVAILABLE_FULL_PERIOD])
 
         viewModel.onUiEvent(ProfileSetupUiEvent.AgeChanged(""))
+        viewModel.onUiEvent(ProfileSetupUiEvent.DateOfBirthChanged(""))
         viewModel.onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(""))
         viewModel.onUiEvent(ProfileSetupUiEvent.DegreeCompletedChanged(null))
         viewModel.onUiEvent(ProfileSetupUiEvent.ResidencyChanged(""))
@@ -270,6 +276,7 @@ class PersistedProfileViewModelTest {
 
         val updated = repository.getProfile().getOrThrow()
         assertNull(updated.facts[FactKey.AGE])
+        assertNull(updated.facts[FactKey.DATE_OF_BIRTH])
         assertNull(updated.facts[FactKey.EXPERIENCE_MONTHS])
         assertNull(updated.facts[FactKey.DEGREE_COMPLETED])
         assertNull(updated.facts[FactKey.RESIDENCY])

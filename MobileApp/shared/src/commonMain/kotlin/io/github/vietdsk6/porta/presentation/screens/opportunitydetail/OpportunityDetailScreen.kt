@@ -29,6 +29,7 @@ import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleResult
 
 @Composable
@@ -36,7 +37,7 @@ fun OpportunityDetailScreen(
     viewModel: OpportunityDetailViewModel,
     onNavigateBack: () -> Unit,
     onPreviewAction: (String) -> Unit,
-    onEditProfile: () -> Unit,
+    onEditProfile: (FactKey, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,7 +63,7 @@ fun OpportunityDetailScreen(
     onUiEvent: (OpportunityDetailUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
     onPreviewAction: (String) -> Unit,
-    onEditProfile: () -> Unit = {},
+    onEditProfile: (FactKey, String) -> Unit = { _, _ -> },
     onOpenSource: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -153,7 +154,7 @@ fun OpportunityDetailScreen(
 @Composable
 private fun InformationTasksSection(
     tasks: List<InformationTaskUiState>,
-    onEditProfile: () -> Unit,
+    onEditProfile: (FactKey, String) -> Unit,
     onOpenSource: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -184,7 +185,10 @@ private fun InformationTasksSection(
                     }
                     OutlinedButton(
                         onClick = when (task.destination) {
-                            InformationTaskDestination.ACADEMIC_PROFILE -> onEditProfile
+                            InformationTaskDestination.ACADEMIC_PROFILE -> {
+                                { onEditProfile(task.factKey, task.question) }
+                            }
+
                             InformationTaskDestination.OFFICIAL_SOURCE -> onOpenSource
                         },
                     ) {
@@ -374,7 +378,7 @@ private fun OpportunityDetailScreenPreview() {
             onUiEvent = {},
             onNavigateBack = {},
             onPreviewAction = {},
-            onEditProfile = {},
+            onEditProfile = { _, _ -> },
         )
     }
 }

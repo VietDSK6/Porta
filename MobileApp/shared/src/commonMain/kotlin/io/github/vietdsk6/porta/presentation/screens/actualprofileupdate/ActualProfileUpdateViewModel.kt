@@ -314,6 +314,7 @@ class ActualProfileUpdateViewModel(
         FactKey.COMMUNITY_PROJECT -> "Community project"
         FactKey.LEADERSHIP -> "Leadership"
         FactKey.AGE -> "Age"
+        FactKey.DATE_OF_BIRTH -> "Date of birth"
     }
 
     private fun FactKey.actionability(): Actionability = when (this) {
@@ -328,7 +329,9 @@ class ActualProfileUpdateViewModel(
         FactKey.EXPERIENCE_MONTHS,
         -> Actionability.TIME_DEPENDENT
 
-        FactKey.AGE -> Actionability.IMMUTABLE
+        FactKey.AGE,
+        FactKey.DATE_OF_BIRTH,
+        -> Actionability.IMMUTABLE
 
         FactKey.FIELD_OF_STUDY,
         FactKey.NATIONALITY,

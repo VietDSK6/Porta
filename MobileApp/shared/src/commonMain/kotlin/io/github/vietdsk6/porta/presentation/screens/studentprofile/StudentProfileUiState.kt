@@ -8,11 +8,18 @@ data class StudentProfileUiState(
     val hasRealProfile: Boolean = false,
     val factCount: Int = 0,
     val sections: List<ProfileFactSectionUiState> = emptyList(),
+    val uncheckedFacts: List<UncheckedProfileFactUiState> = emptyList(),
     val isSampleCatalog: Boolean = true,
     val expandedFactKey: FactKey? = null,
     val factPendingDelete: ProfileFactUiState? = null,
     val isClearConfirmationVisible: Boolean = false,
     val message: String? = null,
+)
+
+data class UncheckedProfileFactUiState(
+    val key: FactKey,
+    val label: String,
+    val dependentDoorCount: Int,
 )
 
 data class ProfileFactSectionUiState(

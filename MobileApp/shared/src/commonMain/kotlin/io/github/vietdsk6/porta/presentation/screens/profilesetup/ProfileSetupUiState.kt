@@ -1,5 +1,7 @@
 package io.github.vietdsk6.porta.presentation.screens.profilesetup
 
+import kotlinx.datetime.LocalDate
+
 data class ProfileSetupUiState(
     val studyLevel: StudyLevelOption? = null,
     val fieldOfStudy: String = "",
@@ -9,6 +11,8 @@ data class ProfileSetupUiState(
     val gpaScale: GpaScaleOption = GpaScaleOption.FOUR,
     val ielts: String = "",
     val age: String = "",
+    val dateOfBirth: String = "",
+    val validationDate: LocalDate? = null,
     val experienceMonths: String = "",
     val isEnrolled: Boolean? = null,
     val isDegreeCompleted: Boolean? = null,
@@ -31,6 +35,11 @@ data class ProfileSetupUiState(
     val ageValue: Double?
         get() = age.takeIf(String::isNotBlank)?.toDoubleOrNull()
 
+    val dateOfBirthValue: LocalDate?
+        get() = dateOfBirth.takeIf(String::isNotBlank)?.let { value ->
+            runCatching { LocalDate.parse(value) }.getOrNull()
+        }
+
     val experienceMonthsValue: Double?
         get() = experienceMonths.takeIf(String::isNotBlank)?.toDoubleOrNull()
 
@@ -47,6 +56,7 @@ data class ProfileSetupUiState(
             ielts.isBlank() -> null
             ieltsValue == null -> "Use a number, for example 6.5"
             ieltsValue?.let { it !in 0.0..9.0 } == true -> "IELTS bands range from 0 to 9"
+            ieltsValue?.let { it * 2 % 1.0 != 0.0 } == true -> "Use a whole or half band, for example 6.5"
             else -> null
         }
 
@@ -71,14 +81,73 @@ data class ProfileSetupUiState(
             else -> null
         }
 
+    val dateOfBirthError: String?
+        get() = when {
+            dateOfBirth.isBlank() -> null
+
+            dateOfBirthValue == null -> "Use YYYY-MM-DD, for example 2004-09-18"
+
+            dateOfBirthValue?.year?.let { it !in 1900..2100 } == true -> "Use a year from 1900 to 2100"
+
+            validationDate != null && dateOfBirthValue?.let { it > validationDate } == true -> {
+                "Date of birth cannot be in the future"
+            }
+
+            else -> null
+        }
+
     val canSave: Boolean
-        get() = studyLevel != null &&
-            fieldOfStudy.isNotBlank() &&
-            gpaError == null &&
-            ieltsError == null &&
-            ageError == null &&
-            experienceMonthsError == null &&
-            !isSaving
+        get() = saveDisabledReason == null && !isSaving
+
+    val saveDisabledReason: String?
+        get() = when {
+            studyLevel == null -> "Choose your current study level to continue."
+
+            fieldOfStudy.isBlank() -> "Add your field of study to continue."
+
+            gpaError != null -> "Check the GPA value before saving."
+
+            ieltsError != null -> "Check the IELTS value before saving."
+
+            ageError != null -> "Check the age value before saving."
+
+            dateOfBirthError != null -> "Check the date of birth before saving."
+
+            experienceMonthsError != null -> "Check the experience duration before saving."
+
+            communityProjectEvidenceReference.isNotBlank() &&
+                communityProjectTitle.isBlank() &&
+                communityProjectSummary.isBlank() -> "Add a project title or summary for that evidence reference."
+
+            leadershipEvidenceReference.isNotBlank() &&
+                leadershipRole.isBlank() &&
+                leadershipTitle.isBlank() -> "Add a leadership role or activity for that evidence reference."
+
+            else -> null
+        }
+
+    val academicProvidedCount: Int
+        get() = listOf(
+            gpa.isNotBlank(),
+            ielts.isNotBlank(),
+            isEnrolled != null,
+            isDegreeCompleted != null,
+        ).count { it }
+
+    val experienceProvidedCount: Int
+        get() = listOf(
+            experienceMonths.isNotBlank(),
+            communityProjectTitle.isNotBlank() || communityProjectSummary.isNotBlank(),
+            leadershipRole.isNotBlank() || leadershipTitle.isNotBlank(),
+        ).count { it }
+
+    val contextProvidedCount: Int
+        get() = listOf(
+            nationality.isNotBlank(),
+            residency.isNotBlank(),
+            age.isNotBlank(),
+            dateOfBirth.isNotBlank(),
+        ).count { it }
 }
 
 enum class StudyLevelOption(
@@ -115,6 +184,8 @@ sealed interface ProfileSetupUiEvent {
     data class IeltsChanged(val value: String) : ProfileSetupUiEvent
 
     data class AgeChanged(val value: String) : ProfileSetupUiEvent
+
+    data class DateOfBirthChanged(val value: String) : ProfileSetupUiEvent
 
     data class ExperienceMonthsChanged(val value: String) : ProfileSetupUiEvent
 

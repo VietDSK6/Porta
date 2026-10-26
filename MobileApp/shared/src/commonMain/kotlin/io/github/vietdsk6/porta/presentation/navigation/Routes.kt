@@ -23,7 +23,11 @@ data object OnBoardingScreenRoute : ScreenRoute
 
 @Serializable
 @SerialName("ProfileSetup")
-data class ProfileSetupScreenRoute(val returnToProfile: Boolean = false) : ScreenRoute
+data class ProfileSetupScreenRoute(
+    val returnToProfile: Boolean = false,
+    val requestedFactKeyName: String? = null,
+    val requestContext: String? = null,
+) : ScreenRoute
 
 @Serializable
 @SerialName("Doors")

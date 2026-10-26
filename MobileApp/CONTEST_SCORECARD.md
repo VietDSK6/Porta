@@ -45,7 +45,7 @@ targets. Shared JS/Wasm compile checks may still protect portability, but they d
 
 Judge-visible thesis:
 
-> Porta automatically finds controllable milestones, calculates their verified marginal opportunity gain, removes
+> Porta automatically finds controllable milestones, calculates their encoded-rule marginal opportunity impact, removes
 > actions that cannot fit the user's constraints, and exposes the tradeoffs through an Action Frontier.
 
 Current evidence:
@@ -69,6 +69,9 @@ Current evidence:
   repeated programme-scoped confirmations without merging their targets, discloses estimate provenance and impact
   basis, and only renders the Action Frontier plot when distinct trade-offs exist. Overlapping vectors become one
   explicitly counted point instead of ambiguous stacked bubbles.
+- [x] Progressive Profile gets students to source-linked Doors with only study level and field of study, then asks for
+  optional facts in context from the exact missing rule. The form exposes why a value is needed, validates save-blocking
+  input, distinguishes missing from failure, and uses date-of-birth boundaries for the sourced Schwarzman reference date.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 

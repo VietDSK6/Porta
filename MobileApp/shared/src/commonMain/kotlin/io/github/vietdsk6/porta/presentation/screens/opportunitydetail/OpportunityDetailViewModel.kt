@@ -165,6 +165,7 @@ class OpportunityDetailViewModel(
         FactKey.DEGREE_COMPLETED -> "Add your degree completion status"
         FactKey.ENROLLED -> "Add your current enrollment status"
         FactKey.EXPERIENCE_MONTHS -> "Add your relevant experience duration"
+        FactKey.DATE_OF_BIRTH -> "Add your date of birth"
         else -> "Add your ${name.lowercase().replace('_', ' ')} information"
     }
 }
