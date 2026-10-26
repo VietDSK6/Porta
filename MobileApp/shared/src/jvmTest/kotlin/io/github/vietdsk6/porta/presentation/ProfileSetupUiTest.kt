@@ -1,6 +1,13 @@
 package io.github.vietdsk6.porta.presentation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
@@ -8,6 +15,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupScreen
@@ -21,6 +30,29 @@ import kotlin.test.assertFalse
 
 @OptIn(ExperimentalTestApi::class)
 class ProfileSetupUiTest {
+    @Test
+    fun `minimum profile save remains reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    AppTheme {
+                        ProfileSetupScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            uiState = ProfileSetupUiState(
+                                studyLevel = StudyLevelOption.UNDERGRADUATE,
+                                fieldOfStudy = "Computer Science",
+                            ),
+                            onUiEvent = {},
+                            onNavigateBack = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithTag("profile-setup-save").performScrollTo().assertIsDisplayed().assertIsEnabled()
+    }
+
     @Test
     fun `profile validation rejects unsupported IELTS increments and future birth dates`() {
         val state = ProfileSetupUiState(

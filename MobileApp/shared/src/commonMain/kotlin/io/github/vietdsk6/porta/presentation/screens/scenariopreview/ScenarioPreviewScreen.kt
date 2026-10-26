@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,7 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -94,19 +100,7 @@ fun ScenarioPreviewScreen(
                 }
             }
             item {
-                val affectedCount = uiState.openedDoors.size + uiState.progressedDoors.size
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Changed doors", style = AppTheme.typography.h5)
-                    Text(
-                        text = if (affectedCount == 1) {
-                            "1 door is affected by this simulation."
-                        } else {
-                            "$affectedCount doors are affected by this simulation."
-                        },
-                        color = AppTheme.colors.text.secondary,
-                        style = AppTheme.typography.bodyMedium,
-                    )
-                }
+                ScenarioOutcomeSummary(uiState)
             }
             items(uiState.openedDoors, key = ScenarioDoorUiState::id) { door ->
                 ScenarioDoorCard(door = door)
@@ -164,6 +158,48 @@ fun ScenarioPreviewScreen(
 }
 
 @Composable
+private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
+    val affectedCount = uiState.openedDoors.size + uiState.progressedDoors.size
+    val announcement = buildList {
+        add(
+            if (affectedCount == 1) {
+                "1 door is affected by this simulation."
+            } else {
+                "$affectedCount doors are affected by this simulation."
+            },
+        )
+        if (uiState.openedDoors.isNotEmpty()) {
+            add("${uiState.openedDoors.size} would pass current checks.")
+        }
+        if (uiState.progressedDoors.isNotEmpty()) {
+            add("${uiState.progressedDoors.size} show checked progress but still have unresolved checks.")
+        }
+        if (uiState.unchangedDoors.isNotEmpty()) {
+            add("${uiState.unchangedDoors.size} remain unchanged.")
+        }
+    }.joinToString(" ")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("scenario-outcome-summary")
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = "Changed doors",
+            modifier = Modifier.semantics { heading() },
+            style = AppTheme.typography.h5,
+        )
+        Text(
+            text = announcement,
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
 private fun SimulationBanner() {
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("scenario-simulation-banner"),
@@ -209,9 +245,19 @@ private fun BeforeAfterCard(uiState: ScenarioPreviewUiState) {
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ValueCell("Actual", uiState.beforeLabel, Modifier.weight(1f))
-                ValueCell("Scenario", uiState.afterLabel, Modifier.weight(1f))
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val stackValues = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                if (stackValues) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ValueCell("Actual", uiState.beforeLabel, Modifier.fillMaxWidth())
+                        ValueCell("Scenario", uiState.afterLabel, Modifier.fillMaxWidth())
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ValueCell("Actual", uiState.beforeLabel, Modifier.weight(1f))
+                        ValueCell("Scenario", uiState.afterLabel, Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
@@ -251,7 +297,10 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
             ) {
                 Text(
                     text = door.title,
-                    modifier = Modifier.fillMaxWidth().testTag("scenario-door-title-${door.id}"),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("scenario-door-title-${door.id}")
+                        .semantics { heading() },
                     style = AppTheme.typography.h6,
                 )
                 ScenarioStateTransition(door)
@@ -295,18 +344,31 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
 private fun ScenarioStateTransition(door: ScenarioDoorUiState) {
     val actual = door.actualStateLabel.ifBlank { "Current state" }
     val simulated = door.simulatedStateLabel.ifBlank { door.stateLabel }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StateCell(label = "Actual", value = actual, modifier = Modifier.weight(1f))
-        Text(
-            text = "→",
-            modifier = Modifier.padding(top = 24.dp),
-            color = AppTheme.colors.text.secondary,
-            fontWeight = FontWeight.Bold,
-        )
-        StateCell(label = "Simulated", value = simulated, modifier = Modifier.weight(1f))
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val stackStates = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+        if (stackStates) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                StateCell(label = "Actual", value = actual, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = "Then",
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                StateCell(label = "Simulated", value = simulated, modifier = Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StateCell(label = "Actual", value = actual, modifier = Modifier.weight(1f))
+                Text(
+                    text = "→",
+                    modifier = Modifier.padding(top = 24.dp),
+                    color = AppTheme.colors.text.secondary,
+                    fontWeight = FontWeight.Bold,
+                )
+                StateCell(label = "Simulated", value = simulated, modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 

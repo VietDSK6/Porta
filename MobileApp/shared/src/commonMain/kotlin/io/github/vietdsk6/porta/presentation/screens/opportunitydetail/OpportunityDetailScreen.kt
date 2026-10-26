@@ -1,11 +1,15 @@
 package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -16,10 +20,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -76,77 +84,202 @@ fun OpportunityDetailScreen(
         onNavigationIconClick = onNavigateBack,
     ) {
         if (uiState.error != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Opportunity unavailable", style = AppTheme.typography.h5)
-                Text(uiState.error, color = AppTheme.colors.text.secondary)
-                OutlinedButton(onClick = onNavigateBack) { Text("Go back") }
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 720.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text("Opportunity unavailable", style = AppTheme.typography.h5)
+                    Text(uiState.error, color = AppTheme.colors.text.secondary)
+                    OutlinedButton(onClick = onNavigateBack) { Text("Go back") }
+                }
             }
             return@ScreenWithToolbar
         }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().testTag("opportunity-detail-content"),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            item { OpportunityHeader(uiState) }
-            item { CurrentConclusion(uiState) }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val useWideLayout = maxWidth >= WIDE_DETAIL_BREAKPOINT && LocalDensity.current.fontScale < 1.5f
+            if (useWideLayout) {
+                WideOpportunityDetailContent(
+                    uiState = uiState,
+                    onUiEvent = onUiEvent,
+                    onPreviewAction = onPreviewAction,
+                    onEditProfile = onEditProfile,
+                    onOpenSource = onOpenSource,
+                )
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    CompactOpportunityDetailContent(
+                        uiState = uiState,
+                        onUiEvent = onUiEvent,
+                        onPreviewAction = onPreviewAction,
+                        onEditProfile = onEditProfile,
+                        onOpenSource = onOpenSource,
+                        modifier = Modifier.fillMaxSize().widthIn(max = 760.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactOpportunityDetailContent(
+    uiState: OpportunityDetailUiState,
+    onUiEvent: (OpportunityDetailUiEvent) -> Unit,
+    onPreviewAction: (String) -> Unit,
+    onEditProfile: (FactKey, String) -> Unit,
+    onOpenSource: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier.testTag("opportunity-detail-content"),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        item { OpportunityHeader(uiState) }
+        item { CurrentConclusion(uiState) }
+        item { NeedsActionSection(uiState) }
+        item {
+            SuggestedNextMoveSection(
+                uiState = uiState,
+                onUiEvent = onUiEvent,
+                onPreviewAction = onPreviewAction,
+            )
+        }
+        if (uiState.informationTasks.isNotEmpty()) {
             item {
-                RuleSection(
-                    title = "Needs action",
-                    emptyMessage = "No current profile changes are required by the checks Porta can evaluate.",
-                    rules = uiState.rules.filter { it.result == RuleResult.FAIL },
-                    accent = PORTA_AMBER,
+                InformationTasksSection(
+                    tasks = uiState.informationTasks,
+                    onEditProfile = onEditProfile,
+                    onOpenSource = { onOpenSource(uiState.sourceUrl) },
                 )
             }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Suggested next move", style = AppTheme.typography.h6)
-                    Text(
-                        uiState.nextStepGuidance,
-                        color = AppTheme.colors.text.secondary,
-                        style = AppTheme.typography.bodyMedium,
+        }
+        item { NeedsInformationSection(uiState) }
+        item { PassedChecksSection(uiState) }
+        item { SoftSelectionFactors(uiState.softCriteria) }
+        item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
+    }
+}
+
+@Composable
+private fun WideOpportunityDetailContent(
+    uiState: OpportunityDetailUiState,
+    onUiEvent: (OpportunityDetailUiEvent) -> Unit,
+    onPreviewAction: (String) -> Unit,
+    onEditProfile: (FactKey, String) -> Unit,
+    onOpenSource: (String) -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 1280.dp)
+                .testTag("opportunity-detail-desktop-workspace"),
+            horizontalArrangement = Arrangement.spacedBy(32.dp),
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(0.44f)
+                    .testTag("opportunity-detail-primary-pane"),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                item { OpportunityHeader(uiState) }
+                item { CurrentConclusion(uiState) }
+                item { NeedsActionSection(uiState) }
+                item {
+                    SuggestedNextMoveSection(
+                        uiState = uiState,
+                        onUiEvent = onUiEvent,
+                        onPreviewAction = onPreviewAction,
                     )
-                    uiState.relatedActionId?.let { actionId ->
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = {
-                                onUiEvent(OpportunityDetailUiEvent.Acknowledged)
-                                onPreviewAction(actionId)
-                            },
-                        ) {
-                            Text(
-                                uiState.relatedActionTitle.ifBlank { "Preview this profile change" },
-                            )
-                        }
+                }
+                if (uiState.informationTasks.isNotEmpty()) {
+                    item {
+                        InformationTasksSection(
+                            tasks = uiState.informationTasks,
+                            onEditProfile = onEditProfile,
+                            onOpenSource = { onOpenSource(uiState.sourceUrl) },
+                        )
                     }
                 }
             }
-            if (uiState.informationTasks.isNotEmpty()) {
-                item {
-                    InformationTasksSection(
-                        tasks = uiState.informationTasks,
-                        onEditProfile = onEditProfile,
-                        onOpenSource = { onOpenSource(uiState.sourceUrl) },
-                    )
-                }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(0.56f)
+                    .testTag("opportunity-detail-evidence-pane"),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                item { NeedsInformationSection(uiState) }
+                item { PassedChecksSection(uiState) }
+                item { SoftSelectionFactors(uiState.softCriteria) }
+                item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
             }
-            item {
-                RuleSection(
-                    title = "Needs information or source review",
-                    emptyMessage = "No checks currently need more information.",
-                    rules = uiState.rules.filter { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) },
-                    accent = AppTheme.colors.primary,
-                )
+        }
+    }
+}
+
+@Composable
+private fun NeedsActionSection(uiState: OpportunityDetailUiState) {
+    RuleSection(
+        title = "Needs action",
+        emptyMessage = "No current profile changes are required by the checks Porta can evaluate.",
+        rules = uiState.rules.filter { it.result == RuleResult.FAIL },
+        accent = PORTA_AMBER,
+    )
+}
+
+@Composable
+private fun NeedsInformationSection(uiState: OpportunityDetailUiState) {
+    RuleSection(
+        title = "Needs information or source review",
+        emptyMessage = "No checks currently need more information.",
+        rules = uiState.rules.filter { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) },
+        accent = AppTheme.colors.primary,
+    )
+}
+
+@Composable
+private fun PassedChecksSection(uiState: OpportunityDetailUiState) {
+    RuleSection(
+        title = "Passed checks",
+        emptyMessage = "No encoded checks have passed yet.",
+        rules = uiState.rules.filter { it.result == RuleResult.PASS },
+        accent = PORTA_TEAL,
+    )
+}
+
+@Composable
+private fun SuggestedNextMoveSection(
+    uiState: OpportunityDetailUiState,
+    onUiEvent: (OpportunityDetailUiEvent) -> Unit,
+    onPreviewAction: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "Suggested next move",
+            modifier = Modifier.semantics { heading() },
+            style = AppTheme.typography.h6,
+        )
+        Text(
+            uiState.nextStepGuidance,
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+        )
+        uiState.relatedActionId?.let { actionId ->
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    onUiEvent(OpportunityDetailUiEvent.Acknowledged)
+                    onPreviewAction(actionId)
+                },
+            ) {
+                Text(uiState.relatedActionTitle.ifBlank { "Preview this profile change" })
             }
-            item {
-                RuleSection(
-                    title = "Passed checks",
-                    emptyMessage = "No encoded checks have passed yet.",
-                    rules = uiState.rules.filter { it.result == RuleResult.PASS },
-                    accent = PORTA_TEAL,
-                )
-            }
-            item { SoftSelectionFactors(uiState.softCriteria) }
-            item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
         }
     }
 }
@@ -158,7 +291,11 @@ private fun InformationTasksSection(
     onOpenSource: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Information tasks", style = AppTheme.typography.h6)
+        Text(
+            text = "Information tasks",
+            modifier = Modifier.semantics { heading() },
+            style = AppTheme.typography.h6,
+        )
         Text(
             "These tasks only fill missing information. They do not improve a check until you save a real answer and Porta evaluates it.",
             color = AppTheme.colors.text.secondary,
@@ -234,7 +371,11 @@ private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Current conclusion", style = AppTheme.typography.h6)
+            Text(
+                text = "Current conclusion",
+                modifier = Modifier.semantics { heading() },
+                style = AppTheme.typography.h6,
+            )
             Text(
                 uiState.stateLabel,
                 color = uiState.stateColor(),
@@ -255,7 +396,12 @@ private fun RuleSection(
     accent: Color,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(title, style = AppTheme.typography.h6, color = AppTheme.colors.text.primary)
+        Text(
+            text = title,
+            modifier = Modifier.semantics { heading() },
+            style = AppTheme.typography.h6,
+            color = AppTheme.colors.text.primary,
+        )
         if (rules.isEmpty()) {
             Text(emptyMessage, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
         } else {
@@ -290,7 +436,11 @@ private fun RuleRow(rule: RuleReceiptUiState, accent: Color) {
 @Composable
 private fun SoftSelectionFactors(criteria: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Soft selection factors", style = AppTheme.typography.h6)
+        Text(
+            text = "Soft selection factors",
+            modifier = Modifier.semantics { heading() },
+            style = AppTheme.typography.h6,
+        )
         Text(
             "These may affect selection, but Porta never treats them as pass/fail rules.",
             color = AppTheme.colors.text.secondary,
@@ -310,7 +460,11 @@ private fun SourceDetails(
     onOpenSource: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Source and last review", style = AppTheme.typography.h6)
+        Text(
+            text = "Source and last review",
+            modifier = Modifier.semantics { heading() },
+            style = AppTheme.typography.h6,
+        )
         if (uiState.sourceSection.isNotBlank()) {
             Text("Section: ${uiState.sourceSection}", color = AppTheme.colors.text.primary)
         }
@@ -343,38 +497,14 @@ private fun OpportunityDetailUiState.stateColor(): Color = when (state) {
 private val PORTA_TEAL = Color(0xFF167D73)
 private val PORTA_AMBER = Color(0xFFA66B1F)
 private val PORTA_CORAL = Color(0xFFB84F5B)
+private val WIDE_DETAIL_BREAKPOINT = 960.dp
 
 @Preview
 @Composable
 private fun OpportunityDetailScreenPreview() {
     AppTheme(isDarkMode = true) {
         OpportunityDetailScreen(
-            uiState = OpportunityDetailUiState(
-                id = "aurora",
-                title = "Aurora Scholars",
-                provider = "Northstar Foundation",
-                state = EligibilityState.HAS_GAPS,
-                stateLabel = "NEEDS ACTION",
-                conclusionSummary = "At least one published check needs a change in your profile.",
-                timingLabel = "Timing: published deadline 2027-06-01",
-                deadlineLabel = "Deadline 2027-06-01",
-                checkedLabel = "Checked 2026-10-20",
-                sourceUrl = "https://example.invalid/porta-sample/aurora",
-                sourceSection = "Eligibility",
-                disclaimer = "Sample data only.",
-                rules = listOf(
-                    RuleReceiptUiState(
-                        id = "ielts",
-                        result = RuleResult.FAIL,
-                        explanation = "The synthetic sample requires IELTS 7.0 or above.",
-                        actualLabel = "6.5 band",
-                        expectedLabel = "7.0 band",
-                        sourceNote = "Synthetic sample rule; not a real requirement.",
-                    ),
-                ),
-                softCriteria = listOf("Community leadership", "Clear study goals"),
-                relatedActionId = "raise-ielts",
-            ),
+            uiState = previewOpportunityDetailState,
             onUiEvent = {},
             onNavigateBack = {},
             onPreviewAction = {},
@@ -382,3 +512,58 @@ private fun OpportunityDetailScreenPreview() {
         )
     }
 }
+
+@Preview(device = "spec:width=1200dp,height=800dp,dpi=160")
+@Composable
+private fun OpportunityDetailDesktopPreview() {
+    AppTheme {
+        OpportunityDetailScreen(
+            uiState = previewOpportunityDetailState,
+            onUiEvent = {},
+            onNavigateBack = {},
+            onPreviewAction = {},
+            onEditProfile = { _, _ -> },
+        )
+    }
+}
+
+@Preview(widthDp = 320, heightDp = 640, fontScale = 2f)
+@Composable
+private fun OpportunityDetailAccessibilityPreview() {
+    AppTheme {
+        OpportunityDetailScreen(
+            uiState = previewOpportunityDetailState,
+            onUiEvent = {},
+            onNavigateBack = {},
+            onPreviewAction = {},
+            onEditProfile = { _, _ -> },
+        )
+    }
+}
+
+private val previewOpportunityDetailState = OpportunityDetailUiState(
+    id = "aurora",
+    title = "Aurora Scholars",
+    provider = "Northstar Foundation",
+    state = EligibilityState.HAS_GAPS,
+    stateLabel = "NEEDS ACTION",
+    conclusionSummary = "At least one published check needs a change in your profile.",
+    timingLabel = "Timing: published deadline 2027-06-01",
+    deadlineLabel = "Deadline 2027-06-01",
+    checkedLabel = "Checked 2026-10-20",
+    sourceUrl = "https://example.invalid/porta-sample/aurora",
+    sourceSection = "Eligibility",
+    disclaimer = "Sample data only.",
+    rules = listOf(
+        RuleReceiptUiState(
+            id = "ielts",
+            result = RuleResult.FAIL,
+            explanation = "The synthetic sample requires IELTS 7.0 or above.",
+            actualLabel = "6.5 band",
+            expectedLabel = "7.0 band",
+            sourceNote = "Synthetic sample rule; not a real requirement.",
+        ),
+    ),
+    softCriteria = listOf("Community leadership", "Clear study goals"),
+    relatedActionId = "raise-ielts",
+)

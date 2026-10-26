@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
@@ -91,7 +92,9 @@ internal fun FrontierControls(
                 ) {
                     ALLOWED_HORIZONS.forEach { days ->
                         FilterChip(
-                            modifier = Modifier.testTag("frontier-horizon-$days"),
+                            modifier = Modifier
+                                .defaultMinSize(minHeight = 48.dp)
+                                .testTag("frontier-horizon-$days"),
                             selected = uiState.horizonDays == days,
                             onClick = { onUiEvent(FrontierUiEvent.HorizonChanged(days)) },
                             label = { Text(if (days == 365) "1 year" else "$days days") },
@@ -109,7 +112,9 @@ internal fun FrontierControls(
                 ) {
                     EffortLevel.entries.forEach { effort ->
                         FilterChip(
-                            modifier = Modifier.testTag("frontier-effort-${effort.name}"),
+                            modifier = Modifier
+                                .defaultMinSize(minHeight = 48.dp)
+                                .testTag("frontier-effort-${effort.name}"),
                             selected = uiState.maxEffort == effort,
                             onClick = { onUiEvent(FrontierUiEvent.MaxEffortChanged(effort)) },
                             label = { Text(effort.ceilingLabel()) },
@@ -127,7 +132,9 @@ internal fun FrontierControls(
                 ) {
                     CostBand.entries.forEach { cost ->
                         FilterChip(
-                            modifier = Modifier.testTag("frontier-cost-${cost.name}"),
+                            modifier = Modifier
+                                .defaultMinSize(minHeight = 48.dp)
+                                .testTag("frontier-cost-${cost.name}"),
                             selected = uiState.maxCost == cost,
                             onClick = { onUiEvent(FrontierUiEvent.MaxCostChanged(cost)) },
                             label = { Text(cost.ceilingLabel()) },
@@ -138,6 +145,7 @@ internal fun FrontierControls(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .defaultMinSize(minHeight = 48.dp)
                         .testTag("frontier-prioritize-saved")
                         .toggleable(
                             value = uiState.prioritizeSaved,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -35,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -99,85 +102,91 @@ fun ProfileSetupScreen(
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 620.dp),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sectionSpacing),
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            ProfileSetupHeader()
-            requestedFactKey?.let { factKey ->
-                RequestedFactNotice(
-                    factKey = factKey,
-                    requestContext = requestContext,
-                )
-            }
-            EssentialsSection(uiState = uiState, onUiEvent = onUiEvent)
-            AdditionalFactsIntro()
-            AcademicRecordSection(
-                uiState = uiState,
-                onUiEvent = onUiEvent,
-                isExpanded = expandedSectionName == ProfileSetupSection.ACADEMIC.name,
-                onToggle = {
-                    expandedSectionName = ProfileSetupSection.ACADEMIC.name
-                        .takeUnless { it == expandedSectionName }
-                },
-            )
-            ExperienceEvidenceSection(
-                uiState = uiState,
-                onUiEvent = onUiEvent,
-                isExpanded = expandedSectionName == ProfileSetupSection.EXPERIENCE.name,
-                onToggle = {
-                    expandedSectionName = ProfileSetupSection.EXPERIENCE.name
-                        .takeUnless { it == expandedSectionName }
-                },
-            )
-            ContextSection(
-                uiState = uiState,
-                onUiEvent = onUiEvent,
-                isExpanded = expandedSectionName == ProfileSetupSection.CONTEXT.name,
-                onToggle = {
-                    expandedSectionName = ProfileSetupSection.CONTEXT.name
-                        .takeUnless { it == expandedSectionName }
-                },
-            )
-            LocalDataNotice()
-
-            uiState.error?.let { error ->
-                Surface(
-                    color = AppTheme.colors.status.errorContainer,
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text(
-                        text = error,
-                        modifier = Modifier.padding(AppTheme.spacing.defaultSpacing),
-                        color = AppTheme.colors.status.error,
-                    )
-                }
-            }
-
-            AppButton(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("profile-setup-save"),
-                text = "Save profile",
-                enabled = uiState.canSave,
-                isLoading = uiState.isSaving,
-                onClick = { onUiEvent(ProfileSetupUiEvent.Save) },
-            )
-            if (!uiState.canSave && !uiState.isSaving) {
+                    .widthIn(max = 620.dp)
+                    .testTag("profile-setup-form"),
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sectionSpacing),
+            ) {
+                ProfileSetupHeader()
+                requestedFactKey?.let { factKey ->
+                    RequestedFactNotice(
+                        factKey = factKey,
+                        requestContext = requestContext,
+                    )
+                }
+                EssentialsSection(uiState = uiState, onUiEvent = onUiEvent)
+                AdditionalFactsIntro()
+                AcademicRecordSection(
+                    uiState = uiState,
+                    onUiEvent = onUiEvent,
+                    isExpanded = expandedSectionName == ProfileSetupSection.ACADEMIC.name,
+                    onToggle = {
+                        expandedSectionName = ProfileSetupSection.ACADEMIC.name
+                            .takeUnless { it == expandedSectionName }
+                    },
+                )
+                ExperienceEvidenceSection(
+                    uiState = uiState,
+                    onUiEvent = onUiEvent,
+                    isExpanded = expandedSectionName == ProfileSetupSection.EXPERIENCE.name,
+                    onToggle = {
+                        expandedSectionName = ProfileSetupSection.EXPERIENCE.name
+                            .takeUnless { it == expandedSectionName }
+                    },
+                )
+                ContextSection(
+                    uiState = uiState,
+                    onUiEvent = onUiEvent,
+                    isExpanded = expandedSectionName == ProfileSetupSection.CONTEXT.name,
+                    onToggle = {
+                        expandedSectionName = ProfileSetupSection.CONTEXT.name
+                            .takeUnless { it == expandedSectionName }
+                    },
+                )
+                LocalDataNotice()
+
+                uiState.error?.let { error ->
+                    Surface(
+                        color = AppTheme.colors.status.errorContainer,
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(
+                            text = error,
+                            modifier = Modifier.padding(AppTheme.spacing.defaultSpacing),
+                            color = AppTheme.colors.status.error,
+                        )
+                    }
+                }
+
+                AppButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("profile-setup-save"),
+                    text = "Save profile",
+                    enabled = uiState.canSave,
+                    isLoading = uiState.isSaving,
+                    onClick = { onUiEvent(ProfileSetupUiEvent.Save) },
+                )
+                if (!uiState.canSave && !uiState.isSaving) {
+                    Text(
+                        text = uiState.saveDisabledReason.orEmpty(),
+                        modifier = Modifier.testTag("profile-setup-save-reason"),
+                        color = AppTheme.colors.status.error,
+                        style = AppTheme.typography.bodyMedium,
+                    )
+                }
                 Text(
-                    text = uiState.saveDisabledReason.orEmpty(),
-                    modifier = Modifier.testTag("profile-setup-save-reason"),
-                    color = AppTheme.colors.status.error,
-                    style = AppTheme.typography.bodyMedium,
+                    text = "Blank fields stay not provided. They are never interpreted as false or failed.",
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
                 )
             }
-            Text(
-                text = "Blank fields stay not provided. They are never interpreted as false or failed.",
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodySmall,
-            )
         }
     }
 }
@@ -283,7 +292,9 @@ private fun EssentialsSection(
         ) {
             StudyLevelOption.entries.forEach { option ->
                 FilterChip(
-                    modifier = Modifier.testTag("profile-level-${option.storedValue}"),
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
+                        .testTag("profile-level-${option.storedValue}"),
                     selected = uiState.studyLevel == option,
                     onClick = { onUiEvent(ProfileSetupUiEvent.StudyLevelChanged(option)) },
                     label = { Text(option.label) },
@@ -320,6 +331,7 @@ private fun AcademicRecordSection(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GpaScaleOption.entries.forEach { option ->
                 FilterChip(
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                     selected = uiState.gpaScale == option,
                     onClick = { onUiEvent(ProfileSetupUiEvent.GpaScaleChanged(option)) },
                     label = { Text(option.label) },
@@ -597,17 +609,20 @@ private fun BooleanFactField(
         Text(label, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.primary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
+                modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                 selected = value == true,
                 onClick = { onChanged(true) },
                 label = { Text("Yes") },
             )
             FilterChip(
+                modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                 selected = value == false,
                 onClick = { onChanged(false) },
                 label = { Text("No") },
             )
             if (includeUnknown) {
                 FilterChip(
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                     selected = value == null,
                     onClick = { onChanged(null) },
                     label = { Text("Not sure") },
@@ -666,6 +681,10 @@ private fun ProgressiveFormSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .defaultMinSize(minHeight = 64.dp)
+                    .semantics {
+                        stateDescription = if (isExpanded) "Expanded" else "Collapsed, $status"
+                    }
                     .clickable(role = Role.Button, onClick = onToggle)
                     .padding(AppTheme.spacing.defaultSpacing),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -831,6 +850,21 @@ private fun RequestedProfileFactScreenPreview() {
             onNavigateBack = {},
             requestedFactKey = FactKey.DEGREE_COMPLETED,
             requestContext = "Applicants must hold a bachelor's degree or equivalent.",
+        )
+    }
+}
+
+@Preview(widthDp = 320, heightDp = 640, fontScale = 2f)
+@Composable
+private fun ProfileSetupAccessibilityPreview() {
+    AppTheme {
+        ProfileSetupScreen(
+            uiState = ProfileSetupUiState(
+                studyLevel = StudyLevelOption.UNDERGRADUATE,
+                fieldOfStudy = "Computer Science",
+            ),
+            onUiEvent = {},
+            onNavigateBack = {},
         )
     }
 }

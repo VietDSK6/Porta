@@ -95,6 +95,10 @@ Required evidence:
   selectable master-detail workspace with an Actual-versus-What-if door matrix, and Pack inspector keeps its
   read-only master-detail diagnostics. Compact Android behavior remains one-column with bottom navigation;
   adaptive UI tests, 1280×800 preview evidence, JVM tests and the JVM Desktop launch path cover the slice.
+- [x] Responsive/accessibility regression evidence covers a 320×640 viewport, 200% text, keyboard traversal of the
+  Desktop rail, 48dp primary chips, a wide two-pane opportunity receipt with a large-text single-column fallback,
+  a polite What-if live region and zero-duration motion without losing the textual outcome. Final packaged-app
+  screen-reader and full keyboard exercise remains a disclosed manual submission check.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
 - [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement: 8,409 NCLOC across 57 explicitly
   allowlisted Porta production files in `commonMain`; tests and Kotlin data are reported separately, while

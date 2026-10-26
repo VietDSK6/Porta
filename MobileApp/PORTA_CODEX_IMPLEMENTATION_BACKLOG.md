@@ -188,6 +188,16 @@ tests cover persistence, routing, validation and reactive recomputation.
 
 **Done when:** Android 320×640 and 200% font has no clipped CTA; Desktop keyboard can traverse all primary controls; screen reader announces delta; reduced motion does not remove outcome meaning.
 
+**Done:** onboarding content and footer now share the same centered width and stack actions for narrow/large-text
+layouts. Profile setup is centered and width-constrained on Desktop, progressive sections expose expanded/collapsed
+semantics, and primary chips use at least 48dp targets. Opportunity detail becomes a two-pane decision/evidence
+workspace on wide screens but deliberately returns to one column at 200% text; Next moves applies the same large-text
+fallback and stacks metric cells when space is constrained. The navigation rail has explicit width, 64dp rows and a
+keyboard traversal regression test. What-if announces a textual result summary through a polite live region, and a
+zero-duration motion test proves the result and changed-door content remain available. Compose UI tests and generated
+previews cover 320×640, 200% text and 1200dp Desktop layouts; packaged-app manual keyboard/screen-reader exercise
+remains part of the final D3 validation.
+
 ## D1 — Sources/cycle freshness
 
 **Work:** visible last-checked, source links, TBA clarity, archive vs closed; date refresh on resume/day rollover; pack update diff with user awareness; avoid stale scoped assertion auto-validity.

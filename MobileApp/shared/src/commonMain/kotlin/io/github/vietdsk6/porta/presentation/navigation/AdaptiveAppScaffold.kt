@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -23,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavItem
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavigationBar
@@ -86,7 +89,10 @@ private fun PortaNavigationRail(
     onClickItem: (BottomNavItem) -> Unit,
 ) {
     NavigationRail(
-        modifier = Modifier.fillMaxHeight().testTag("porta-navigation-rail"),
+        modifier = Modifier
+            .fillMaxHeight()
+            .widthIn(min = 104.dp, max = 144.dp)
+            .testTag("porta-navigation-rail"),
         containerColor = AppTheme.colors.bottomNav.background,
         header = {
             Text(
@@ -102,6 +108,10 @@ private fun PortaNavigationRail(
             val isSelected = index == selectedIndex
             val icon = if (isSelected) item.selectedIcon ?: item.icon else item.icon
             NavigationRailItem(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 64.dp)
+                    .testTag("porta-navigation-item-$index"),
                 selected = isSelected,
                 enabled = item.icon != null || item.selectedIcon != null,
                 alwaysShowLabel = true,
@@ -111,7 +121,7 @@ private fun PortaNavigationRail(
                         Icon(
                             modifier = Modifier.size(24.dp),
                             painter = painterResource(it),
-                            contentDescription = stringResource(item.label),
+                            contentDescription = null,
                         )
                     }
                 },
@@ -120,6 +130,8 @@ private fun PortaNavigationRail(
                         text = stringResource(item.label),
                         style = AppTheme.typography.bodyExtraSmall,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
                     )
                 },
                 colors = NavigationRailItemDefaults.colors(

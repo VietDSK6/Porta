@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -200,7 +202,9 @@ private fun DoorFilterRow(selected: DoorFilter, onSelected: (DoorFilter) -> Unit
     ) {
         DoorFilter.entries.forEach { filter ->
             FilterChip(
-                modifier = Modifier.testTag("door-filter-${filter.name}"),
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
+                    .testTag("door-filter-${filter.name}"),
                 selected = filter == selected,
                 onClick = { onSelected(filter) },
                 label = { Text(filter.label, style = AppTheme.typography.bodySmall) },
@@ -221,7 +225,7 @@ private fun DoorCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("door-card-${door.id}")
-            .clickable(onClick = onOpen),
+            .clickable(role = Role.Button, onClick = onOpen),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isHighlighted) AppTheme.colors.alternative else AppTheme.colors.surfaceContainer,

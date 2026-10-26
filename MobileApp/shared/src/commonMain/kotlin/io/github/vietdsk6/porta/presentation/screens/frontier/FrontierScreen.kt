@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -79,7 +80,8 @@ fun FrontierScreen(
         includeBottomInsets = false,
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            if (maxWidth >= WIDE_FRONTIER_BREAKPOINT) {
+            val useWideLayout = maxWidth >= WIDE_FRONTIER_BREAKPOINT && LocalDensity.current.fontScale < 1.5f
+            if (useWideLayout) {
                 WideFrontierContent(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
@@ -556,11 +558,7 @@ private fun FrontierCard(
                 color = PORTA_TEAL,
                 style = AppTheme.typography.h6,
             )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetricPill(action.durationLabel, Modifier.weight(1f))
-                MetricPill(action.effortLabel, Modifier.weight(1f))
-                MetricPill(action.costLabel, Modifier.weight(1f))
-            }
+            AdaptiveMetricPills(action)
             if (showExplanation) {
                 Text(
                     text = action.explanation,
@@ -588,6 +586,26 @@ private fun FrontierCard(
             }
             Button(modifier = Modifier.fillMaxWidth(), onClick = onPreview) {
                 Text("Preview changes")
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdaptiveMetricPills(action: FrontierActionUiState) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val stackMetrics = maxWidth < 320.dp || LocalDensity.current.fontScale >= 1.5f
+        if (stackMetrics) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetricPill(action.durationLabel, Modifier.fillMaxWidth())
+                MetricPill(action.effortLabel, Modifier.fillMaxWidth())
+                MetricPill(action.costLabel, Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetricPill(action.durationLabel, Modifier.weight(1f))
+                MetricPill(action.effortLabel, Modifier.weight(1f))
+                MetricPill(action.costLabel, Modifier.weight(1f))
             }
         }
     }

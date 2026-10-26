@@ -812,36 +812,86 @@ private fun OnboardingBottomBar(
         color = AppTheme.colors.background,
         border = BorderStroke(1.dp, AppTheme.colors.outline),
     ) {
-        Row(
-            modifier = Modifier
-                .widthIn(max = 620.dp)
-                .fillMaxWidth()
-                .padding(horizontal = AppTheme.spacing.outerSpacing, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            if (uiState.currentStep > 0) {
-                TextButton(onClick = { onUiEvent(OnBoardingUiEvent.Back) }) {
-                    Text("Back", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
+            BoxWithConstraints(
+                modifier = Modifier
+                    .widthIn(max = 620.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = AppTheme.spacing.outerSpacing, vertical = 12.dp),
+            ) {
+                val useStackedActions = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
+                if (useStackedActions) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OnboardingContinueButton(
+                            uiState = uiState,
+                            onContinue = { onUiEvent(OnBoardingUiEvent.Next) },
+                        )
+                        if (uiState.currentStep > 0) {
+                            OnboardingBackButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onBack = { onUiEvent(OnBoardingUiEvent.Back) },
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+                    ) {
+                        if (uiState.currentStep > 0) {
+                            OnboardingBackButton(
+                                onBack = { onUiEvent(OnBoardingUiEvent.Back) },
+                            )
+                        }
+                        OnboardingContinueButton(
+                            modifier = Modifier.weight(1f),
+                            uiState = uiState,
+                            onContinue = { onUiEvent(OnBoardingUiEvent.Next) },
+                        )
+                    }
                 }
             }
-            AppButton(
-                modifier = Modifier.weight(1f).testTag("onboarding-continue"),
-                text = when (uiState.currentStep) {
-                    0 -> "See what's possible →"
-                    1 -> "See what changed →"
-                    else -> "Make it personal →"
-                },
-                size = ButtonSize.SMALL,
-                enabled = when (uiState.currentStep) {
-                    0 -> uiState.selectedGoal != null
-                    1 -> uiState.isDemoComplete
-                    else -> true
-                },
-                onClick = { onUiEvent(OnBoardingUiEvent.Next) },
-            )
         }
     }
+}
+
+@Composable
+private fun OnboardingBackButton(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        modifier = modifier.heightIn(min = 48.dp),
+        onClick = onBack,
+    ) {
+        Text("Back", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun OnboardingContinueButton(
+    uiState: OnBoardingUiState,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AppButton(
+        modifier = modifier.fillMaxWidth().testTag("onboarding-continue"),
+        text = when (uiState.currentStep) {
+            0 -> "See what's possible →"
+            1 -> "See what changed →"
+            else -> "Make it personal →"
+        },
+        size = ButtonSize.SMALL,
+        enabled = when (uiState.currentStep) {
+            0 -> uiState.selectedGoal != null
+            1 -> uiState.isDemoComplete
+            else -> true
+        },
+        onClick = onContinue,
+    )
 }
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)

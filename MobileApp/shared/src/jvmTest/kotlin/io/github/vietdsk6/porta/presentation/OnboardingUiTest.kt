@@ -1,6 +1,11 @@
 package io.github.vietdsk6.porta.presentation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
@@ -8,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreen
@@ -21,6 +28,27 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class OnboardingUiTest {
+    @Test
+    fun `primary action remains reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+        val events = mutableListOf<OnBoardingUiEvent>()
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    AppTheme {
+                        OnBoardingScreen(
+                            style = OnBoardingScreenStyle.STYLE1,
+                            uiState = onboardingState(currentStep = 0, sampleIelts = 6.5),
+                            onUiEvent = { events += it },
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithTag("onboarding-continue").assertIsDisplayed().performClick()
+        assertEquals(OnBoardingUiEvent.Next, events.last())
+    }
+
     @Test
     fun `goal choice is explicit before the sample demo`() = runComposeUiTest {
         val events = mutableListOf<OnBoardingUiEvent>()

@@ -2,8 +2,15 @@ package io.github.vietdsk6.porta.presentation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -14,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
@@ -324,6 +332,27 @@ class PortaVerticalSliceUiTest {
     }
 
     @Test
+    fun `large text keeps next moves in a single column at desktop width`() = runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 1200.dp, height = 800.dp)) {
+                    AppTheme {
+                        FrontierScreen(
+                            uiState = frontierState,
+                            onUiEvent = {},
+                            onPreviewScenario = {},
+                            onOpenActivePlan = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithTag("frontier-compact-content").assertExists()
+        onNodeWithTag("frontier-desktop-workspace").assertDoesNotExist()
+    }
+
+    @Test
     fun `scenario keeps what-if label visible and saves only on explicit action`() = runComposeUiTest {
         val events = mutableListOf<ScenarioPreviewUiEvent>()
         val changedDoor = scenarioState.openedDoors.first().copy(
@@ -351,13 +380,39 @@ class PortaVerticalSliceUiTest {
         }
 
         onNodeWithText("Simulation — your saved profile is unchanged.").assertExists()
-        onNodeWithText("1 door is affected by this simulation.").assertExists()
+        onNodeWithText("1 door is affected by this simulation.", substring = true).assertExists()
+        onNodeWithTag("scenario-outcome-summary").assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.LiveRegion,
+                LiveRegionMode.Polite,
+            ),
+        )
         onNodeWithText("Changed check").assertExists()
         onNodeWithText("Needs action → Check passed").assertExists()
         onNodeWithText("Still unresolved").assertExists()
         onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
+    }
+
+    @Test
+    fun `reduced motion keeps the scenario outcome and changed door visible`() = runComposeUiTest(
+        effectContext = ReducedMotionScale,
+    ) {
+        setContent {
+            AppTheme {
+                ScenarioPreviewScreen(
+                    uiState = scenarioState,
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                    onBuildProfile = {},
+                )
+            }
+        }
+
+        onNodeWithTag("scenario-outcome-summary").assertExists()
+        onNodeWithText("4 doors are affected by this simulation.", substring = true).assertExists()
+        onNodeWithTag("scenario-door-title-aurora").assertExists()
     }
 
     @Test
@@ -407,6 +462,47 @@ class PortaVerticalSliceUiTest {
         onNodeWithTag("opportunity-detail-content").performScrollToIndex(6)
         onNodeWithText("Source and last review").assertExists()
         onNodeWithText("Sample data only.").assertExists()
+    }
+
+    @Test
+    fun `wide opportunity detail uses separate decision and evidence panes`() = runComposeUiTest {
+        setContent {
+            Box(Modifier.size(width = 1200.dp, height = 800.dp)) {
+                AppTheme {
+                    OpportunityDetailScreen(
+                        uiState = receiptState,
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onPreviewAction = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("opportunity-detail-desktop-workspace").assertExists()
+        onNodeWithTag("opportunity-detail-primary-pane").assertExists()
+        onNodeWithTag("opportunity-detail-evidence-pane").assertExists()
+    }
+
+    @Test
+    fun `large text returns opportunity detail to one readable column`() = runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 1200.dp, height = 800.dp)) {
+                    AppTheme {
+                        OpportunityDetailScreen(
+                            uiState = receiptState,
+                            onUiEvent = {},
+                            onNavigateBack = {},
+                            onPreviewAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithTag("opportunity-detail-content").assertExists()
+        onNodeWithTag("opportunity-detail-desktop-workspace").assertDoesNotExist()
     }
 
     @Test
@@ -591,4 +687,8 @@ class PortaVerticalSliceUiTest {
             ),
         ),
     )
+}
+
+private object ReducedMotionScale : MotionDurationScale {
+    override val scaleFactor: Float = 0f
 }
