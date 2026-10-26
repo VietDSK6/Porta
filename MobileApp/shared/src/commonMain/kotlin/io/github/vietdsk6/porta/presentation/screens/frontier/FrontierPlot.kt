@@ -43,7 +43,8 @@ internal fun FrontierPlot(
     onActionSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (actions.size < 2) return
+    val plotGroups = actions.toPlotGroups()
+    if (plotGroups.size < 2) return
 
     Card(
         modifier = modifier.fillMaxWidth().testTag("frontier-impact-map"),
@@ -63,26 +64,48 @@ internal fun FrontierPlot(
                 )
             }
             ImpactPlotArea(
-                actions = actions,
+                groups = plotGroups,
                 horizonDays = horizonDays,
                 selectedActionId = selectedActionId,
                 onActionSelected = onActionSelected,
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(CostBand.entries) { cost -> CostLegendItem(cost) }
+                items(plotGroups.map { it.representative.cost }.distinct()) { cost -> CostLegendItem(cost) }
             }
-            actions.forEachIndexed { index, action ->
-                Text(
-                    text = "${index + 1}. ${action.title} · ${action.durationDays} days · " +
-                        "${action.improvedCount} doors",
-                    color = if (action.id == selectedActionId) {
-                        AppTheme.colors.primary
-                    } else {
-                        AppTheme.colors.text.secondary
-                    },
-                    style = AppTheme.typography.bodySmall,
-                    fontWeight = if (action.id == selectedActionId) FontWeight.Bold else FontWeight.Normal,
-                )
+            plotGroups.forEachIndexed { index, group ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = if (group.actions.size == 1) {
+                            "${index + 1}. ${group.representative.title}"
+                        } else {
+                            "${index + 1}. ${group.actions.size} moves share this trade-off"
+                        },
+                        color = if (group.contains(selectedActionId)) {
+                            AppTheme.colors.primary
+                        } else {
+                            AppTheme.colors.text.secondary
+                        },
+                        style = AppTheme.typography.bodySmall,
+                        fontWeight = if (group.contains(selectedActionId)) {
+                            FontWeight.Bold
+                        } else {
+                            FontWeight.Normal
+                        },
+                    )
+                    Text(
+                        text = "${group.representative.durationDays} days · " +
+                            "${group.representative.improvedCount} doors · ${group.representative.costLabel} cost",
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodySmall,
+                    )
+                    if (group.actions.size > 1) {
+                        Text(
+                            text = group.actions.joinToString(separator = " · ", transform = FrontierActionUiState::scopeLabel),
+                            color = AppTheme.colors.text.secondary,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         }
     }
@@ -90,14 +113,14 @@ internal fun FrontierPlot(
 
 @Composable
 private fun ImpactPlotArea(
-    actions: List<FrontierActionUiState>,
+    groups: List<FrontierPlotGroup>,
     horizonDays: Int,
     selectedActionId: String?,
     onActionSelected: (String) -> Unit,
 ) {
     val axisColor = AppTheme.colors.outline.copy(alpha = 0.55f)
     val gridColor = AppTheme.colors.outline.copy(alpha = 0.18f)
-    val maxImpact = actions.maxOfOrNull(FrontierActionUiState::improvedCount)?.coerceAtLeast(1) ?: 1
+    val maxImpact = groups.maxOfOrNull { it.representative.improvedCount }?.coerceAtLeast(1) ?: 1
 
     BoxWithConstraints(
         modifier = Modifier
@@ -158,12 +181,16 @@ private fun ImpactPlotArea(
             style = AppTheme.typography.bodySmall,
         )
 
-        actions.forEachIndexed { index, action ->
+        groups.forEachIndexed { index, group ->
+            val action = group.representative
             val xFraction = (action.durationDays.toFloat() / horizonDays.coerceAtLeast(1)).coerceIn(0f, 1f)
             val yFraction = (action.improvedCount.toFloat() / maxImpact).coerceIn(0f, 1f)
             val markerX = PLOT_LEFT + (plotWidth * xFraction) - (POINT_SIZE / 2)
             val markerY = PLOT_TOP + (plotHeight * (1f - yFraction)) - (POINT_SIZE / 2)
-            val isSelected = action.id == selectedActionId
+            val isSelected = group.contains(selectedActionId)
+            val selectedGroupActionId = selectedActionId
+                ?.takeIf(group::contains)
+                ?: action.id
             Surface(
                 modifier = Modifier
                     .offset(x = markerX, y = markerY)
@@ -172,12 +199,16 @@ private fun ImpactPlotArea(
                     .selectable(
                         selected = isSelected,
                         role = Role.RadioButton,
-                        onClick = { onActionSelected(action.id) },
+                        onClick = { onActionSelected(selectedGroupActionId) },
                     )
                     .semantics {
-                        contentDescription =
+                        contentDescription = if (group.actions.size == 1) {
                             "${action.title}. ${action.durationDays} days, ${action.improvedCount} affected doors, " +
-                            "${action.costLabel} cost."
+                                "${action.costLabel} cost."
+                        } else {
+                            "${group.actions.size} moves share this point. ${action.durationDays} days, " +
+                                "${action.improvedCount} affected doors, ${action.costLabel} cost."
+                        }
                     },
                 shape = CircleShape,
                 color = action.cost.color(),
@@ -191,7 +222,7 @@ private fun ImpactPlotArea(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "${index + 1}",
+                        text = if (group.actions.size == 1) "${index + 1}" else "${group.actions.size}",
                         color = Color.White,
                         fontWeight = FontWeight.ExtraBold,
                     )
@@ -200,6 +231,29 @@ private fun ImpactPlotArea(
         }
     }
 }
+
+private data class FrontierPlotGroup(
+    val actions: List<FrontierActionUiState>,
+) {
+    val representative: FrontierActionUiState
+        get() = actions.first()
+
+    fun contains(actionId: String?): Boolean = actions.any { it.id == actionId }
+}
+
+private data class FrontierPlotVector(
+    val durationDays: Int,
+    val improvedCount: Int,
+    val cost: CostBand,
+)
+
+private fun List<FrontierActionUiState>.toPlotGroups(): List<FrontierPlotGroup> = groupBy { action ->
+    FrontierPlotVector(
+        durationDays = action.durationDays,
+        improvedCount = action.improvedCount,
+        cost = action.cost,
+    )
+}.values.map(::FrontierPlotGroup)
 
 @Composable
 private fun CostLegendItem(cost: CostBand) {

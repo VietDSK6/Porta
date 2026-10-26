@@ -27,6 +27,7 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierActionUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierDoorComparisonUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierExcludedActionUiState
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierMoveKind
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiState
@@ -123,7 +124,7 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("Adjust").performClick()
+        onNodeWithText("Adjust").performScrollTo().performClick()
         onNodeWithTag("frontier-horizon-30").performScrollTo().performClick()
         assertTrue(events.contains(FrontierUiEvent.HorizonChanged(30)))
     }
@@ -144,10 +145,12 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("Adjust").performClick()
+        onNodeWithText("Adjust").performScrollTo().performClick()
         onNodeWithTag("frontier-effort-MEDIUM").performScrollTo().performClick()
         onNodeWithTag("frontier-cost-LOW").performScrollTo().performClick()
         onNodeWithTag("frontier-prioritize-saved").performScrollTo().performClick()
+        onNodeWithText("Saved-door priority can change which moves reach the frontier", substring = true)
+            .assertExists()
 
         assertTrue(events.contains(FrontierUiEvent.MaxEffortChanged(EffortLevel.MEDIUM)))
         assertTrue(
@@ -195,9 +198,103 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("RECOMMENDED NEXT MOVE").assertExists()
+        onNodeWithText("RECOMMENDED NEXT MOVE · IMPROVE").assertExists()
         onNodeWithTag("frontier-trade-offs-toggle").assertDoesNotExist()
         onNodeWithTag("frontier-impact-map").assertDoesNotExist()
+    }
+
+    @Test
+    fun `frontier groups scoped verification moves without merging their targets`() = runComposeUiTest {
+        val firstVerification = frontierState.actions[1].copy(
+            id = "verify-oecd",
+            title = "Confirm availability for OECD Internship Programme",
+            kind = FrontierMoveKind.VERIFY,
+            familyId = "verify-availability",
+            familyLabel = "Confirm programme availability",
+            scopeLabel = "OECD Internship Programme · programme-specific",
+        )
+        val secondVerification = firstVerification.copy(
+            id = "verify-cern",
+            title = "Confirm availability for CERN Technical Studentship",
+            scopeLabel = "CERN Technical Studentship · programme-specific",
+        )
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 360.dp, height = 760.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(
+                            actions = listOf(frontierState.actions.first(), firstVerification, secondVerification),
+                        ),
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("frontier-compact-content").performScrollToIndex(4)
+        onNodeWithText("VERIFY · Confirm programme availability").assertExists()
+        onNodeWithText("2 programme-specific checks share this planning pattern.").assertExists()
+        onNodeWithTag("frontier-action-verify-oecd").assertExists()
+        onNodeWithTag("frontier-action-verify-cern").assertExists()
+    }
+
+    @Test
+    fun `frontier hides a plot that has no real trade-off`() = runComposeUiTest {
+        val sameVectorAction = frontierState.actions[1].copy(
+            durationDays = frontierState.actions.first().durationDays,
+            improvedCount = frontierState.actions.first().improvedCount,
+            cost = frontierState.actions.first().cost,
+        )
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 360.dp, height = 760.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(
+                            actions = listOf(frontierState.actions.first(), sameVectorAction),
+                        ),
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("frontier-trade-offs-toggle").assertDoesNotExist()
+        onNodeWithTag("frontier-impact-map").assertDoesNotExist()
+    }
+
+    @Test
+    fun `frontier plot explains when multiple moves share a point`() = runComposeUiTest {
+        val sameVectorAction = frontierState.actions[1].copy(
+            durationDays = frontierState.actions.first().durationDays,
+            improvedCount = frontierState.actions.first().improvedCount,
+            cost = frontierState.actions.first().cost,
+        )
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 1200.dp, height = 800.dp)) {
+                    FrontierScreen(
+                        uiState = frontierState.copy(
+                            actions = listOf(
+                                frontierState.actions.first(),
+                                sameVectorAction,
+                                frontierState.actions.last(),
+                            ),
+                            selectedActionId = frontierState.actions.first().id,
+                        ),
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("frontier-impact-map").assertExists()
+        onNodeWithText("1. 2 moves share this trade-off").assertExists()
     }
 
     @Test
@@ -383,6 +480,11 @@ class PortaVerticalSliceUiTest {
                 costLabel = "Low",
                 explanation = "Opens four synthetic doors before their deadlines.",
                 doorTitles = listOf("Aurora", "Forge", "Horizon", "Spark"),
+                kind = FrontierMoveKind.IMPROVE,
+                familyId = "improve-ielts",
+                familyLabel = "Improve English score",
+                scopeLabel = "Profile-wide · 4 doors",
+                estimateSourceLabel = "Time estimate · synthetic demo",
                 doorComparisons = listOf(
                     FrontierDoorComparisonUiState(
                         id = "aurora",
@@ -411,6 +513,11 @@ class PortaVerticalSliceUiTest {
                 costLabel = "Free",
                 explanation = "Moves two doors forward.",
                 doorTitles = listOf("Kotlin Student Coding Competition", "Aurora"),
+                kind = FrontierMoveKind.VERIFY,
+                familyId = "verify-enrollment",
+                familyLabel = "Confirm enrollment",
+                scopeLabel = "Kotlin Student Coding Competition · programme-specific",
+                estimateSourceLabel = "Time estimate · Porta assumption",
             ),
             FrontierActionUiState(
                 id = "community-project",
@@ -428,6 +535,10 @@ class PortaVerticalSliceUiTest {
                 costLabel = "Medium",
                 explanation = "Moves three doors forward.",
                 doorTitles = listOf("Impact", "Civic", "Change"),
+                kind = FrontierMoveKind.PREPARE,
+                familyId = "prepare-community-project",
+                familyLabel = "Build community evidence",
+                estimateSourceLabel = "Time estimate · Porta assumption",
             ),
         ),
         exclusions = listOf(

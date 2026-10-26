@@ -10,8 +10,11 @@ import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.ActionTarget
+import io.github.vietdsk6.porta.domain.model.ActionTemplate
+import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanStatus
@@ -171,6 +174,7 @@ class FrontierViewModel(
             today = currentLocalDateProvider.today(),
         )
         val actions = evaluation.actions.map { action ->
+            val moveKind = action.template.moveKind()
             FrontierActionUiState(
                 id = action.template.id,
                 title = action.template.title,
@@ -192,27 +196,26 @@ class FrontierViewModel(
                 durationDays = action.template.minimumDurationDays,
                 effort = action.template.effort,
                 cost = action.template.costBand,
-                durationLabel = if (action.template.sourceNote?.contains("Porta planning estimates") == true) {
-                    "Est. ${action.template.minimumDurationDays} days · Porta assumption"
-                } else {
-                    "${action.template.minimumDurationDays} days"
-                },
+                durationLabel = "Est. ${action.template.minimumDurationDays} days",
                 effortLabel = action.template.effort.readable(),
                 costLabel = action.template.costBand.readable(),
                 explanation = buildString {
-                    append("Would address a checked requirement across ")
-                    append(action.improvedOpportunityIds.size)
-                    append(if (action.improvedOpportunityIds.size == 1) " door." else " doors.")
+                    append(
+                        when (moveKind) {
+                            FrontierMoveKind.VERIFY ->
+                                "Would satisfy this programme-specific check if confirmed."
+
+                            FrontierMoveKind.IMPROVE ->
+                                "Would address an encoded requirement using a profile fact you can change."
+
+                            FrontierMoveKind.PREPARE ->
+                                "Would address an encoded requirement after a time-dependent milestone."
+                        },
+                    )
                     if (action.newlyOpenOpportunityIds.isNotEmpty()) {
                         append(" ")
                         append(action.newlyOpenOpportunityIds.size)
-                        append(
-                            if (action.newlyOpenOpportunityIds.size == 1) {
-                                " would pass current checks."
-                            } else {
-                                " would pass current checks."
-                            },
-                        )
+                        append(" would pass current checks.")
                     }
                     if (action.timingUnverifiedOpportunityIds.isNotEmpty()) {
                         append(" ")
@@ -240,6 +243,26 @@ class FrontierViewModel(
                         isSaved = opportunityId in action.improvedSavedOpportunityIds,
                         requiresDeadlineCheck = opportunityId in action.timingUnverifiedOpportunityIds,
                     )
+                },
+                kind = moveKind,
+                familyId = action.template.familyId(moveKind),
+                familyLabel = action.template.familyLabel(moveKind),
+                scopeLabel = when (val target = action.template.target) {
+                    is ActionTarget.ProfileFactTarget -> buildString {
+                        append("Profile-wide · ")
+                        append(action.improvedOpportunityIds.size)
+                        append(if (action.improvedOpportunityIds.size == 1) " door" else " doors")
+                    }
+
+                    is ActionTarget.OpportunityRuleTarget ->
+                        "${opportunitiesById[target.opportunityId]?.title ?: "One door"} · programme-specific"
+                },
+                estimateSourceLabel = action.template.estimateSourceLabel(),
+                impactBasisLabel = buildString {
+                    append("Impact basis · encoded rule simulation")
+                    if (action.timingUnverifiedOpportunityIds.isNotEmpty()) {
+                        append(" · deadline not confirmed")
+                    }
                 },
             )
         }
@@ -273,6 +296,43 @@ class FrontierViewModel(
     private fun EffortLevel.readable(): String = name.readableEnumName()
 
     private fun CostBand.readable(): String = name.readableEnumName()
+
+    private fun ActionTemplate.moveKind(): FrontierMoveKind = when {
+        targetActionability == Actionability.TIME_DEPENDENT -> FrontierMoveKind.PREPARE
+        target is ActionTarget.OpportunityRuleTarget -> FrontierMoveKind.VERIFY
+        else -> FrontierMoveKind.IMPROVE
+    }
+
+    private fun ActionTemplate.familyId(kind: FrontierMoveKind): String = "${kind.name}:${targetFactKey.name}:${targetValue.displayValue()}"
+
+    private fun ActionTemplate.familyLabel(kind: FrontierMoveKind): String = when (targetFactKey) {
+        FactKey.AVAILABLE_FULL_PERIOD -> "Confirm programme availability"
+
+        FactKey.IELTS_SCORE -> "Improve English score"
+
+        FactKey.DEGREE_COMPLETED -> "Complete degree requirement"
+
+        FactKey.ENROLLED -> "Plan around active enrollment"
+
+        FactKey.EXPERIENCE_MONTHS -> "Build relevant experience"
+
+        else -> when (kind) {
+            FrontierMoveKind.VERIFY -> "Confirm programme requirement"
+            FrontierMoveKind.IMPROVE -> title
+            FrontierMoveKind.PREPARE -> title
+        }
+    }
+
+    private fun ActionTemplate.estimateSourceLabel(): String = when {
+        sourceNote?.contains("Synthetic sample", ignoreCase = true) == true ->
+            "Time estimate · synthetic demo"
+
+        sourceNote?.contains("Porta planning estimates", ignoreCase = true) == true ||
+            sourceNote?.contains("Porta assumption", ignoreCase = true) == true ->
+            "Time estimate · Porta assumption"
+
+        else -> "Time estimate · basis not stated"
+    }
 
     private fun FrontierExclusionReason.readable(): String = when (this) {
         FrontierExclusionReason.BEYOND_HORIZON -> "Needs more time than your horizon"

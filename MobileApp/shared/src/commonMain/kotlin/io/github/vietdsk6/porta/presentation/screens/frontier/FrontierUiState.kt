@@ -15,7 +15,31 @@ data class FrontierUiState(
     val actions: List<FrontierActionUiState> = emptyList(),
     val exclusions: List<FrontierExcludedActionUiState> = emptyList(),
     val selectedActionId: String? = null,
-)
+) {
+    val actionFamilies: List<FrontierActionFamilyUiState>
+        get() = actions
+            .groupBy(FrontierActionUiState::familyId)
+            .map { (familyId, familyActions) ->
+                FrontierActionFamilyUiState(
+                    id = familyId,
+                    title = familyActions.first().familyLabel,
+                    kind = familyActions.first().kind,
+                    actions = familyActions,
+                )
+            }
+
+    val hasMeaningfulTradeOffs: Boolean
+        get() = actions
+            .map { action ->
+                FrontierTradeOffVector(
+                    durationDays = action.durationDays,
+                    improvedCount = action.improvedCount,
+                    cost = action.cost,
+                )
+            }
+            .distinct()
+            .size > 1
+}
 
 data class ActivePlanSummaryUiState(
     val title: String,
@@ -40,6 +64,31 @@ data class FrontierActionUiState(
     val explanation: String,
     val doorTitles: List<String>,
     val doorComparisons: List<FrontierDoorComparisonUiState> = emptyList(),
+    val kind: FrontierMoveKind = FrontierMoveKind.IMPROVE,
+    val familyId: String = id,
+    val familyLabel: String = title,
+    val scopeLabel: String = "Profile-wide",
+    val estimateSourceLabel: String = "Time estimate · basis not stated",
+    val impactBasisLabel: String = "Impact based on encoded rule simulation",
+)
+
+enum class FrontierMoveKind {
+    VERIFY,
+    IMPROVE,
+    PREPARE,
+}
+
+data class FrontierActionFamilyUiState(
+    val id: String,
+    val title: String,
+    val kind: FrontierMoveKind,
+    val actions: List<FrontierActionUiState>,
+)
+
+private data class FrontierTradeOffVector(
+    val durationDays: Int,
+    val improvedCount: Int,
+    val cost: CostBand,
 )
 
 data class FrontierDoorComparisonUiState(

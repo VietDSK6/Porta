@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -105,6 +106,7 @@ private fun CompactFrontierContent(
     onOpenActivePlan: () -> Unit,
 ) {
     val recommendedAction = uiState.actions.firstOrNull()
+    val alternativeFamilies = uiState.alternativeFamilies()
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("frontier-compact-content"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -137,27 +139,23 @@ private fun CompactFrontierContent(
         if (uiState.actions.isEmpty()) {
             item { NoFeasibleActionCard(uiState.exclusions) }
         } else {
-            if (uiState.actions.size > 1) {
+            if (alternativeFamilies.isNotEmpty()) {
                 item {
                     SectionIntroduction(
                         title = "Alternatives",
-                        description = "Other steps that fit the limits you set.",
+                        description = "Grouped by the kind of change. Each programme check remains separate.",
                     )
                 }
             }
-            items(uiState.actions.drop(1), key = FrontierActionUiState::id) { action ->
-                FrontierCard(
-                    action = action,
-                    eyebrow = "ALTERNATIVE",
-                    isRecommended = false,
-                    isSelected = false,
-                    isSelectable = false,
-                    showExplanation = true,
+            items(alternativeFamilies, key = FrontierActionFamilyUiState::id) { family ->
+                AlternativeFamilySection(
+                    family = family,
+                    selectedActionId = null,
                     onSelect = {},
-                    onPreview = { onPreviewScenario(action.id) },
+                    onPreview = onPreviewScenario,
                 )
             }
-            if (uiState.actions.size >= 2) {
+            if (uiState.hasMeaningfulTradeOffs) {
                 item {
                     FrontierTradeOffsCard(
                         uiState = uiState,
@@ -182,6 +180,8 @@ private fun WideFrontierContent(
 ) {
     val selectedAction = uiState.actions.firstOrNull { it.id == uiState.selectedActionId }
         ?: uiState.actions.firstOrNull()
+    val recommendedAction = uiState.actions.firstOrNull()
+    val alternativeFamilies = uiState.alternativeFamilies()
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -199,6 +199,23 @@ private fun WideFrontierContent(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item { FrontierIntroduction(uiState = uiState) }
+                recommendedAction?.let { action ->
+                    item {
+                        FrontierCard(
+                            action = action,
+                            eyebrow = "RECOMMENDED NEXT MOVE",
+                            isRecommended = true,
+                            isSelected = action.id == selectedAction?.id,
+                            isSelectable = true,
+                            showExplanation = true,
+                            onSelect = { onUiEvent(FrontierUiEvent.ActionSelected(action.id)) },
+                            onPreview = { onPreviewScenario(action.id) },
+                        )
+                    }
+                }
+                uiState.activePlan?.let { plan ->
+                    item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
+                }
                 item {
                     FrontierControls(
                         uiState = uiState,
@@ -206,22 +223,17 @@ private fun WideFrontierContent(
                         collapsible = false,
                     )
                 }
-                uiState.activePlan?.let { plan ->
-                    item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
-                }
                 if (uiState.actions.isEmpty()) {
                     item { NoFeasibleActionCard(uiState.exclusions) }
                 } else {
-                    items(uiState.actions, key = FrontierActionUiState::id) { action ->
-                        FrontierCard(
-                            action = action,
-                            eyebrow = if (action.id == selectedAction?.id) "SELECTED NEXT MOVE" else "ALTERNATIVE",
-                            isRecommended = action == uiState.actions.firstOrNull(),
-                            isSelected = action.id == selectedAction?.id,
-                            isSelectable = true,
-                            showExplanation = false,
-                            onSelect = { onUiEvent(FrontierUiEvent.ActionSelected(action.id)) },
-                            onPreview = { onPreviewScenario(action.id) },
+                    items(alternativeFamilies, key = FrontierActionFamilyUiState::id) { family ->
+                        AlternativeFamilySection(
+                            family = family,
+                            selectedActionId = selectedAction?.id,
+                            onSelect = { actionId ->
+                                onUiEvent(FrontierUiEvent.ActionSelected(actionId))
+                            },
+                            onPreview = onPreviewScenario,
                         )
                     }
                 }
@@ -239,18 +251,20 @@ private fun WideFrontierContent(
                     item { NoSelectionCard() }
                 } else {
                     item {
-                        FrontierPlot(
-                            actions = uiState.actions,
-                            horizonDays = uiState.horizonDays,
-                            selectedActionId = selectedAction.id,
-                            onActionSelected = { onUiEvent(FrontierUiEvent.ActionSelected(it)) },
-                        )
-                    }
-                    item {
                         FrontierComparisonPanel(
                             action = selectedAction,
                             onOpenFullPreview = { onPreviewScenario(selectedAction.id) },
                         )
+                    }
+                    if (uiState.hasMeaningfulTradeOffs) {
+                        item {
+                            FrontierPlot(
+                                actions = uiState.actions,
+                                horizonDays = uiState.horizonDays,
+                                selectedActionId = selectedAction.id,
+                                onActionSelected = { onUiEvent(FrontierUiEvent.ActionSelected(it)) },
+                            )
+                        }
                     }
                     item { Spacer(Modifier.height(8.dp)) }
                 }
@@ -291,6 +305,108 @@ private fun SectionIntroduction(title: String, description: String) {
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
+    }
+}
+
+@Composable
+private fun AlternativeFamilySection(
+    family: FrontierActionFamilyUiState,
+    selectedActionId: String?,
+    onSelect: (String) -> Unit,
+    onPreview: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-family-${family.id}"),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = "${family.kind.label()} · ${family.title}",
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = if (family.actions.size == 1) {
+                    family.kind.description()
+                } else {
+                    "${family.actions.size} programme-specific checks share this planning pattern."
+                },
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+        family.actions.forEachIndexed { index, action ->
+            if (index > 0) {
+                HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.25f))
+            }
+            AlternativeActionRow(
+                action = action,
+                isSelected = action.id == selectedActionId,
+                isSelectable = selectedActionId != null,
+                onSelect = { onSelect(action.id) },
+                onPreview = { onPreview(action.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AlternativeActionRow(
+    action: FrontierActionUiState,
+    isSelected: Boolean,
+    isSelectable: Boolean,
+    onSelect: () -> Unit,
+    onPreview: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("frontier-action-${action.id}")
+            .then(
+                if (isSelectable) {
+                    Modifier.selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = onSelect,
+                    )
+                } else {
+                    Modifier
+                },
+            ),
+        color = if (isSelected) AppTheme.colors.alternative else Color.Transparent,
+        shape = RoundedCornerShape(14.dp),
+        border = if (isSelected) BorderStroke(1.dp, AppTheme.colors.primary) else null,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(action.scopeLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            Text(action.title, style = AppTheme.typography.h6)
+            Text(
+                text = "${action.improvedCount} " +
+                    if (action.improvedCount == 1) "door affected" else "doors affected",
+                color = PORTA_TEAL,
+                fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.bodyMedium,
+            )
+            Text(
+                text = "${action.durationLabel} · ${action.effortLabel} effort · ${action.costLabel} cost",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                text = "${action.estimateSourceLabel} · ${action.impactBasisLabel}",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            TextButton(
+                modifier = Modifier.align(Alignment.End),
+                onClick = onPreview,
+            ) {
+                Text("Preview changes")
+            }
+        }
     }
 }
 
@@ -419,11 +535,16 @@ private fun FrontierCard(
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             Text(
-                text = eyebrow,
+                text = "$eyebrow · ${action.kind.label()}",
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
             )
             Text(action.title, style = AppTheme.typography.h5)
+            Text(
+                text = action.scopeLabel,
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
             Text(
                 text = buildString {
                     append("${action.improvedCount} ${if (action.improvedCount == 1) "door" else "doors"} affected")
@@ -449,6 +570,20 @@ private fun FrontierCard(
                 Text(
                     text = action.doorTitles.joinToString(prefix = "Affected doors: ", separator = " · "),
                     style = AppTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = action.estimateSourceLabel,
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+                Text(
+                    text = action.impactBasisLabel,
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
                 )
             }
             Button(modifier = Modifier.fillMaxWidth(), onClick = onPreview) {
@@ -692,12 +827,13 @@ private fun NoFeasibleActionCard(exclusions: List<FrontierExcludedActionUiState>
     ) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = if (exclusions.isEmpty()) "No checked next step yet" else "Nothing fits these limits",
+                text = if (exclusions.isEmpty()) "No reliable next move yet" else "Nothing fits these limits",
                 style = AppTheme.typography.h6,
             )
             Text(
                 text = if (exclusions.isEmpty()) {
-                    "No checked requirement currently maps to a controllable milestone. Check your profile facts and pack."
+                    "Porta cannot support a recommendation from the encoded checks yet. Add relevant profile facts or " +
+                        "review a programme source first."
                 } else {
                     "Porta did not silently hide the candidates. Review the reasons below or widen one limit."
                 },
@@ -706,6 +842,26 @@ private fun NoFeasibleActionCard(exclusions: List<FrontierExcludedActionUiState>
             )
         }
     }
+}
+
+private fun FrontierUiState.alternativeFamilies(): List<FrontierActionFamilyUiState> {
+    val recommendedId = actions.firstOrNull()?.id
+    return actionFamilies.mapNotNull { family ->
+        family.copy(actions = family.actions.filterNot { it.id == recommendedId })
+            .takeIf { it.actions.isNotEmpty() }
+    }
+}
+
+private fun FrontierMoveKind.label(): String = when (this) {
+    FrontierMoveKind.VERIFY -> "VERIFY"
+    FrontierMoveKind.IMPROVE -> "IMPROVE"
+    FrontierMoveKind.PREPARE -> "PREPARE"
+}
+
+private fun FrontierMoveKind.description(): String = when (this) {
+    FrontierMoveKind.VERIFY -> "Confirm a programme-specific check without changing your saved profile."
+    FrontierMoveKind.IMPROVE -> "Change a controllable profile fact and inspect the encoded rule impact."
+    FrontierMoveKind.PREPARE -> "Plan a time-dependent milestone before relying on its future impact."
 }
 
 @Composable

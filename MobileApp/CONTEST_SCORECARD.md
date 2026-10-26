@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 25 October 2026
+> Last updated: 26 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -65,6 +65,10 @@ Current evidence:
 - [x] Missing real facts now create source-linked information tasks instead of simulated improvements: global facts
   route to explicit profile editing, scoped checks route to the official programme source, and tests prove that
   opening either path neither writes a fact nor creates a passing result.
+- [x] Next moves now leads with one explainable recommendation, distinguishes VERIFY / IMPROVE / PREPARE, groups
+  repeated programme-scoped confirmations without merging their targets, discloses estimate provenance and impact
+  basis, and only renders the Action Frontier plot when distinct trade-offs exist. Overlapping vectors become one
+  explicitly counted point instead of ambiguous stacked bubbles.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 

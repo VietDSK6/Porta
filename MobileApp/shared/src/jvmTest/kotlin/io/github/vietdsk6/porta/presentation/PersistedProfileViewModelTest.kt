@@ -30,6 +30,7 @@ import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiEvent
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierMoveKind
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.InformationTaskDestination
@@ -218,7 +219,11 @@ class PersistedProfileViewModelTest {
         assertTrue(frontier.uiState.value.actions.all { it.improvedCount == 1 })
         assertEquals(4, frontier.uiState.value.actions.map { it.title }.distinct().size)
         assertTrue(frontier.uiState.value.actions.all { it.title.startsWith("Confirm full-period availability for ") })
-        assertTrue(frontier.uiState.value.actions.all { "Porta assumption" in it.durationLabel })
+        assertTrue(frontier.uiState.value.actions.all { it.kind == FrontierMoveKind.VERIFY })
+        assertTrue(frontier.uiState.value.actions.all { "Porta assumption" in it.estimateSourceLabel })
+        assertEquals(1, frontier.uiState.value.actionFamilies.size)
+        assertEquals(4, frontier.uiState.value.actionFamilies.single().actions.size)
+        assertFalse(frontier.uiState.value.hasMeaningfulTradeOffs)
     }
 
     @Test

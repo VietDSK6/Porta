@@ -156,13 +156,15 @@
 **Current issue:** limits and graph dominate; one bubble representing 4 equal vectors; multiple repeated titles; selected recommendation effect small.
 
 **Work:**
-1. Above fold: most useful suggested step (or explicit no-reliable-recommendation state), why, what it can change, unknowns.
-2. Limits collapse/side panel; plot only for meaningful trade-offs. Plot legend/axes explanatory.
-3. Group similar scoped actions by family but preserve separate target assertion.
-4. Distinguish `VERIFY / IMPROVE / PREPARE`; show estimate source and impact confidence.
-5. Saved priorities: inform user that setting can change membership of frontier (not only order).
+1. [x] Above fold: most useful suggested step (or explicit no-reliable-recommendation state), why, what it can change, unknowns.
+2. [x] Limits collapse/side panel; plot only for meaningful trade-offs. Plot legend/axes explanatory.
+3. [x] Group similar scoped actions by family but preserve separate target assertion.
+4. [x] Distinguish `VERIFY / IMPROVE / PREPARE`; show estimate source and impact basis.
+5. [x] Saved priorities: inform user that setting can change membership of frontier (not only order).
 
-**Done when:** user can explain why each top-3 action differs without opening code/debug panel; no ambiguous `4` bubble if points overlap; responsive mobile/desktop.
+**Done:** recommendation-first mobile and Desktop hierarchy, family-grouped programme assertions, explicit move
+kind/provenance/impact basis, meaningful-only plot disclosure, and grouped plot points landed with shared Compose UI
+tests. The original scoped targets remain independent; only their presentation is grouped.
 
 ## C2 — Progressive profile
 

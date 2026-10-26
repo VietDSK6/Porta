@@ -153,7 +153,8 @@ internal fun FrontierControls(
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("Prioritize saved doors", fontWeight = FontWeight.SemiBold)
                         Text(
-                            text = "Keep milestones for saved doors visible and rank them first.",
+                            text = "Saved-door priority can change which moves reach the frontier, not only " +
+                                "their order.",
                             color = AppTheme.colors.text.secondary,
                             style = AppTheme.typography.bodySmall,
                         )
