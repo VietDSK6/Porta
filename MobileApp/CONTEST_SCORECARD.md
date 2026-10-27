@@ -106,9 +106,10 @@ Required evidence:
   a polite What-if live region and zero-duration motion without losing the textual outcome. Final packaged-app
   screen-reader and full keyboard exercise remains a disclosed manual submission check.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
-- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement: 8,409 NCLOC across 57 explicitly
-  allowlisted Porta production files in `commonMain`; tests and Kotlin data are reported separately, while
-  generated/vendor/unchanged starter code, package-only renames and mixed-provenance integration files are excluded.
+- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement: 14,122 NCLOC across 74 explicitly
+  allowlisted shared Porta production files plus 42 NCLOC across two JVM storage files; tests and Kotlin data are
+  reported separately, while generated/vendor/unchanged starter code, package-only renames and mixed-provenance
+  integration files are excluded.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
 

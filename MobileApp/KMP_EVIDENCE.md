@@ -1,8 +1,8 @@
 # Porta shared Kotlin evidence
 
-> Snapshot date: 23 October 2026  
-> Baseline: `bd5fd5d` — the last repository commit before Porta work began in `6be9ec1`  
-> Measured Kotlin head: `04a897d`
+> Snapshot date: 27 October 2026
+> Baseline: `bd5fd5d` — the last repository commit before Porta work began in `6be9ec1`
+> Measured Kotlin head: `2ed0c6d`
 
 This document records an internal, reproducible view of where **new Porta-owned Kotlin** lives. It is not an
 official contest formula or a judging score. The Kotlin Student Coding Competition rules do not prescribe a shared
@@ -26,19 +26,20 @@ Snapshot output:
 
 | Category | Files | NCLOC |
 |---|---:|---:|
-| Shared production | 57 | 8,409 |
-| Platform production | 0 | 0 |
-| Kotlin data/fixtures | 2 | 968 |
-| Shared tests | 7 | 948 |
-| Platform-run tests | 14 | 1,560 |
-| Excluded added Kotlin files | 12 | — |
+| Shared production | 74 | 14,122 |
+| Platform production | 2 | 42 |
+| Kotlin data/fixtures | 2 | 1,028 |
+| Shared tests | 15 | 2,340 |
+| Platform-run tests | 21 | 3,448 |
+| Excluded added Kotlin files | 13 | — |
 
-Within this deliberately narrow production sample, the shared proportion is **8,409 / 8,409 = 100.0%**.
+Within this deliberately narrow production sample, the shared proportion is **14,122 / 14,164 = 99.7%**.
 
-That number means all newly added, explicitly allowlisted Porta production Kotlin is currently in `commonMain`.
-It does **not** mean 100% of the repository is shared, nor that platform code is unnecessary. Android and Desktop
-still use target launchers, drivers, packaging, and platform services inherited from the starter kit; those inherited
-lines are excluded rather than claimed as Porta work.
+That number means all but 42 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
+The two measured JVM files provide Desktop database/storage paths. It does **not** mean 99.7% of the whole repository
+is shared, nor that platform code is unnecessary. Android and Desktop still use target launchers, drivers, packaging,
+and platform services inherited from the starter kit; those inherited lines are excluded rather than claimed as
+Porta work.
 
 ## Method
 
