@@ -43,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
+import io.github.vietdsk6.porta.designsystem.components.porta.PortaArch
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import kotlinx.coroutines.delay
@@ -102,6 +103,14 @@ fun DoorsScreen(
                     onSelected = { onUiEvent(DoorsUiEvent.FilterChanged(it)) },
                 )
             }
+            if (uiState.doors.isEmpty()) {
+                item {
+                    DoorsEmptyState(
+                        selectedFilter = uiState.selectedFilter,
+                        onShowAll = { onUiEvent(DoorsUiEvent.FilterChanged(DoorFilter.ALL)) },
+                    )
+                }
+            }
             items(uiState.doors, key = DoorCardUiState::id) { door ->
                 DoorCard(
                     door = door,
@@ -138,7 +147,7 @@ private fun ProfileAndPackContext(
             if (sourceReviewDueCount > 0) {
                 Text(
                     text = "$sourceReviewDueCount source records need a Porta catalog review. Open a door to confirm the live source.",
-                    color = PORTA_AMBER,
+                    color = AppTheme.colors.status.warning,
                     style = AppTheme.typography.bodySmall,
                 )
             }
@@ -184,7 +193,7 @@ private fun StateSummary(uiState: DoorsUiState) {
         ) {
             Text(
                 text = when {
-                    uiState.gapCount > 0 -> "${uiState.gapCount} ${uiState.gapCount.doorNoun()} have a next action"
+                    uiState.gapCount > 0 -> "${uiState.gapCount} ${uiState.gapCount.doorNoun()} need action"
                     uiState.openCount > 0 -> "${uiState.openCount} ${uiState.openCount.doorNoun()} pass the checks Porta can assess"
                     uiState.needsInfoCount > 0 -> "${uiState.needsInfoCount} ${uiState.needsInfoCount.doorNoun()} need information"
                     else -> "No current door conclusion yet"
@@ -208,6 +217,60 @@ private fun StateSummary(uiState: DoorsUiState) {
 }
 
 private fun Int.doorNoun(): String = if (this == 1) "door" else "doors"
+
+@Composable
+private fun DoorsEmptyState(
+    selectedFilter: DoorFilter,
+    onShowAll: () -> Unit,
+) {
+    val title = when (selectedFilter) {
+        DoorFilter.SAVED -> "No saved opportunities yet"
+        DoorFilter.ALL -> "No opportunities in this pack"
+        else -> "No matches for this filter"
+    }
+    val body = when (selectedFilter) {
+        DoorFilter.SAVED -> "Save opportunities to compare and revisit them here."
+        DoorFilter.ALL -> "Import or activate an opportunity pack to start comparing published checks."
+        else -> "Your opportunities are still here. Clear the filter to see every current result."
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("doors-empty-${selectedFilter.name.lowercase()}")
+            .padding(horizontal = 12.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        PortaArch(
+            modifier = Modifier.size(width = 64.dp, height = 76.dp),
+            containerColor = AppTheme.colors.alternative,
+            outlineColor = AppTheme.colors.outline,
+        ) {
+            Text(
+                text = if (selectedFilter == DoorFilter.SAVED) "☆" else "—",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.h5,
+            )
+        }
+        Text(title, color = AppTheme.colors.text.primary, style = AppTheme.typography.h5)
+        Text(
+            text = body,
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodyMedium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        if (selectedFilter != DoorFilter.ALL) {
+            TextButton(
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
+                    .testTag("doors-empty-show-all"),
+                onClick = onShowAll,
+            ) {
+                Text("Show all opportunities")
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -311,7 +374,7 @@ private fun DoorCard(
                 }
                 IconButton(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(48.dp)
                         .semantics {
                             contentDescription = if (door.isSaved) {
                                 "Remove ${door.title} from saved opportunities"
@@ -353,7 +416,7 @@ private fun DoorCard(
             if (door.sourceReviewNeedsAttention) {
                 Text(
                     door.checkedLabel,
-                    color = PORTA_AMBER,
+                    color = AppTheme.colors.status.warning,
                     fontWeight = FontWeight.SemiBold,
                     style = AppTheme.typography.bodySmall,
                 )
@@ -372,20 +435,17 @@ private fun DoorCard(
 
 @Composable
 private fun EligibilityState.color(): Color = when (this) {
-    EligibilityState.OPEN -> PORTA_TEAL
+    EligibilityState.OPEN -> AppTheme.colors.status.success
 
-    EligibilityState.HAS_GAPS -> PORTA_AMBER
+    EligibilityState.HAS_GAPS -> AppTheme.colors.status.warning
 
     EligibilityState.NEEDS_INFO -> AppTheme.colors.primary
 
     EligibilityState.NOT_ACTIONABLE,
     EligibilityState.CLOSED,
-    -> PORTA_CORAL
+    -> AppTheme.colors.status.error
 }
 
-private val PORTA_TEAL = Color(0xFF167D73)
-private val PORTA_AMBER = Color(0xFFA66B1F)
-private val PORTA_CORAL = Color(0xFFB84F5B)
 private const val DOOR_HIGHLIGHT_DURATION_MILLIS = 2_600L
 
 @Preview
@@ -412,6 +472,25 @@ private fun DoorsScreenPreview() {
                     ),
                 ),
                 openCount = 0,
+                gapCount = 4,
+                needsInfoCount = 10,
+            ),
+            onUiEvent = {},
+            onOpenOpportunity = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun SavedDoorsEmptyPreview() {
+    AppTheme {
+        DoorsScreen(
+            uiState = DoorsUiState(
+                isSampleMode = false,
+                isSampleCatalog = false,
+                catalogDoorCount = 15,
+                selectedFilter = DoorFilter.SAVED,
                 gapCount = 4,
                 needsInfoCount = 10,
             ),

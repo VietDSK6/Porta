@@ -161,11 +161,13 @@ class ScenarioPreviewViewModel(
                 addressesCheckedRequirement = impact.opportunityId in addressedIds,
             )
         }
-        val wouldPassCurrentChecks = impactedDoors.filter { door ->
-            door.id in addressedIds &&
-                door.timingWarning == null &&
-                scenario.simulated.getValue(door.id).state == EligibilityState.OPEN
-        }
+        val wouldPassCurrentChecks = impactedDoors
+            .filter { door ->
+                door.id in addressedIds &&
+                    door.timingWarning == null &&
+                    scenario.simulated.getValue(door.id).state == EligibilityState.OPEN
+            }
+            .map { it.copy(outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED) }
         val passedIds = wouldPassCurrentChecks.map(ScenarioDoorUiState::id).toSet()
         val progressed = impactedDoors.filterNot { it.id in passedIds }
         val impactedIds = impactedDoors.map(ScenarioDoorUiState::id).toSet()
@@ -177,6 +179,7 @@ class ScenarioPreviewViewModel(
                     id = opportunity.id,
                     title = opportunity.title,
                     stateLabel = state.trustLabel(),
+                    outcome = ScenarioDoorOutcome.CHECKED_PROGRESS,
                     actualStateLabel = state.trustLabel(),
                     simulatedStateLabel = state.trustLabel(),
                 )
@@ -227,6 +230,11 @@ class ScenarioPreviewViewModel(
             id = opportunity.id,
             title = opportunity.title,
             stateLabel = outcome,
+            outcome = if (afterState == EligibilityState.NEEDS_INFO) {
+                ScenarioDoorOutcome.NEEDS_VERIFICATION
+            } else {
+                ScenarioDoorOutcome.CHECKED_PROGRESS
+            },
             actualStateLabel = beforeState.trustLabel(),
             simulatedStateLabel = afterState.trustLabel(),
             changedRules = changedRules.map { delta ->

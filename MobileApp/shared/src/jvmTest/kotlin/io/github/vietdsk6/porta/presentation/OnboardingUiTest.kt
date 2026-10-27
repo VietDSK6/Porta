@@ -85,6 +85,10 @@ class OnboardingUiTest {
 
         onNodeWithText("INTERACTIVE DEMO · FICTIONAL DATA").assertExists()
         onNodeWithTag("onboarding-ielts-slider").assertExists()
+        onNodeWithTag("onboarding-threshold-aurora").assertExists()
+        onNodeWithTag("onboarding-threshold-forge").assertExists()
+        onNodeWithTag("onboarding-threshold-horizon").assertExists()
+        onNodeWithTag("onboarding-threshold-spark").assertExists()
         onNodeWithText("Try IELTS 7.0").assertDoesNotExist()
         onNodeWithText("Move the score to 7.0 to test 4 sample requirements").assertExists()
     }

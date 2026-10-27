@@ -16,10 +16,17 @@ data class ScenarioPreviewUiState(
     val error: String? = null,
 )
 
+enum class ScenarioDoorOutcome {
+    CURRENT_CHECKS_PASSED,
+    CHECKED_PROGRESS,
+    NEEDS_VERIFICATION,
+}
+
 data class ScenarioDoorUiState(
     val id: String,
     val title: String,
     val stateLabel: String,
+    val outcome: ScenarioDoorOutcome,
     val actualStateLabel: String = "",
     val simulatedStateLabel: String = "",
     val changedRules: List<ScenarioRuleChangeUiState> = emptyList(),

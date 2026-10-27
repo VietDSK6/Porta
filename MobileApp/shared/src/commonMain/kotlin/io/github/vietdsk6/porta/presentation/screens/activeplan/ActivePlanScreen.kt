@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -204,7 +203,7 @@ private fun GoalCard(plan: ActivePlanCardUiState) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(plan.statusLabel, color = PORTA_TEAL, fontWeight = FontWeight.Bold)
+                Text(plan.statusLabel, color = AppTheme.colors.status.success, fontWeight = FontWeight.Bold)
                 Text(plan.updatedLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
             }
             Text(plan.title, style = AppTheme.typography.h5)
@@ -221,7 +220,7 @@ private fun GoalCard(plan: ActivePlanCardUiState) {
             LinearProgressIndicator(
                 progress = { plan.progress },
                 modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = PORTA_TEAL,
+                color = AppTheme.colors.status.success,
                 trackColor = AppTheme.colors.outline.copy(alpha = 0.35f),
                 gapSize = 0.dp,
                 drawStopIndicator = {},
@@ -297,8 +296,8 @@ private fun RiskCard(riskNote: String) {
         shape = RoundedCornerShape(18.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Risk note", color = Color(0xFF7A5700), fontWeight = FontWeight.Bold)
-            Text(riskNote, color = Color(0xFF5C4600), style = AppTheme.typography.bodyMedium)
+            Text("Risk note", color = AppTheme.colors.status.warning, fontWeight = FontWeight.Bold)
+            Text(riskNote, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
         }
     }
 }
@@ -391,8 +390,6 @@ private fun PlanActions(
         }
     }
 }
-
-private val PORTA_TEAL = Color(0xFF167D73)
 
 @Preview
 @Composable

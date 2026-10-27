@@ -30,7 +30,9 @@ import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorCardUiState
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorFilter
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiEvent
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierActionUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierDoorComparisonUiState
@@ -44,6 +46,7 @@ import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.Informati
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailScreen
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailUiState
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.RuleReceiptUiState
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorOutcome
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorUiState
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiEvent
@@ -115,6 +118,28 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithTag("door-filter-ALL").assertIsDisplayed()
         onNodeWithTag("door-filter-SAVED").assertIsDisplayed()
+    }
+
+    @Test
+    fun `empty saved filter explains the state and can restore all doors`() = runComposeUiTest {
+        val events = mutableListOf<DoorsUiEvent>()
+        setContent {
+            AppTheme {
+                DoorsScreen(
+                    uiState = doorsState.copy(
+                        selectedFilter = DoorFilter.SAVED,
+                        doors = emptyList(),
+                    ),
+                    onUiEvent = { events += it },
+                    onOpenOpportunity = {},
+                )
+            }
+        }
+
+        onNodeWithTag("doors-empty-saved").assertExists()
+        onNodeWithText("No saved opportunities yet").assertExists()
+        onNodeWithTag("doors-empty-show-all").performScrollTo().performClick()
+        assertTrue(events.contains(DoorsUiEvent.FilterChanged(DoorFilter.ALL)))
     }
 
     @Test
@@ -430,10 +455,11 @@ class PortaVerticalSliceUiTest {
                 LiveRegionMode.Polite,
             ),
         )
+        onNodeWithText("What changes").assertExists()
+        onNodeWithText("What remains").assertExists()
         onNodeWithTag("scenario-details-aurora").performScrollTo().performClick()
-        onNodeWithText("Changed check").assertExists()
+        onNodeWithText("Check result").assertExists()
         onNodeWithText("Needs action → Check passed").assertExists()
-        onNodeWithText("Still unresolved").assertExists()
         onNodeWithTag("scenario-preview-content").performScrollToIndex(4)
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
@@ -456,6 +482,7 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithTag("scenario-outcome-summary").assertExists()
         onNodeWithText("4 doors are affected by this simulation.", substring = true).assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
         onNodeWithTag("scenario-door-title-aurora").assertExists()
     }
 
@@ -471,6 +498,7 @@ class PortaVerticalSliceUiTest {
                                 id = "erasmus-mundus",
                                 title = "Erasmus Mundus Joint Masters",
                                 stateLabel = "Still needs information or source review",
+                                outcome = ScenarioDoorOutcome.NEEDS_VERIFICATION,
                                 actualStateLabel = "Needs action",
                                 simulatedStateLabel = "Needs information",
                             ),
@@ -582,6 +610,9 @@ class PortaVerticalSliceUiTest {
             }
         }
 
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(3)
+        onNodeWithText("What to verify next").assertExists()
+        onNodeWithText("Suggested next move").assertDoesNotExist()
         onNodeWithTag("opportunity-detail-content").performScrollToIndex(4)
         onNodeWithTag("information-task-degree-status").assertIsDisplayed()
         onNodeWithText("Update academic profile").performClick()
@@ -703,10 +734,30 @@ class PortaVerticalSliceUiTest {
         beforeLabel = "6.5 band",
         afterLabel = "7.0 band",
         openedDoors = listOf(
-            ScenarioDoorUiState("aurora", "Aurora Scholars", "Opens"),
-            ScenarioDoorUiState("forge", "Forge Student Lab", "Opens"),
-            ScenarioDoorUiState("horizon", "Horizon Exchange", "Opens"),
-            ScenarioDoorUiState("spark", "Spark Fellowship", "Opens"),
+            ScenarioDoorUiState(
+                "aurora",
+                "Aurora Scholars",
+                "Opens",
+                ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
+            ),
+            ScenarioDoorUiState(
+                "forge",
+                "Forge Student Lab",
+                "Opens",
+                ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
+            ),
+            ScenarioDoorUiState(
+                "horizon",
+                "Horizon Exchange",
+                "Opens",
+                ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
+            ),
+            ScenarioDoorUiState(
+                "spark",
+                "Spark Fellowship",
+                "Opens",
+                ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
+            ),
         ),
         isSampleProfile = false,
     )

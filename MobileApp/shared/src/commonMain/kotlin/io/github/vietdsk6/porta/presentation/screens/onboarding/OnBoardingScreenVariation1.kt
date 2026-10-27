@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -63,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.vietdsk6.porta.designsystem.components.AppButton
 import io.github.vietdsk6.porta.designsystem.components.ButtonSize
+import io.github.vietdsk6.porta.designsystem.components.porta.PortaArch
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 
@@ -399,18 +399,51 @@ private fun DemoImpactSummary(uiState: OnBoardingUiState) {
                 style = AppTheme.typography.h6,
                 color = AppTheme.colors.text.primary,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 uiState.demoDoors.forEach { door ->
-                    val dotColor by animateColorAsState(
+                    val thresholdColor by animateColorAsState(
                         targetValue = if (door.isRequirementMet) {
                             AppTheme.colors.status.success
                         } else {
                             AppTheme.colors.outline
                         },
                         animationSpec = tween(MOTION_DURATION_MILLIS),
-                        label = "requirement dot",
+                        label = "threshold door",
                     )
-                    Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(dotColor))
+                    PortaArch(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(58.dp)
+                            .testTag("onboarding-threshold-${door.opportunityId}")
+                            .semantics {
+                                stateDescription = if (door.isRequirementMet) {
+                                    "${door.title}: IELTS check met; other criteria not assessed"
+                                } else {
+                                    "${door.title}: needs IELTS ${door.requiredIelts.asBand()}"
+                                }
+                            },
+                        containerColor = if (door.isRequirementMet) {
+                            AppTheme.colors.status.successContainer
+                        } else {
+                            AppTheme.colors.background
+                        },
+                        outlineColor = thresholdColor,
+                        borderWidth = if (door.isRequirementMet) 1.5.dp else 1.dp,
+                    ) {
+                        Text(
+                            text = if (door.isRequirementMet) "✓" else door.requiredIelts.asBand(),
+                            color = if (door.isRequirementMet) {
+                                AppTheme.colors.status.success
+                            } else {
+                                AppTheme.colors.text.secondary
+                            },
+                            style = AppTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
             Text(
@@ -708,7 +741,7 @@ private fun PortalDoor(
         animationSpec = tween(MOTION_DURATION_MILLIS),
         label = "door container",
     )
-    Card(
+    PortaArch(
         modifier = modifier
             .heightIn(min = 154.dp)
             .testTag("onboarding-door-${door.opportunityId}")
@@ -719,17 +752,9 @@ private fun PortalDoor(
                     "Needs IELTS ${door.requiredIelts.asBand()}"
                 }
             },
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(
-            topStart = 64.dp,
-            topEnd = 64.dp,
-            bottomStart = 16.dp,
-            bottomEnd = 16.dp,
-        ),
-        border = BorderStroke(
-            width = if (door.isRequirementMet) 2.dp else 1.dp,
-            color = if (door.isRequirementMet) AppTheme.colors.primary else AppTheme.colors.outline,
-        ),
+        containerColor = containerColor,
+        outlineColor = if (door.isRequirementMet) AppTheme.colors.primary else AppTheme.colors.outline,
+        borderWidth = if (door.isRequirementMet) 2.dp else 1.dp,
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 20.dp),

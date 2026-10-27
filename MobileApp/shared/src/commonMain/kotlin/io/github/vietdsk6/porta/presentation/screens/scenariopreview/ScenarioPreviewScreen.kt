@@ -46,6 +46,9 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.presentation.components.porta.ActionImpactDiagram
+import io.github.vietdsk6.porta.presentation.components.porta.ActionImpactNodeUiState
+import io.github.vietdsk6.porta.presentation.components.porta.ImpactOutcome
 
 @Composable
 fun ScenarioPreviewScreen(
@@ -99,7 +102,11 @@ fun ScenarioPreviewScreen(
             item {
                 ScenarioOutcomeSummary(uiState)
             }
-            item { BeforeAfterCard(uiState) }
+            if (uiState.openedDoors.isNotEmpty() || uiState.progressedDoors.isNotEmpty()) {
+                item { ScenarioImpactPath(uiState) }
+            } else {
+                item { BeforeAfterCard(uiState) }
+            }
             items(uiState.openedDoors, key = ScenarioDoorUiState::id) { door ->
                 ScenarioDoorCard(door = door)
             }
@@ -154,6 +161,47 @@ fun ScenarioPreviewScreen(
         }
     }
 }
+
+@Composable
+private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
+    val nodes = uiState.openedDoors.map { door ->
+        door.toImpactNode(ImpactOutcome.CURRENT_CHECKS_PASSED)
+    } + uiState.progressedDoors.map { door ->
+        door.toImpactNode(
+            when (door.outcome) {
+                ScenarioDoorOutcome.CURRENT_CHECKS_PASSED -> ImpactOutcome.CURRENT_CHECKS_PASSED
+                ScenarioDoorOutcome.CHECKED_PROGRESS -> ImpactOutcome.CHECKED_PROGRESS
+                ScenarioDoorOutcome.NEEDS_VERIFICATION -> ImpactOutcome.NEEDS_VERIFICATION
+            },
+        )
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        uiState.scopeNotice?.let { notice ->
+            Text(
+                text = notice,
+                modifier = Modifier.testTag("scenario-scope-notice"),
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        ActionImpactDiagram(
+            actionLabel = uiState.title,
+            actualLabel = uiState.beforeLabel,
+            simulatedLabel = uiState.afterLabel,
+            nodes = nodes,
+        )
+    }
+}
+
+private fun ScenarioDoorUiState.toImpactNode(outcome: ImpactOutcome): ActionImpactNodeUiState = ActionImpactNodeUiState(
+    id = id,
+    title = title,
+    statusLabel = stateLabel,
+    transitionLabel = "${actualStateLabel.ifBlank { "Current state" }} → " +
+        simulatedStateLabel.ifBlank { stateLabel },
+    outcome = outcome,
+)
 
 @Composable
 private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
@@ -312,29 +360,22 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
                     style = AppTheme.typography.h6,
                 )
                 ScenarioStateTransition(door)
-                Text(door.stateLabel, color = PORTA_TEAL, fontWeight = FontWeight.Bold)
-                DoorChangeAtAGlance(door)
-                if (door.remainingBlockers.isNotEmpty()) {
+                Text(door.stateLabel, color = door.outcome.color(), fontWeight = FontWeight.Bold)
+                ScenarioDeltaSummary(door)
+                door.timingWarning?.let { warning ->
                     Text(
-                        text = if (door.remainingBlockers.size == 1) {
-                            "1 check still needs attention"
-                        } else {
-                            "${door.remainingBlockers.size} checks still need attention"
-                        },
-                        color = PORTA_AMBER,
-                        style = AppTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        warning,
+                        color = AppTheme.colors.status.warning,
+                        style = AppTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
-                door.timingWarning?.let { warning ->
-                    Text(warning, color = PORTA_AMBER, style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                }
-                if (door.changedRules.isNotEmpty() || door.remainingBlockers.isNotEmpty() || door.timingLabel.isNotBlank()) {
+                if (door.changedRules.isNotEmpty() || door.timingLabel.isNotBlank()) {
                     TextButton(
                         modifier = Modifier.testTag("scenario-details-${door.id}"),
                         onClick = { detailsExpanded = !detailsExpanded },
                     ) {
-                        Text(if (detailsExpanded) "Hide check details" else "Review check details")
+                        Text(if (detailsExpanded) "Hide evidence details" else "Review evidence details")
                     }
                 }
                 if (detailsExpanded) {
@@ -346,18 +387,37 @@ private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
 }
 
 @Composable
-private fun DoorChangeAtAGlance(door: ScenarioDoorUiState) {
-    if (door.changedRules.isEmpty()) return
-    Text(
-        text = if (door.changedRules.size == 1) {
-            "1 checked requirement changes in this scenario"
-        } else {
-            "${door.changedRules.size} checked requirements change in this scenario"
-        },
-        color = AppTheme.colors.text.primary,
-        style = AppTheme.typography.bodyMedium,
-        fontWeight = FontWeight.SemiBold,
-    )
+private fun ScenarioDeltaSummary(door: ScenarioDoorUiState) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (door.changedRules.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().testTag("scenario-changes-${door.id}"),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text("What changes", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                door.changedRules.forEach { change ->
+                    Text(change.explanation, style = AppTheme.typography.bodyMedium)
+                    Text(
+                        "${change.beforeLabel} → ${change.afterLabel}",
+                        color = AppTheme.colors.text.primary,
+                        style = AppTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+        if (door.remainingBlockers.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().testTag("scenario-remains-${door.id}"),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text("What remains", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                door.remainingBlockers.forEach { blocker ->
+                    Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -369,13 +429,7 @@ private fun ScenarioDoorEvidence(door: ScenarioDoorUiState) {
         HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
         door.changedRules.forEach { change ->
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Changed check", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                Text(change.explanation, style = AppTheme.typography.bodyMedium)
-                Text(
-                    "${change.beforeLabel} → ${change.afterLabel}",
-                    color = AppTheme.colors.text.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Text("Check result", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                 Text(
                     change.resultTransitionLabel,
                     color = AppTheme.colors.text.secondary,
@@ -383,18 +437,20 @@ private fun ScenarioDoorEvidence(door: ScenarioDoorUiState) {
                 )
             }
         }
-        if (door.remainingBlockers.isNotEmpty()) {
+        if (door.timingLabel.isNotBlank()) {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Still unresolved", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                door.remainingBlockers.forEach { blocker ->
-                    Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-                }
+                Text("Planning timing", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                Text(door.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
             }
         }
-        if (door.timingLabel.isNotBlank()) {
-            Text(door.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-        }
     }
+}
+
+@Composable
+private fun ScenarioDoorOutcome.color(): Color = when (this) {
+    ScenarioDoorOutcome.CURRENT_CHECKS_PASSED -> AppTheme.colors.status.success
+    ScenarioDoorOutcome.CHECKED_PROGRESS -> AppTheme.colors.primary
+    ScenarioDoorOutcome.NEEDS_VERIFICATION -> AppTheme.colors.status.warning
 }
 
 @Composable
@@ -468,8 +524,6 @@ private fun ErrorState(message: String, onNavigateBack: () -> Unit) {
     }
 }
 
-private val PORTA_TEAL = Color(0xFF167D73)
-private val PORTA_AMBER = Color(0xFFA66B1F)
 private const val DOOR_TRANSITION_DURATION_MILLIS = 220
 
 @Preview
@@ -487,6 +541,7 @@ private fun ScenarioPreviewScreenPreview() {
                         id = "aurora",
                         title = "Aurora Scholars",
                         stateLabel = "Would pass current checks",
+                        outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
                         actualStateLabel = "Needs action",
                         simulatedStateLabel = "Assessed rules passed",
                     ),
@@ -494,6 +549,7 @@ private fun ScenarioPreviewScreenPreview() {
                         id = "forge",
                         title = "Forge Student Lab",
                         stateLabel = "Would pass current checks",
+                        outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
                         actualStateLabel = "Needs action",
                         simulatedStateLabel = "Assessed rules passed",
                     ),
@@ -503,6 +559,7 @@ private fun ScenarioPreviewScreenPreview() {
                         id = "erasmus-mundus",
                         title = "Erasmus Mundus Joint Masters",
                         stateLabel = "Still needs information or source review",
+                        outcome = ScenarioDoorOutcome.NEEDS_VERIFICATION,
                         actualStateLabel = "Needs action",
                         simulatedStateLabel = "Needs information",
                     ),

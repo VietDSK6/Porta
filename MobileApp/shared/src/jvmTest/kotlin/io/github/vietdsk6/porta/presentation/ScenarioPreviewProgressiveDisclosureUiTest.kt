@@ -4,13 +4,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorOutcome
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorUiState
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewUiState
@@ -20,7 +24,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class ScenarioPreviewProgressiveDisclosureUiTest {
     @Test
-    fun `what-if keeps the outcome visible and reveals technical checks on request`() = runComposeUiTest {
+    fun `what-if shows impact changes and remaining checks before evidence detail`() = runComposeUiTest {
         setContent {
             AppTheme {
                 Box(Modifier.size(width = 360.dp, height = 760.dp)) {
@@ -35,12 +39,19 @@ class ScenarioPreviewProgressiveDisclosureUiTest {
         }
 
         onNodeWithText("1 door would pass current checks").assertExists()
-        onNodeWithText("1 checked requirement changes in this scenario").assertExists()
-        onNodeWithText("Changed check").assertDoesNotExist()
+        onNodeWithTag("action-impact-diagram").assertExists()
+        onNodeWithTag("action-impact-node-aurora").assertExists()
+        onNodeWithTag("scenario-scope-notice").assertExists()
+        onNodeWithText("What changes").assertExists()
+        onNodeWithText("Requires IELTS 7.0 or above.").assertExists()
+        onAllNodesWithText("6.5 band → 7.0 band").assertCountEquals(2)
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
+        onNodeWithText("What remains").assertExists()
+        onNodeWithText("Check result").assertDoesNotExist()
         onNodeWithTag("scenario-details-aurora").performScrollTo().performClick()
         onNodeWithTag("scenario-evidence-aurora").assertExists()
-        onNodeWithText("Changed check").assertExists()
-        onNodeWithText("Still unresolved").assertExists()
+        onNodeWithText("Check result").assertExists()
+        onNodeWithText("Planning timing").assertExists()
     }
 
     private val scenarioState = ScenarioPreviewUiState(
@@ -48,6 +59,7 @@ class ScenarioPreviewProgressiveDisclosureUiTest {
         title = "Raise IELTS from 6.5 to 7.0",
         beforeLabel = "6.5 band",
         afterLabel = "7.0 band",
+        scopeNotice = "Would satisfy this programme-specific check if confirmed.",
         openedDoors = listOf(
             ScenarioDoorUiState(
                 id = "aurora",
@@ -66,6 +78,7 @@ class ScenarioPreviewProgressiveDisclosureUiTest {
                 ),
                 remainingBlockers = listOf("Confirm the published deadline."),
                 timingLabel = "Deadline: TBA — verify before planning",
+                outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
             ),
         ),
         isSampleProfile = false,

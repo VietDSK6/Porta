@@ -406,7 +406,7 @@ private fun AlternativeActionRow(
             Text(
                 text = "${action.improvedCount} " +
                     if (action.improvedCount == 1) "door affected" else "doors affected",
-                color = PORTA_TEAL,
+                color = AppTheme.colors.status.success,
                 fontWeight = FontWeight.SemiBold,
                 style = AppTheme.typography.bodyMedium,
             )
@@ -492,14 +492,18 @@ private fun ActivePlanPinnedCard(plan: ActivePlanSummaryUiState, onOpen: () -> U
     Card(
         modifier = Modifier.fillMaxWidth().testTag("frontier-active-plan"),
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
-        border = BorderStroke(1.dp, PORTA_TEAL),
+        border = BorderStroke(1.dp, AppTheme.colors.status.success),
         shape = RoundedCornerShape(20.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("ACTIVE PLAN · ${plan.statusLabel.uppercase()}", color = PORTA_TEAL, fontWeight = FontWeight.Bold)
+            Text(
+                "ACTIVE PLAN · ${plan.statusLabel.uppercase()}",
+                color = AppTheme.colors.status.success,
+                fontWeight = FontWeight.Bold,
+            )
             Text(plan.title, color = AppTheme.colors.onAlternative, style = AppTheme.typography.h6)
             Button(modifier = Modifier.fillMaxWidth(), onClick = onOpen) { Text("Open plan") }
         }
@@ -577,7 +581,7 @@ private fun FrontierCard(
                     }
                     if (action.savedDoorCount > 0) append(" · ${action.savedDoorCount} saved")
                 },
-                color = PORTA_TEAL,
+                color = AppTheme.colors.status.success,
                 style = AppTheme.typography.h6,
             )
             if (action.kind == FrontierMoveKind.VERIFY) {
@@ -877,14 +881,18 @@ private fun StateLabel(
 ) {
     Surface(
         modifier = modifier,
-        color = if (highlighted) PORTA_TEAL.copy(alpha = 0.16f) else AppTheme.colors.background,
+        color = if (highlighted) {
+            AppTheme.colors.status.successContainer
+        } else {
+            AppTheme.colors.background
+        },
         shape = RoundedCornerShape(10.dp),
     ) {
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp),
             style = AppTheme.typography.bodySmall,
-            color = if (highlighted) PORTA_TEAL else AppTheme.colors.text.secondary,
+            color = if (highlighted) AppTheme.colors.status.success else AppTheme.colors.text.secondary,
             fontWeight = if (highlighted) FontWeight.Bold else FontWeight.Medium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -1021,7 +1029,6 @@ private fun NoSelectionCard() {
 }
 
 private val WIDE_FRONTIER_BREAKPOINT = 900.dp
-private val PORTA_TEAL = Color(0xFF167D73)
 
 @Preview
 @Composable

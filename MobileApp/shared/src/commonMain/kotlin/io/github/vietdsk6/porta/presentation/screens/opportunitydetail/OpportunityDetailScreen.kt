@@ -247,7 +247,7 @@ private fun NeedsActionSection(uiState: OpportunityDetailUiState) {
     RuleSection(
         title = "Needs action",
         rules = uiState.rules.filter { it.result == RuleResult.FAIL },
-        accent = PORTA_AMBER,
+        accent = AppTheme.colors.status.warning,
     )
 }
 
@@ -265,7 +265,7 @@ private fun PassedChecksSection(uiState: OpportunityDetailUiState) {
     RuleSection(
         title = "Passed checks",
         rules = uiState.rules.filter { it.result == RuleResult.PASS },
-        accent = PORTA_TEAL,
+        accent = AppTheme.colors.status.success,
     )
 }
 
@@ -277,7 +277,7 @@ private fun SuggestedNextMoveSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "Suggested next move",
+            text = if (uiState.relatedActionId == null) "What to verify next" else "Suggested next move",
             modifier = Modifier.semantics { heading() },
             style = AppTheme.typography.h6,
         )
@@ -550,7 +550,7 @@ private fun SourceDetails(
         Text(
             uiState.checkedLabel,
             color = if (uiState.sourceReviewNeedsAttention) {
-                PORTA_AMBER
+                AppTheme.colors.status.warning
             } else {
                 AppTheme.colors.text.primary
             },
@@ -587,21 +587,18 @@ private fun SourceDetails(
 
 @Composable
 private fun OpportunityDetailUiState.stateColor(): Color = when (state) {
-    EligibilityState.OPEN -> PORTA_TEAL
+    EligibilityState.OPEN -> AppTheme.colors.status.success
 
-    EligibilityState.HAS_GAPS -> PORTA_AMBER
+    EligibilityState.HAS_GAPS -> AppTheme.colors.status.warning
 
     EligibilityState.NEEDS_INFO -> AppTheme.colors.primary
 
     EligibilityState.NOT_ACTIONABLE,
     EligibilityState.CLOSED,
     null,
-    -> PORTA_CORAL
+    -> AppTheme.colors.status.error
 }
 
-private val PORTA_TEAL = Color(0xFF167D73)
-private val PORTA_AMBER = Color(0xFFA66B1F)
-private val PORTA_CORAL = Color(0xFFB84F5B)
 private val WIDE_DETAIL_BREAKPOINT = 960.dp
 
 @Preview
