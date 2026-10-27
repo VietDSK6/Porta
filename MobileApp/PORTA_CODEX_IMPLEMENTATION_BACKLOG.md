@@ -221,6 +221,15 @@ eligibility engine does not apply them.
 
 **Done when:** user copy matches actual rows/preferences deleted; no hidden leftover sensitive profile data after full reset.
 
+**Done:** Profile now exposes two deliberately separate destructive actions. `Clear academic profile and plans`
+deletes the current profile's facts, programme-scoped confirmations and plans while retaining saved doors, the
+opportunity catalog and planning preferences. `Reset Porta on this device` deletes facts, confirmations, plans and
+saved doors for every local profile, removes imported catalogs and clears preferences, then restores only the known-
+valid bundled catalog so the app remains usable. Both dialogs enumerate what is removed and retained before the
+action runs; reset remains available when no profile exists. Room-backed integration tests and Compose UI tests prove
+the narrow and full scopes independently. The operation is coordinated across repositories and does not claim
+cross-store transactional atomicity.
+
 ## D3 — Delivery gates, docs and evidence
 
 **Work:** run format/unit/host/assemble tests. Manual Android/Desktop flow; update README and spec drift; submit product demo showing cause→rule→scenario→actual and KMP shared logic, not just fictional animation.

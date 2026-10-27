@@ -12,9 +12,14 @@ data class StudentProfileUiState(
     val isSampleCatalog: Boolean = true,
     val expandedFactKey: FactKey? = null,
     val factPendingDelete: ProfileFactUiState? = null,
-    val isClearConfirmationVisible: Boolean = false,
+    val pendingDataAction: ProfileDataAction? = null,
     val message: String? = null,
 )
+
+enum class ProfileDataAction {
+    CLEAR_PROFILE_AND_PLANS,
+    RESET_ALL_LOCAL_DATA,
+}
 
 data class UncheckedProfileFactUiState(
     val key: FactKey,
@@ -59,11 +64,11 @@ sealed interface StudentProfileUiEvent {
 
     data object ExportMetadata : StudentProfileUiEvent
 
-    data object ClearProfileRequested : StudentProfileUiEvent
+    data class DataActionRequested(val action: ProfileDataAction) : StudentProfileUiEvent
 
-    data object ClearProfileCancelled : StudentProfileUiEvent
+    data object DataActionCancelled : StudentProfileUiEvent
 
-    data object ClearProfileConfirmed : StudentProfileUiEvent
+    data object DataActionConfirmed : StudentProfileUiEvent
 
     data object MessageHandled : StudentProfileUiEvent
 }

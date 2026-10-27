@@ -50,6 +50,11 @@ class PlanRepository(
         Result.success(Unit)
     }
 
+    suspend fun clearAll(): Result<Unit> = backgroundExecutor.execute {
+        planItemDao.deleteAll()
+        Result.success(Unit)
+    }
+
     private fun PlanStatus.priority(): Int = when (this) {
         PlanStatus.IN_PROGRESS -> 4
         PlanStatus.PLANNED -> 3

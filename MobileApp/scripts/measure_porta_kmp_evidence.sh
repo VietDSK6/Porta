@@ -68,6 +68,7 @@ SHARED_PRODUCTION_EXACT_PATHS=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/SavedOpportunity.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ActionFrontierEngine.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/EligibilityEvaluator.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ManageLocalPortaDataUseCase.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ScenarioEvaluator.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/navigation/AdaptiveAppScaffold.kt"
 )

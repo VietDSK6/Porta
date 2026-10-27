@@ -231,5 +231,10 @@ class OpportunityPackRepositoryTest {
             val removed = entities.remove(id)
             if (removed?.id == active.value?.id) active.value = null
         }
+
+        override suspend fun deleteAll() {
+            entities.clear()
+            active.value = null
+        }
     }
 }

@@ -34,4 +34,7 @@ interface SavedOpportunityDao {
 
     @Query("DELETE FROM saved_opportunity WHERE profile_id = :profileId")
     suspend fun deleteForProfile(profileId: String)
+
+    @Query("DELETE FROM saved_opportunity")
+    suspend fun deleteAll()
 }

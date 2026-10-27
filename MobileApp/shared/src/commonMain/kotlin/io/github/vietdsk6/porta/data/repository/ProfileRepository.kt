@@ -63,4 +63,10 @@ class ProfileRepository(
         ruleAssertionDao.deleteForProfile(profileId)
         Result.success(Unit)
     }
+
+    suspend fun clearAll(): Result<Unit> = backgroundExecutor.execute {
+        profileFactDao.deleteAll()
+        ruleAssertionDao.deleteAll()
+        Result.success(Unit)
+    }
 }

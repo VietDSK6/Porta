@@ -106,7 +106,25 @@ fun StudentProfileScreen(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
                     onEditProfile = onEditProfile,
+                )
+            }
+
+            if (!uiState.isLoading) {
+                DataControls(
+                    hasProfile = uiState.hasRealProfile,
+                    isWorking = uiState.isWorking,
                     onOpenPackInspector = onOpenPackInspector,
+                    onExport = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
+                    onClearProfile = {
+                        onUiEvent(
+                            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.CLEAR_PROFILE_AND_PLANS),
+                        )
+                    },
+                    onResetAll = {
+                        onUiEvent(
+                            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.RESET_ALL_LOCAL_DATA),
+                        )
+                    },
                 )
             }
 
@@ -139,23 +157,24 @@ fun StudentProfileScreen(
         )
     }
 
-    if (uiState.isClearConfirmationVisible) {
+    uiState.pendingDataAction?.let { action ->
         AlertDialog(
-            onDismissRequest = { onUiEvent(StudentProfileUiEvent.ClearProfileCancelled) },
-            title = { Text("Delete local Porta data?") },
+            modifier = Modifier.testTag("student-profile-data-confirmation"),
+            onDismissRequest = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) },
+            title = { Text(action.confirmationTitle()) },
             text = {
-                Text(
-                    "This removes every profile fact and local plan on this device. " +
-                        "Opportunity packs stay available.",
-                )
+                Text(action.confirmationBody())
             },
             confirmButton = {
-                TextButton(onClick = { onUiEvent(StudentProfileUiEvent.ClearProfileConfirmed) }) {
-                    Text("Delete profile and plans")
+                TextButton(
+                    modifier = Modifier.testTag("student-profile-data-confirm"),
+                    onClick = { onUiEvent(StudentProfileUiEvent.DataActionConfirmed) },
+                ) {
+                    Text(action.confirmationButton())
                 }
             },
             dismissButton = {
-                TextButton(onClick = { onUiEvent(StudentProfileUiEvent.ClearProfileCancelled) }) {
+                TextButton(onClick = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) }) {
                     Text("Keep data")
                 }
             },
@@ -224,7 +243,7 @@ private fun EmptyProfile(
             )
             AppButton(
                 text = "Explore the opportunity pack",
-                modifier = Modifier.fillMaxWidth().testTag("student-profile-pack-inspector"),
+                modifier = Modifier.fillMaxWidth().testTag("student-profile-explore-pack"),
                 style = ButtonStyle.ALTERNATIVE,
                 onClick = onOpenPackInspector,
             )
@@ -237,7 +256,6 @@ private fun ProfileContent(
     uiState: StudentProfileUiState,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
     onEditProfile: () -> Unit,
-    onOpenPackInspector: () -> Unit,
 ) {
     ProfileIdentity(uiState = uiState)
 
@@ -259,13 +277,6 @@ private fun ProfileContent(
             onUiEvent = onUiEvent,
         )
     }
-
-    DataControls(
-        isWorking = uiState.isWorking,
-        onOpenPackInspector = onOpenPackInspector,
-        onExport = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
-        onClear = { onUiEvent(StudentProfileUiEvent.ClearProfileRequested) },
-    )
 }
 
 @Composable
@@ -698,10 +709,12 @@ private fun DependencyDetails(
 
 @Composable
 private fun DataControls(
+    hasProfile: Boolean,
     isWorking: Boolean,
     onOpenPackInspector: () -> Unit,
     onExport: () -> Unit,
-    onClear: () -> Unit,
+    onClearProfile: () -> Unit,
+    onResetAll: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -742,7 +755,7 @@ private fun DataControls(
                     supportingText = "Export values and evidence metadata as JSON.",
                     actionLabel = "Export",
                     modifier = Modifier.testTag("student-profile-export"),
-                    enabled = !isWorking,
+                    enabled = hasProfile && !isWorking,
                     onClick = onExport,
                 )
                 HorizontalDivider(
@@ -750,17 +763,53 @@ private fun DataControls(
                     color = AppTheme.colors.outline.copy(alpha = 0.24f),
                 )
                 DataActionRow(
-                    title = "Local profile and plans",
-                    supportingText = "Permanently remove them from this device.",
-                    actionLabel = "Delete",
+                    title = "Academic profile and plans",
+                    supportingText = "Remove facts, confirmations, and plans. Keep saved doors, catalog, and preferences.",
+                    actionLabel = "Clear",
                     modifier = Modifier.testTag("student-profile-clear"),
+                    enabled = hasProfile && !isWorking,
+                    actionColor = MaterialTheme.colorScheme.error,
+                    onClick = onClearProfile,
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = AppTheme.colors.outline.copy(alpha = 0.24f),
+                )
+                DataActionRow(
+                    title = "All Porta data on this device",
+                    supportingText = "Remove profile, plans, saved doors, imported catalogs, and preferences.",
+                    actionLabel = "Reset",
+                    modifier = Modifier.testTag("student-profile-reset-all"),
                     enabled = !isWorking,
                     actionColor = MaterialTheme.colorScheme.error,
-                    onClick = onClear,
+                    onClick = onResetAll,
                 )
             }
         }
     }
+}
+
+private fun ProfileDataAction.confirmationTitle(): String = when (this) {
+    ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> "Clear academic profile and plans?"
+    ProfileDataAction.RESET_ALL_LOCAL_DATA -> "Reset Porta on this device?"
+}
+
+private fun ProfileDataAction.confirmationBody(): String = when (this) {
+    ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> {
+        "This permanently removes profile facts, programme confirmations, and plans. " +
+            "Saved doors, the opportunity catalog, and planning preferences stay on this device."
+    }
+
+    ProfileDataAction.RESET_ALL_LOCAL_DATA -> {
+        "This permanently removes profile facts, programme confirmations, plans, saved doors, " +
+            "imported opportunity catalogs, and preferences. Porta restores the bundled catalog; " +
+            "onboarding may appear again next launch."
+    }
+}
+
+private fun ProfileDataAction.confirmationButton(): String = when (this) {
+    ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> "Clear profile and plans"
+    ProfileDataAction.RESET_ALL_LOCAL_DATA -> "Reset Porta"
 }
 
 @Composable
@@ -871,6 +920,28 @@ private fun StudentProfileExpandedScreenPreview() {
             onEditProfile = {},
             onOpenPackInspector = {},
         )
+    }
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun StudentProfileDataControlsPreview() {
+    AppTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = AppTheme.colors.background,
+        ) {
+            Box(modifier = Modifier.padding(24.dp)) {
+                DataControls(
+                    hasProfile = true,
+                    isWorking = false,
+                    onOpenPackInspector = {},
+                    onExport = {},
+                    onClearProfile = {},
+                    onResetAll = {},
+                )
+            }
+        }
     }
 }
 

@@ -49,4 +49,7 @@ interface RuleAssertionDao {
 
     @Query("DELETE FROM rule_assertion WHERE profile_id = :profileId")
     suspend fun deleteForProfile(profileId: String)
+
+    @Query("DELETE FROM rule_assertion")
+    suspend fun deleteAll()
 }

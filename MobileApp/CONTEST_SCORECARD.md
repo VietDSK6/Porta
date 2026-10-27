@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 26 October 2026
+> Last updated: 27 October 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -75,6 +75,9 @@ Current evidence:
 - [x] Pack lifecycle is explicit: source records display their manual review date and Porta's 90-day maintenance
   signal; archived cycles are distinct from passed deadlines and excluded from planning; the shared local date refreshes
   on resume/day rollover; pack imports show an approval diff and disclose which scoped confirmations become stale.
+- [x] Local-data controls distinguish clearing the current academic profile from resetting all Porta data. Confirmation
+  copy names the exact removed and retained state; integration tests cover facts, scoped confirmations, plans, saved
+  doors, imported catalogs, preferences, multiple profile IDs and restoration of the bundled catalog.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 

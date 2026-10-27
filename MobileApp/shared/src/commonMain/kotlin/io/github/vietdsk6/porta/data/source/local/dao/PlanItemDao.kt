@@ -41,4 +41,7 @@ interface PlanItemDao {
 
     @Query("DELETE FROM plan_item WHERE profile_id = :profileId")
     suspend fun deleteForProfile(profileId: String)
+
+    @Query("DELETE FROM plan_item")
+    suspend fun deleteAll()
 }

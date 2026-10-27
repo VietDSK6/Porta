@@ -28,4 +28,7 @@ interface ProfileFactDao {
 
     @Query("DELETE FROM profile_fact WHERE profile_id = :profileId")
     suspend fun deleteProfile(profileId: String)
+
+    @Query("DELETE FROM profile_fact")
+    suspend fun deleteAll()
 }

@@ -695,7 +695,11 @@ An action that cannot finish before a door's deadline contributes zero impact va
 ## FR-12 Data controls
 
 - Export profile metadata.
-- Delete profile and all local plans/scenarios.
+- `Clear academic profile and plans` deletes the current profile's facts, programme-scoped confirmations and plans,
+  while retaining saved doors, the opportunity catalog and planning preferences.
+- `Reset Porta on this device` deletes facts, confirmations, plans and saved doors for every local profile, removes
+  imported catalogs and clears preferences, then restores the bundled catalog.
+- Both destructive actions list their exact removal and retention scope before confirmation.
 - Show which sensitive fields are included before export.
 - Evidence binary files are excluded from P0 export; metadata and source references only.
 

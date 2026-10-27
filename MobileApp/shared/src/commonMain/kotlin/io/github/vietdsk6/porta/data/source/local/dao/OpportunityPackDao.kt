@@ -41,4 +41,7 @@ interface OpportunityPackDao {
 
     @Query("DELETE FROM opportunity_pack WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM opportunity_pack")
+    suspend fun deleteAll()
 }

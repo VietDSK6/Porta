@@ -3,7 +3,6 @@ package io.github.vietdsk6.porta.presentation.screens.studentprofile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
-import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
@@ -16,6 +15,7 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.countryForStoredValue
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 class StudentProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
-    private val planRepository: PlanRepository,
+    private val manageLocalPortaData: ManageLocalPortaDataUseCase,
     private val profileExportCodec: ProfileExportCodec,
     private val fileManager: FileManager,
 ) : ViewModel() {
@@ -77,15 +77,15 @@ class StudentProfileViewModel(
 
             StudentProfileUiEvent.ExportMetadata -> exportMetadata()
 
-            StudentProfileUiEvent.ClearProfileRequested -> transientState.update {
-                it.copy(isClearConfirmationVisible = true, message = null)
+            is StudentProfileUiEvent.DataActionRequested -> transientState.update {
+                it.copy(pendingDataAction = event.action, message = null)
             }
 
-            StudentProfileUiEvent.ClearProfileCancelled -> transientState.update {
-                it.copy(isClearConfirmationVisible = false)
+            StudentProfileUiEvent.DataActionCancelled -> transientState.update {
+                it.copy(pendingDataAction = null)
             }
 
-            StudentProfileUiEvent.ClearProfileConfirmed -> clearLocalProfile()
+            StudentProfileUiEvent.DataActionConfirmed -> confirmPendingDataAction()
 
             StudentProfileUiEvent.MessageHandled -> transientState.update { it.copy(message = null) }
         }
@@ -146,28 +146,43 @@ class StudentProfileViewModel(
         )
     }
 
-    private fun clearLocalProfile() {
+    private fun confirmPendingDataAction() {
+        val action = transientState.value.pendingDataAction ?: return
         viewModelScope.launch {
             transientState.update {
                 it.copy(
                     isWorking = true,
-                    isClearConfirmationVisible = false,
+                    pendingDataAction = null,
                     message = null,
                 )
             }
-            val planResult = planRepository.clearForProfile()
-            val profileResult = if (planResult.isSuccess) {
-                profileRepository.clearProfile()
-            } else {
-                planResult
+            val result = when (action) {
+                ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> manageLocalPortaData.clearProfileAndPlans()
+                ProfileDataAction.RESET_ALL_LOCAL_DATA -> manageLocalPortaData.resetAllLocalData()
             }
-            profileResult
+            result
                 .onSuccess {
                     transientState.value = StudentProfileTransientState(
-                        message = "Local profile and plans were deleted.",
+                        message = when (action) {
+                            ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> {
+                                "Academic profile, programme confirmations, and plans were deleted. " +
+                                    "Saved doors and preferences were kept."
+                            }
+
+                            ProfileDataAction.RESET_ALL_LOCAL_DATA -> {
+                                "Porta was reset on this device. The bundled opportunity catalog was restored."
+                            }
+                        },
                     )
                 }
-                .onFailure { showFailure("Porta could not clear all local profile data.") }
+                .onFailure {
+                    showFailure(
+                        when (action) {
+                            ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> "Porta could not clear the academic profile."
+                            ProfileDataAction.RESET_ALL_LOCAL_DATA -> "Porta could not finish resetting local data."
+                        },
+                    )
+                }
         }
     }
 
@@ -238,7 +253,7 @@ class StudentProfileViewModel(
             isSampleCatalog = isSampleCatalog,
             expandedFactKey = transient.expandedFactKey,
             factPendingDelete = transient.factPendingDelete,
-            isClearConfirmationVisible = transient.isClearConfirmationVisible,
+            pendingDataAction = transient.pendingDataAction,
             message = transient.message,
         )
     }
@@ -308,7 +323,7 @@ class StudentProfileViewModel(
         val isWorking: Boolean = false,
         val expandedFactKey: FactKey? = null,
         val factPendingDelete: ProfileFactUiState? = null,
-        val isClearConfirmationVisible: Boolean = false,
+        val pendingDataAction: ProfileDataAction? = null,
         val message: String? = null,
     )
 

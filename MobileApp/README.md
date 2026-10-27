@@ -169,6 +169,10 @@ platform work, including iOS.
 - TBA and rolling deadlines are never inferred from an older cycle.
 - Opportunity-pack imports show an added/changed/removed preview before activation. Profile facts and saved doors are
   preserved; programme confirmations whose exact rule fingerprint changed remain stored but no longer satisfy checks.
+- Profile data controls separate a focused clear from a full device reset. The focused action removes the current
+  profile's facts, programme confirmations and plans but keeps saved doors, catalogs and planning preferences. The
+  full reset removes all local Porta profiles, confirmations, plans, saved doors, imported catalogs and preferences,
+  then restores the bundled catalog so the app remains usable.
 - The contest build has no cloud sync, automatic source refresh, or application submission.
 
 Always confirm the linked official source before acting on an opportunity.

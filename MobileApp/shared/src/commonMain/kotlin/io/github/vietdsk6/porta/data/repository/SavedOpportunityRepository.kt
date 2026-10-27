@@ -40,4 +40,16 @@ class SavedOpportunityRepository(
         }
         Result.success(Unit)
     }
+
+    suspend fun clearForProfile(
+        profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
+    ): Result<Unit> = backgroundExecutor.execute {
+        savedOpportunityDao.deleteForProfile(profileId)
+        Result.success(Unit)
+    }
+
+    suspend fun clearAll(): Result<Unit> = backgroundExecutor.execute {
+        savedOpportunityDao.deleteAll()
+        Result.success(Unit)
+    }
 }

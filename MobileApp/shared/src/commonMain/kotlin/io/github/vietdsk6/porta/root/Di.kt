@@ -30,6 +30,7 @@ import io.github.vietdsk6.porta.domain.model.credit.creditSystemConfig
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.AiGenerationProvider
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
@@ -78,6 +79,7 @@ private val domainModule = module {
     singleOf(::EligibilityEvaluator)
     singleOf(::ScenarioEvaluator)
     singleOf(::ActionFrontierEngine)
+    singleOf(::ManageLocalPortaDataUseCase)
 }
 
 // Infrastructure + repositories: scopes/dispatchers, preferences, network, auth & subscription

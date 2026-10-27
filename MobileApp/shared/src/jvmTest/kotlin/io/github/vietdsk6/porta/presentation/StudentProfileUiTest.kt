@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileDataAction
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileFactSectionUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileFactUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileScreen
@@ -56,13 +57,14 @@ class StudentProfileUiTest {
 
     @Test
     fun `empty profile sends the student to explicit profile setup`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
         var buildRequested = false
         var inspectorRequested = false
         setContent {
             AppTheme {
                 StudentProfileScreen(
                     uiState = StudentProfileUiState(isLoading = false),
-                    onUiEvent = {},
+                    onUiEvent = { events += it },
                     onEditProfile = { buildRequested = true },
                     onOpenPackInspector = { inspectorRequested = true },
                 )
@@ -71,8 +73,81 @@ class StudentProfileUiTest {
 
         onNodeWithTag("student-profile-build").performClick()
         assertTrue(buildRequested)
-        onNodeWithTag("student-profile-pack-inspector").performClick()
+        onNodeWithTag("student-profile-explore-pack").performClick()
         assertTrue(inspectorRequested)
+        onNodeWithTag("student-profile-reset-all").performScrollTo().performClick()
+        assertEquals(
+            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.RESET_ALL_LOCAL_DATA),
+            events.last(),
+        )
+    }
+
+    @Test
+    fun `profile data controls expose two distinct deletion scopes`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState,
+                    onUiEvent = { events += it },
+                    onEditProfile = {},
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithTag("student-profile-clear").performScrollTo().performClick()
+        assertEquals(
+            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.CLEAR_PROFILE_AND_PLANS),
+            events.last(),
+        )
+        onNodeWithTag("student-profile-reset-all").performScrollTo().performClick()
+        assertEquals(
+            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.RESET_ALL_LOCAL_DATA),
+            events.last(),
+        )
+    }
+
+    @Test
+    fun `clear profile confirmation names both removed and retained data`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState.copy(
+                        pendingDataAction = ProfileDataAction.CLEAR_PROFILE_AND_PLANS,
+                    ),
+                    onUiEvent = { events += it },
+                    onEditProfile = {},
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithText("Clear academic profile and plans?").assertExists()
+        onNodeWithText("Saved doors, the opportunity catalog", substring = true).assertExists()
+        onNodeWithTag("student-profile-data-confirm").performClick()
+        assertEquals(StudentProfileUiEvent.DataActionConfirmed, events.last())
+    }
+
+    @Test
+    fun `reset confirmation inventories all data and bundled catalog recovery`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState.copy(
+                        pendingDataAction = ProfileDataAction.RESET_ALL_LOCAL_DATA,
+                    ),
+                    onUiEvent = {},
+                    onEditProfile = {},
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithText("Reset Porta on this device?").assertExists()
+        onNodeWithText("saved doors, imported opportunity catalogs", substring = true).assertExists()
+        onNodeWithText("Porta restores the bundled catalog", substring = true).assertExists()
     }
 
     @Test

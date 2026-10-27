@@ -109,6 +109,11 @@ class OpportunityPackRepository(
         Result.success(active.rawJson)
     }
 
+    suspend fun clearAll(): Result<Unit> = backgroundExecutor.execute {
+        opportunityPackDao.deleteAll()
+        Result.success(Unit)
+    }
+
     private suspend fun findCompatibleExisting(
         packId: String,
         version: Int,
