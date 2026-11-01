@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalKotlinGradlePluginApi::class)
 
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import com.github.gmazzo.buildconfig.BuildConfigExtension
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -79,60 +77,33 @@ kotlin {
             api(libs.compose.runtime)
             api(libs.compose.ui)
             api(libs.koin.core)
-            api(libs.kmpnotifier.push.firebase)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons)
             implementation(libs.compose.material3)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.kmpauth.google)
-            implementation(libs.kmpauth.apple)
-            implementation(libs.kmpauth.firebase)
             implementation(libs.napier)
             implementation(libs.room.runtime)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.ktor.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.client.logging)
-            implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.compose.navigation3)
             implementation(libs.lifecyle.runtime)
             implementation(libs.uuid)
-            // Only the permission modules this app actually uses. The umbrella
-            // calf-permissions artifact links location, bluetooth, contacts and more,
-            // and App Store review then demands a purpose string for each (ITMS-90683)
-            // even though nothing calls them. Add a module here when you add a permission.
-            implementation(libs.calf.permissions.core)
-            implementation(libs.calf.permissions.camera)
-            implementation(libs.calf.permissions.gallery)
-            implementation(libs.calf.permissions.notifications)
             implementation(libs.androidx.datastore.preferences.core)
-            implementation(libs.coil.compose)
-            implementation(libs.coil.ktor)
             implementation(libs.kotlinx.datetime)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.nav3.ui)
             implementation(libs.lifecycle.viewmodel.navigation3)
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs)
-
-            val subscriptionProvider =
-                project.findProperty("SUBSCRIPTION_PROVIDER")?.toString()?.uppercase()
-                    ?: "ADAPTY"
-            when (subscriptionProvider) {
-                "ADAPTY" -> implementation(projects.libs.subscription.subscriptionAdapty)
-                "REVENUECAT" -> implementation(projects.libs.subscription.subscriptionRevenuecat)
-            }
         }
 
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.compose.uiTest)
             implementation(libs.kotlinx.coroutines.test)
-            implementation(libs.ktor.client.mock)
         }
 
         // Android host tests run on the JVM via Robolectric. Roborazzi snapshots
@@ -153,25 +124,12 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.androidx.activityCompose)
-            implementation(project.dependencies.platform(libs.firebase.bom))
-            implementation(libs.firebase.messaging)
-            implementation(libs.firebase.analytics)
-            implementation(libs.firebase.crashlytics)
-            implementation(libs.firebase.config)
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
-            implementation(libs.google.admob)
-            implementation(libs.android.inappreview)
-        }
-
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
 
         jvmMain.dependencies {
             implementation(libs.kotlinx.coroutinesSwing)
-            implementation(libs.ktor.client.okhttp)
         }
 
         getByName("nonWebMain") {
@@ -182,7 +140,6 @@ kotlin {
 
         getByName("webMain") {
             dependencies {
-                implementation(libs.ktor.client.js)
                 implementation(libs.sqlite.web)
                 implementation(npm("@sqlite.org/sqlite-wasm", "3.50.1-build1"))
                 implementation(npm("sqlite-wasm-worker", project.file("sqlite-wasm-worker")))
@@ -193,23 +150,6 @@ kotlin {
 
 compose.resources {
     packageOfResClass = "io.github.vietdsk6.porta.generated.resources"
-}
-
-// iOS unit tests can't link: the Firebase (SwiftPM) dependency is wired into the app framework
-// but not the test binary's linker search path (`ld: framework 'FirebaseCore' not found`). The
-// same commonTest already runs on JVM + Android host (the PR gate), so disable the iOS test
-// link + run tasks. The iOS app framework (linkDebugFramework*) is unaffected.
-tasks.matching {
-    it.name.startsWith("linkDebugTestIos") || Regex("^ios\\w*Test$").matches(it.name)
-}.configureEach { enabled = false }
-
-// Amazon Appstore SDK ships legacy bytecode that fails Robolectric's verifier when
-// its broadcast receiver is registered during test setup. RevenueCat pulls it in
-// transitively; we don't need it for screenshot testing — strip it from the host-
-// test classpath so Robolectric never tries to load `ResponseReceiver`.
-configurations.matching { it.name.contains("ndroidHostTest", ignoreCase = false) }.configureEach {
-    exclude(group = "com.amazon.device", module = "amazon-appstore-sdk")
-    exclude(group = "com.revenuecat.purchases", module = "purchases-store-amazon")
 }
 
 roborazzi {
@@ -266,89 +206,11 @@ buildConfig {
     // https://github.com/gmazzo/gradle-buildconfig-plugin#usage-in-kts
     packageName("io.github.vietdsk6.porta.common")
     // AGP 9's `com.android.kotlin.multiplatform.library` plugin does NOT generate BuildConfig the way the
-    // old `com.android.application` plugin did. Replicate the `DEBUG` flag here so commonMain code that
+    // old `com.android.application` plugin did. Define the `DEBUG` flag here so commonMain code that
     // depended on `BuildConfig.DEBUG` keeps working. Defaults to `false` (production-safe); the consuming
     // app can override via `-PisDebugBuild=true`.
     buildConfigField(
         "DEBUG",
         (project.findProperty("isDebugBuild") as String?)?.toBoolean() ?: false,
     )
-    buildConfigField(
-        "GOOGLE_WEB_CLIENT_ID",
-        getRequiredProperty(key = "GOOGLE_WEB_CLIENT_ID", defaultValue = "testValue"),
-    )
-
-    // Firebase web config for KMPAuth on Desktop/Web only — those targets have no native Firebase SDK,
-    // so the auth backend runs on a REST engine that needs this config. Leave EMPTY for mobile (Android/iOS
-    // read google-services.json / GoogleService-Info.plist). From the Firebase console → a Web app.
-    buildConfigField("FIREBASE_API_KEY", getRequiredProperty(key = "FIREBASE_API_KEY", defaultValue = ""))
-    buildConfigField("FIREBASE_PROJECT_ID", getRequiredProperty(key = "FIREBASE_PROJECT_ID", defaultValue = ""))
-    buildConfigField("FIREBASE_APPLICATION_ID", getRequiredProperty(key = "FIREBASE_APPLICATION_ID", defaultValue = ""))
-
-    // Direct-AI (no-Firebase) provider keys. Empty by default → the app uses the Cloud Functions proxy.
-    // Setting one (with a blank CLOUD_FUNCTIONS_URL) makes AiTransport call the provider directly.
-    // Prototyping only — the key ships in the app binary; production should keep the proxy.
-    buildConfigField("OPENAI_API_KEY", getRequiredProperty(key = "OPENAI_API_KEY", defaultValue = ""))
-    buildConfigField("REPLICATE_API_KEY", getRequiredProperty(key = "REPLICATE_API_KEY", defaultValue = ""))
-
-    // Adapty or RevenueCat Api key
-    buildConfigField(
-        "SUBSCRIPTION_PROVIDER_ANDROID_API_KEY",
-        getRequiredProperty(
-            key = "SUBSCRIPTION_PROVIDER_ANDROID_API_KEY",
-            defaultValue = "testValue",
-        ),
-    )
-    buildConfigField(
-        "SUBSCRIPTION_PROVIDER_IOS_API_KEY",
-        getRequiredProperty(key = "SUBSCRIPTION_PROVIDER_IOS_API_KEY", defaultValue = "testValue"),
-    )
-
-    setupAdmobAdsIds()
-}
-
-private fun BuildConfigExtension.setupAdmobAdsIds() {
-    // Android Admob ids
-    buildConfigField(
-        name = "ADMOB_APP_ID_ANDROID",
-        value = getRequiredProperty(key = "ADMOB_APP_ID_ANDROID", defaultValue = ""),
-    )
-    buildConfigField(
-        name = "ADMOB_BANNER_AD_ID_ANDROID",
-        value = getRequiredProperty(key = "ADMOB_BANNER_AD_ID_ANDROID", defaultValue = ""),
-    )
-    buildConfigField(
-        name = "ADMOB_INTERSTITIAL_AD_ID_ANDROID",
-        value = getRequiredProperty(key = "ADMOB_INTERSTITIAL_AD_ID_ANDROID", defaultValue = ""),
-    )
-    buildConfigField(
-        name = "ADMOB_REWARDED_AD_ID_ANDROID",
-        value = getRequiredProperty(key = "ADMOB_REWARDED_AD_ID_ANDROID", defaultValue = ""),
-    )
-
-    // ios Admob ids
-    buildConfigField(
-        name = "ADMOB_BANNER_AD_ID_IOS",
-        value = getRequiredProperty(key = "ADMOB_BANNER_AD_ID_IOS", defaultValue = ""),
-    )
-    buildConfigField(
-        name = "ADMOB_INTERSTITIAL_AD_ID_IOS",
-        value = getRequiredProperty(key = "ADMOB_INTERSTITIAL_AD_ID_IOS", defaultValue = ""),
-    )
-    buildConfigField(
-        name = "ADMOB_REWARDED_AD_ID_IOS",
-        value = getRequiredProperty(key = "ADMOB_REWARDED_AD_ID_IOS", defaultValue = ""),
-    )
-}
-
-fun getRequiredProperty(
-    key: String,
-    defaultValue: String? = null,
-    errorMessage: String = "Make sure you added `$key` in local.properties",
-): String {
-    val propertyValue: String? = gradleLocalProperties(rootDir, providers).getProperty(key)?.takeIf { it.isNotBlank() }
-    if (propertyValue == null && defaultValue == null) {
-        throw IllegalArgumentException(errorMessage)
-    }
-    return propertyValue ?: defaultValue ?: ""
 }

@@ -1,3 +1,1 @@
-//Common config key values
-//This value is provided by Google to test ads in debug build. Change it in ReleaseConfig file
-ADMOB_APP_ID=ca-app-pub-3940256099942544~1458002511
+// Common configuration values shared by debug and release builds.

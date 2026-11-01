@@ -7,7 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlin.coroutines.CoroutineContext
 
 /**
- * App-lifetime coroutine scope for work that must outlive any screen (sync, analytics, caches).
+ * App-lifetime coroutine scope for local work that must outlive any screen.
  * SupervisorJob so one failed child doesn't cancel the rest; uncaught errors are logged.
  */
 class ApplicationScope : CoroutineScope {

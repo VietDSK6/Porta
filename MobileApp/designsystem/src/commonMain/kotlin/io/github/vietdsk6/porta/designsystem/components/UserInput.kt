@@ -38,7 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_crown
+import io.github.vietdsk6.porta.designsystem.generated.resources.ic_check
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.designsystem.util.PreviewHelper
 import org.jetbrains.compose.resources.DrawableResource
@@ -220,7 +220,7 @@ internal fun UserInputPreview() {
             onValueChange = {
                 text = it
             },
-            endIcon = UiRes.drawable.ic_crown,
+            endIcon = UiRes.drawable.ic_check,
             label = "",
         )
 
@@ -228,14 +228,14 @@ internal fun UserInputPreview() {
             value = "Disabled Text",
             onValueChange = {},
             enabled = false,
-            startIcon = UiRes.drawable.ic_crown,
+            startIcon = UiRes.drawable.ic_check,
             label = "Disabled",
         )
 
         UserInput(
             value = "ReadOnly Text",
             onValueChange = {},
-            startIcon = UiRes.drawable.ic_crown,
+            startIcon = UiRes.drawable.ic_check,
             readOnly = true,
             label = "ReadyOnlyText",
         )

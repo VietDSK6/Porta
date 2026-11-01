@@ -33,12 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.github.vietdsk6.porta.designsystem.components.AgreePrivacyPolicyPreview
 import io.github.vietdsk6.porta.designsystem.components.AnimatedHorizontalPagerPreview
 import io.github.vietdsk6.porta.designsystem.components.AppButtonPreviews
 import io.github.vietdsk6.porta.designsystem.components.AppCardContainerPreview
 import io.github.vietdsk6.porta.designsystem.components.AppToolbarPreview
-import io.github.vietdsk6.porta.designsystem.components.AuthButtonsPreview
 import io.github.vietdsk6.porta.designsystem.components.AutoResizableTextPreview
 import io.github.vietdsk6.porta.designsystem.components.ChipPreview
 import io.github.vietdsk6.porta.designsystem.components.CircleButtonWithStepsPreview
@@ -52,22 +50,13 @@ import io.github.vietdsk6.porta.designsystem.components.LogoImagePreview
 import io.github.vietdsk6.porta.designsystem.components.RadioButtonPreview
 import io.github.vietdsk6.porta.designsystem.components.ScreenTitle
 import io.github.vietdsk6.porta.designsystem.components.SectionContainerPreview
-import io.github.vietdsk6.porta.designsystem.components.SettingsItemPreview
 import io.github.vietdsk6.porta.designsystem.components.TitlesPreview
 import io.github.vietdsk6.porta.designsystem.components.UserInput
 import io.github.vietdsk6.porta.designsystem.components.UserInputPreview
-import io.github.vietdsk6.porta.designsystem.components.addorchosefilecontainer.AddOrChooseFileContainerPreview
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavigationBarPreview
 import io.github.vietdsk6.porta.designsystem.components.modals.AppDialogPreview
 import io.github.vietdsk6.porta.designsystem.components.modals.AppModalBottomSheetPreview
-import io.github.vietdsk6.porta.designsystem.components.modals.DeleteUserConfirmationPreview
 import io.github.vietdsk6.porta.designsystem.components.modals.NativeDialogPreview
-import io.github.vietdsk6.porta.designsystem.components.modals.UpgradePremiumDialogPreview
-import io.github.vietdsk6.porta.designsystem.components.premium.CurrentSubscriptionPlanAndFeaturesPreview
-import io.github.vietdsk6.porta.designsystem.components.premium.ManageSubscriptionTextPreview
-import io.github.vietdsk6.porta.designsystem.components.premium.PremiumFeaturesListPreview
-import io.github.vietdsk6.porta.designsystem.components.premium.SuccessfulPurchaseContentPreview
-import io.github.vietdsk6.porta.designsystem.components.premium.UpgradePremiumBannerPreview
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.designsystem.theme.LocalThemeIsDark
 
@@ -78,32 +67,23 @@ data class ComponentItem(
 
 private val allComponentItems =
     listOf(
-        ComponentItem("AddOrChooseFileContainer") { AddOrChooseFileContainerPreview() },
         ComponentItem("Radio Button") { RadioButtonPreview() },
-        ComponentItem("Premium Features List") { PremiumFeaturesListPreview() },
-        ComponentItem("Subscription Plan") { CurrentSubscriptionPlanAndFeaturesPreview() },
-        ComponentItem("Successful Purchase View") { SuccessfulPurchaseContentPreview() },
         ComponentItem("User Inputs") { UserInputPreview() },
         ComponentItem("Chips") { ChipPreview() },
         ComponentItem("Buttons") { AppButtonPreviews() },
-        ComponentItem("Social Auth Buttons") { AuthButtonsPreview() },
         ComponentItem("Divider") { DividerPreview() },
         ComponentItem("Loading Bar") { LoadingProgressPreview() },
         ComponentItem("App Toolbar") { AppToolbarPreview() },
         ComponentItem("Bottom Navigation") { BottomNavigationBarPreview() },
         ComponentItem("Horizontal Scrollable List") { HorizontalScrollableListPreview() },
-        ComponentItem("Upgrade Premium Banner") { UpgradePremiumBannerPreview() },
         ComponentItem("Dialog") {
             Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.verticalListItemSpacing)) {
                 NativeDialogPreview()
                 AppDialogPreview()
-                UpgradePremiumDialogPreview()
-                DeleteUserConfirmationPreview()
             }
         },
         ComponentItem("Modal Bottom Sheet") { AppModalBottomSheetPreview() },
         ComponentItem("Titles") { TitlesPreview() },
-        ComponentItem("Settings Items") { SettingsItemPreview() },
         ComponentItem("Section Container") { SectionContainerPreview() },
         ComponentItem("Logo Image") { LogoImagePreview() },
         ComponentItem("Horizontal Pager Indicator") { HorizontalPagerIndicatorPreview() },
@@ -112,8 +92,6 @@ private val allComponentItems =
         ComponentItem("AutoResized Text") { AutoResizableTextPreview() },
         ComponentItem("AppCard Container") { AppCardContainerPreview() },
         ComponentItem("Animated Horizontal Pager") { AnimatedHorizontalPagerPreview() },
-        ComponentItem("Agree Privacy Policy Terms") { AgreePrivacyPolicyPreview() },
-        ComponentItem("Manage Subscription Text") { ManageSubscriptionTextPreview() },
     )
 
 @Composable

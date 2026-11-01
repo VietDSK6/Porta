@@ -1,41 +1,16 @@
 package io.github.vietdsk6.porta.root
 
-import com.mmk.kmpauth.core.KMPAuth
-import com.mmk.kmpauth.firebase.firebase
-import com.mmk.kmpauth.google.GoogleAuthCredentials
-import com.mmk.kmpauth.google.google
-import com.mmk.kmpnotifier.KMPNotifier
-import com.mmk.kmpnotifier.notification.PayloadData
-import com.mmk.kmpnotifier.push.PushListener
-import com.mmk.kmpnotifier.push.firebase.addPushListener
-import io.github.vietdsk6.porta.common.BuildConfig
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
-import io.github.vietdsk6.porta.data.repository.SubscriptionRepository
-import io.github.vietdsk6.porta.data.repository.UserRepository
-import io.github.vietdsk6.porta.data.source.featureflag.FeatureFlagManager
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
-import io.github.vietdsk6.porta.presentation.components.ads.AdsManager
-import io.github.vietdsk6.porta.subscription.api.SubscriptionProvider
-import io.github.vietdsk6.porta.subscription.api.runCatchingSuspend
 import io.github.vietdsk6.porta.util.ApplicationScope
-import io.github.vietdsk6.porta.util.Constants
-import io.github.vietdsk6.porta.util.analytics.Analytics
-import io.github.vietdsk6.porta.util.defaultAsyncDispatcher
-import io.github.vietdsk6.porta.util.isAndroid
 import io.github.vietdsk6.porta.util.isDebug
 import io.github.vietdsk6.porta.util.logging.AppLogger
 import io.github.vietdsk6.porta.util.onApplicationStartPlatformSpecific
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 
-/**
- * App bootstrap: starts Koin with all modules and runs one-time startup side effects
- * (logging, analytics, notifications, billing, ads, anonymous sign-in). Each platform's entry
- * point calls [initialize] once, passing platform-specific Koin setup via [onKoinStart].
- */
+/** Starts dependency injection and installs Porta's bundled local opportunity pack. */
 object AppInitializer {
 
     fun initialize(onKoinStart: KoinApplication.() -> Unit) {
@@ -47,33 +22,16 @@ object AppInitializer {
     }
 
     private fun KoinApplication.onApplicationStart() {
-        onApplicationStartPlatformSpecific(
-            enableRemoteNotifications = AppConfiguration.OPTIONAL_ONLINE_SERVICES_ENABLED,
-        )
-        // Add common application start functions below
-
-        // initialize logging
+        onApplicationStartPlatformSpecific()
         AppLogger.initialize(isDebug = isDebug)
-
         initializeBundledOpportunityPack()
-        if (AppConfiguration.OPTIONAL_ONLINE_SERVICES_ENABLED) {
-            refreshFeatureFlags()
-            initializeAnalytics()
-            initializeNotification()
-            initializeAuthentication()
-            initializeAds()
-
-            val userRepository by this.koin.inject<UserRepository>()
-            userRepository.signInAnonymouslyIfNecessary()
-        }
-        initializeInAppPurchase()
     }
 }
 
 private fun KoinApplication.initializeBundledOpportunityPack() {
-    val applicationScope by this.koin.inject<ApplicationScope>()
-    val packRepository by this.koin.inject<OpportunityPackRepository>()
-    val bundledPackProvider by this.koin.inject<BundledOpportunityPackProvider>()
+    val applicationScope by koin.inject<ApplicationScope>()
+    val packRepository by koin.inject<OpportunityPackRepository>()
+    val bundledPackProvider by koin.inject<BundledOpportunityPackProvider>()
     applicationScope.launch {
         packRepository.getActive().fold(
             onSuccess = { activePack ->
@@ -89,116 +47,3 @@ private fun KoinApplication.initializeBundledOpportunityPack() {
         )
     }
 }
-
-private fun KoinApplication.refreshFeatureFlags() {
-    val featureFlagManager by this.koin.inject<FeatureFlagManager>()
-    featureFlagManager.syncsFlagsAsync()
-}
-
-private fun KoinApplication.initializeAnalytics() {
-    val featureFlagManager by this.koin.inject<FeatureFlagManager>()
-    val analytics by this.koin.inject<Analytics>()
-    val isAnalyticsEnabled =
-        featureFlagManager.getBoolean(FeatureFlagManager.Keys.IS_ANALYTICS_ENABLED)
-    analytics.setEnabled(enabled = isAnalyticsEnabled)
-}
-
-private fun KoinApplication.initializeAds() {
-    val backgroundScope = CoroutineScope(defaultAsyncDispatcher)
-    val adsManager by this.koin.inject<AdsManager>()
-    val featureFlagManager by this.koin.inject<FeatureFlagManager>()
-    val isAdsEnabled = featureFlagManager.getBoolean(FeatureFlagManager.Keys.IS_ADS_ENABLED)
-    if (isAdsEnabled.not()) return
-
-    // Initialize ads
-    backgroundScope.launch {
-        adsManager.initialize()
-    }
-}
-
-private fun initializeNotification() {
-    KMPNotifier.addListener(object : KMPNotifier.Listener {
-
-        /**
-         * This method is invoked when the user clicks on a notification.
-         * @param data parameter contains the payload data sent with the notification
-         */
-        override fun onNotificationClicked(data: PayloadData) {
-            super.onNotificationClicked(data)
-            AppLogger.d("onNotification clicked: $data")
-        }
-    })
-
-    KMPNotifier.addPushListener(object : PushListener {
-
-        /**
-         * This method is called when a new FCM token is generated.
-         * You can use this token for sending notifications to the specific device or saving in the server.
-         * It is logged for debugging purposes.
-         */
-        override fun onNewToken(token: String) {
-            super.onNewToken(token)
-            AppLogger.d("Firebase onNewToken: $token")
-        }
-
-        /**
-         * This method is invoked when receiving a push notification.
-         * @param title parameter contains the notification title
-         * @param body parameter contains the notification body
-         * @param data parameter contains the payload data sent with the notification
-         */
-        override fun onPushNotificationWithPayloadData(
-            title: String?,
-            body: String?,
-            data: PayloadData,
-        ) {
-            super.onPushNotificationWithPayloadData(title, body, data)
-            AppLogger.d("Firebase onPushNotification: title: $title, body: $body, data: $data")
-        }
-    })
-}
-
-private fun initializeAuthentication() {
-    KMPAuth.initialize {
-        google(GoogleAuthCredentials(serverId = BuildConfig.GOOGLE_WEB_CLIENT_ID))
-        // Desktop/Web only: the Firebase backend has no native SDK there, so it needs explicit config.
-        // No-op on Android/iOS. Blank until the developer sets the FIREBASE_* keys (Firebase console → Web app).
-        if (BuildConfig.FIREBASE_API_KEY.isNotBlank()) {
-            firebase(
-                apiKey = BuildConfig.FIREBASE_API_KEY,
-                projectId = BuildConfig.FIREBASE_PROJECT_ID,
-                applicationId = BuildConfig.FIREBASE_APPLICATION_ID,
-            )
-        }
-    }
-}
-
-private fun KoinApplication.initializeInAppPurchase() {
-    // No premium features (PREMIUM_FEATURES_ENABLED = false): don't initialize billing or preload paywalls.
-    if (!AppConfiguration.PREMIUM_FEATURES_ENABLED) return
-
-    val subscriptionProvider by this.koin.inject<SubscriptionProvider>()
-    val subscriptionRepository by this.koin.inject<SubscriptionRepository>()
-    val applicationScope by this.koin.inject<ApplicationScope>()
-
-    applicationScope.launch(Dispatchers.Main.immediate) {
-        val subscriptionProviderApiKey =
-            if (isAndroid) BuildConfig.SUBSCRIPTION_PROVIDER_ANDROID_API_KEY else BuildConfig.SUBSCRIPTION_PROVIDER_IOS_API_KEY
-        subscriptionProvider.initialize(subscriptionProviderApiKey)
-
-        listOf(
-            Constants.PAYWALL_PLACEMENT_DEFAULT,
-            Constants.PAYWALL_PLACEMENT_ONBOARDING,
-            Constants.PAYWALL_PLACEMENT_CREDITS_PACK,
-        ).forEach { placementId ->
-            launch(defaultAsyncDispatcher) {
-                runCatchingSuspend { subscriptionRepository.getPackageList(placementId) }
-                    .onFailure { error ->
-                        AppLogger.d("Preload paywall '$placementId' failed: ${error.message}")
-                    }
-            }
-        }
-    }
-}
-
-// Koin module definitions (appModules, dataModule, presentationModule, …) live in Di.kt.

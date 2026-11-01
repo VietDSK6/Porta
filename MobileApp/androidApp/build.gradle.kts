@@ -1,12 +1,9 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose)
-    alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -52,9 +49,6 @@ android {
         getByName("debug") {
             isMinifyEnabled = false
             isDebuggable = true
-
-            // This values is provided by Google to test ads in debug mode
-            resValue("string", "admobAppId", "ca-app-pub-3940256099942544~3347511713")
         }
 
         getByName("release") {
@@ -65,15 +59,6 @@ android {
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.getByName(if (isSigningKeyExists) "release" else "debug")
-
-            resValue(
-                "string",
-                "admobAppId",
-                getRequiredProperty(
-                    "ADMOB_APP_ID_ANDROID",
-                    "ca-app-pub-3940256099942544~3347511713",
-                ),
-            )
         }
     }
 
@@ -103,16 +88,4 @@ dependencies {
     androidTestImplementation("androidx.test:monitor") {
         version { strictly("1.6.1") }
     }
-}
-
-fun getRequiredProperty(
-    key: String,
-    defaultValue: String? = null,
-    errorMessage: String = "Make sure you added `$key` in local.properties",
-): String {
-    val propertyValue: String? = gradleLocalProperties(rootDir, providers).getProperty(key)?.takeIf { it.isNotBlank() }
-    if (propertyValue == null && defaultValue == null) {
-        throw IllegalArgumentException(errorMessage)
-    }
-    return propertyValue ?: defaultValue ?: ""
 }

@@ -35,3 +35,9 @@ val MIGRATION_1_2 = Migration(1, 2) { connection ->
         """.trimIndent(),
     )
 }
+
+/** Removes the retired AI generation history and credit ledger without touching Porta data. */
+val MIGRATION_2_3 = Migration(2, 3) { connection ->
+    connection.execSQL("DROP TABLE IF EXISTS generation_outputs")
+    connection.execSQL("DROP TABLE IF EXISTS credit_transaction")
+}

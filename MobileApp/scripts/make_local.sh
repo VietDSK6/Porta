@@ -27,11 +27,11 @@ fi
 BASE_PACKAGE="io.github.vietdsk6.porta"
 BASE_PATH=$(echo "$BASE_PACKAGE" | tr '.' '/')
 
-# snake_case for table name (e.g. CreditTransaction -> credit_transaction)
+# snake_case for table name (e.g. SavedOpportunity -> saved_opportunity)
 TABLE_NAME=$(echo "$MODEL_NAME" | sed 's/\(.\)\([A-Z]\)/\1_\2/g' | tr '[:upper:]' '[:lower:]')
 ENTITY_NAME="${MODEL_NAME}Entity"
 DAO_NAME="${MODEL_NAME}Dao"
-# lowerCamelCase accessor (e.g. CreditTransaction -> creditTransaction)
+# lowerCamelCase accessor (e.g. SavedOpportunity -> savedOpportunity)
 LOWER_CAMEL=$(echo "$MODEL_NAME" | awk '{print tolower(substr($0,1,1)) substr($0,2)}')
 DAO_ACCESSOR="${LOWER_CAMEL}Dao"
 

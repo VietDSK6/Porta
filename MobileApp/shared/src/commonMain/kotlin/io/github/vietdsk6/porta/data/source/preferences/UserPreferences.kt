@@ -9,8 +9,6 @@ interface UserPreferences {
     companion object Keys {
         const val KEY_IS_ONBOARD_SHOWN = "KEY_IS_ONBOARD_SHOWN"
         const val KEY_OPPORTUNITY_GOAL = "KEY_OPPORTUNITY_GOAL"
-        const val KEY_FIRST_TIME_USER = "KEY_FIRST_TIME_USER"
-        const val KEY_NB_PAYWALL_DISMISSED = "KEY_NB_PAYWALL_DISMISSED"
         const val KEY_FRONTIER_HORIZON_DAYS = "KEY_FRONTIER_HORIZON_DAYS"
         const val KEY_FRONTIER_MAX_EFFORT = "KEY_FRONTIER_MAX_EFFORT"
         const val KEY_FRONTIER_MAX_COST = "KEY_FRONTIER_MAX_COST"

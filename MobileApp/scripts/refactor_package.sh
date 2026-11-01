@@ -18,7 +18,7 @@
 #   --app-id <id>           New applicationId / bundle ID (required).
 #   --app-name <name>       New app display name (required).
 #   --skip-package-rename   Keep Kotlin packages/dirs. Only update applicationId,
-#                           bundle ID, Firebase/Google-services refs, and app name
+#                           bundle ID, project references, and app name
 #                           (default: off — packages ARE renamed).
 #   --old-app-id <id>       Current app id to replace. Default: auto-detected from the
 #                           androidApp `namespace`. Required if detection fails.
@@ -183,11 +183,6 @@ REFACTOR_MODULES=(
   "desktopApp"
   "webApp"
   "designsystem"
-  "libs/auth/auth-api"
-  "libs/auth/auth-firebase"
-  "libs/subscription/subscription-api"
-  "libs/subscription/subscription-adapty"
-  "libs/subscription/subscription-revenuecat"
 )
 
 OLD_PKG_PATH="${OLD_APP_ID//.//}"
@@ -318,13 +313,6 @@ update_application_id_only() {
   done
 }
 
-update_firebase_configs() {
-  local f
-  for f in androidApp/google-services.json composeApp/google-services.json iosApp/iosApp/GoogleService-Info.plist; do
-    replace_in_file "$MOBILE_DIR/$f" "$OLD_APP_ID" "$NEW_APP_ID"
-  done
-}
-
 update_ios_files() {
   replace_in_file "$MOBILE_DIR/iosApp/iosApp/Info.plist" "$OLD_APP_ID" "$NEW_APP_ID"
   replace_in_file "$MOBILE_DIR/iosApp/iosApp.xcodeproj/project.pbxproj" "$OLD_APP_ID" "$NEW_APP_ID"
@@ -350,8 +338,6 @@ update_app_name() {
     "desktopApp/src/main/kotlin/$pkg_path/main.kt"
     "webApp/src/wasmJsMain/resources/index.html"
     "webApp/src/webMain/resources/index.html"
-    "shared/src/jvmMain/kotlin/$pkg_path/util/AppUtilImpl.jvm.kt"
-    "shared/src/webMain/kotlin/$pkg_path/util/AppUtilImpl.web.kt"
     "settings.gradle.kts"
     "iosApp/iosApp.xcodeproj/project.pbxproj"
   )
@@ -403,7 +389,6 @@ if [ "$SKIP_PACKAGE_RENAME" = false ]; then
   done
   update_gradle_files
   update_task_group
-  update_firebase_configs
   update_ios_files
   update_github_workflows
   update_app_name "$NEW_APP_ID"
@@ -411,7 +396,6 @@ if [ "$SKIP_PACKAGE_RENAME" = false ]; then
 else
   echo "Skip-package-rename mode: updating IDs + app name only."
   update_application_id_only
-  update_firebase_configs
   update_ios_files
   update_github_workflows
   update_app_name "$OLD_APP_ID"
@@ -419,5 +403,4 @@ fi
 
 echo
 echo "✅ Package refactoring completed."
-echo "   Tip: re-sync Gradle and rebuild. If you use Firebase, replace google-services.json /"
-echo "   GoogleService-Info.plist with configs for the new app id."
+echo "   Tip: re-sync Gradle and rebuild."

@@ -1,7 +1,6 @@
 package io.github.vietdsk6.porta
 
 import android.app.Application
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,8 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.mmk.kmpnotifier.KMPNotifier
-import com.mmk.kmpnotifier.extensions.onCreateOrOnNewIntent
 import io.github.vietdsk6.porta.root.App
 import io.github.vietdsk6.porta.root.AppInitializer
 import io.github.vinceglb.filekit.FileKit
@@ -33,13 +30,7 @@ class AppActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { App() }
-        KMPNotifier.onCreateOrOnNewIntent(intent)
         FileKit.init(this)
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        KMPNotifier.onCreateOrOnNewIntent(intent)
     }
 }
 

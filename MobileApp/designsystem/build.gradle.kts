@@ -20,8 +20,6 @@ kotlin {
             api(libs.compose.material3)
             api(libs.compose.components.resources)
             api(libs.compose.ui.tooling.preview)
-            api(libs.coil.compose)
-            implementation(libs.kmpauth.uihelper)
         }
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)

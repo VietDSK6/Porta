@@ -2,8 +2,7 @@ package io.github.vietdsk6.porta.data.source.preferences
 
 /**
  * In-memory [UserPreferences] for tests — no DataStore, no disk. Reusable from
- * any commonTest that needs to stub stored flags (onboarding shown, paywall
- * dismiss count, ...).
+ * any commonTest that needs to stub stored flags such as onboarding state.
  */
 class FakeUserPreferences : UserPreferences {
 

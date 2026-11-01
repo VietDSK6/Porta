@@ -29,7 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_crown
+import io.github.vietdsk6.porta.designsystem.generated.resources.ic_check
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_delete
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.designsystem.util.PreviewHelper
@@ -191,23 +191,23 @@ internal fun AppButtonPreviews() {
             "PrimaryIconOnLeft",
             style = ButtonStyle.PRIMARY,
             onClick = {},
-            startIcon = UiRes.drawable.ic_crown,
+            startIcon = UiRes.drawable.ic_check,
         )
         AppButton(
             "PrimaryIconOnRight",
             style = ButtonStyle.PRIMARY,
             onClick = {},
-            endIcon = UiRes.drawable.ic_crown,
+            endIcon = UiRes.drawable.ic_check,
         )
         AppButton("Alternative Enabled", style = ButtonStyle.ALTERNATIVE, onClick = {})
 
-        CircularActionButton(icon = UiRes.drawable.ic_crown, text = "Action")
+        CircularActionButton(icon = UiRes.drawable.ic_check, text = "Action")
         CircularActionButton(
             icon = UiRes.drawable.ic_delete,
             text = "Delete",
             iconTint = AppTheme.colors.status.error,
         )
-        CircularActionButton(icon = UiRes.drawable.ic_crown, text = "Action Button Long Text")
-        CircularActionButton(icon = UiRes.drawable.ic_crown)
+        CircularActionButton(icon = UiRes.drawable.ic_check, text = "Action Button Long Text")
+        CircularActionButton(icon = UiRes.drawable.ic_check)
     }
 }

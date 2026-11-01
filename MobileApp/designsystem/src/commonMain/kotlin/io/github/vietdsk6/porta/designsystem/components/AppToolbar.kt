@@ -44,8 +44,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
+import io.github.vietdsk6.porta.designsystem.generated.resources.ic_check
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_close
-import io.github.vietdsk6.porta.designsystem.generated.resources.ic_crown
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.designsystem.util.PreviewHelper
 import io.github.vietdsk6.porta.designsystem.util.fillWidthOfParent
@@ -233,10 +233,10 @@ internal fun AppToolbarPreview() {
             navigationIcon = null,
             actions = {
                 Chip(
-                    text = "Pro",
+                    text = "Ready",
                     style = ChipStyle.FILLED,
                     size = ChipSize.SMALL,
-                    startIconRes = UiRes.drawable.ic_crown,
+                    startIconRes = UiRes.drawable.ic_check,
                     onClick = {},
                 )
             },
