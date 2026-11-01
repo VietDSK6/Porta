@@ -161,16 +161,18 @@ class ScenarioPreviewViewModel(
                 addressesCheckedRequirement = impact.opportunityId in addressedIds,
             )
         }
-        val wouldPassCurrentChecks = impactedDoors
-            .filter { door ->
+        val affectedDoors = impactedDoors.map { door ->
+            if (
                 door.id in addressedIds &&
-                    door.timingWarning == null &&
-                    scenario.simulated.getValue(door.id).state == EligibilityState.OPEN
+                door.timingWarning == null &&
+                scenario.simulated.getValue(door.id).state == EligibilityState.OPEN
+            ) {
+                door.copy(outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED)
+            } else {
+                door
             }
-            .map { it.copy(outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED) }
-        val passedIds = wouldPassCurrentChecks.map(ScenarioDoorUiState::id).toSet()
-        val progressed = impactedDoors.filterNot { it.id in passedIds }
-        val impactedIds = impactedDoors.map(ScenarioDoorUiState::id).toSet()
+        }
+        val impactedIds = affectedDoors.map(ScenarioDoorUiState::id).toSet()
         val unchanged = activeOpportunities
             .filterNot { it.id in impactedIds }
             .map { opportunity ->
@@ -194,8 +196,7 @@ class ScenarioPreviewViewModel(
             } else {
                 null
             },
-            openedDoors = wouldPassCurrentChecks,
-            progressedDoors = progressed,
+            affectedDoors = affectedDoors,
             unchangedDoors = unchanged,
             isSampleProfile = isSampleProfile,
         )
@@ -244,6 +245,7 @@ class ScenarioPreviewViewModel(
                     beforeLabel = delta.beforeActual?.displayValue() ?: "Not provided",
                     afterLabel = delta.afterActual?.displayValue() ?: "Not provided",
                     resultTransitionLabel = "${delta.beforeResult.readable()} → ${delta.afterResult.readable()}",
+                    sourceNote = delta.sourceNote.orEmpty(),
                 )
             },
             remainingBlockers = remainingRules.map { rule ->
@@ -264,6 +266,9 @@ class ScenarioPreviewViewModel(
             } else {
                 "The ${action.minimumDurationDays}-day Porta estimate extends beyond the published deadline."
             },
+            sourceUrl = opportunity.sourceUrl,
+            sourceSection = opportunity.sourceSection.orEmpty(),
+            lastCheckedLabel = "Source checked ${opportunity.lastCheckedOn}",
         )
     }
 

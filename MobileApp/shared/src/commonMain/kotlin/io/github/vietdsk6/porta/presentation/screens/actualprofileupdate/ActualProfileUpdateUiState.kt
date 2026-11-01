@@ -16,6 +16,8 @@ data class ActualProfileUpdateUiState(
     val isEvidenceRequired: Boolean = false,
     val evidenceLabel: String = "",
     val evidenceReference: String = "",
+    val showEvidenceLabelError: Boolean = false,
+    val scopeWarning: String? = null,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val error: String? = null,
@@ -23,6 +25,7 @@ data class ActualProfileUpdateUiState(
 ) {
     val canConfirm: Boolean
         get() = hasCompletedPlan &&
+            scopeWarning == null &&
             achievedValueError == null &&
             when (inputKind) {
                 ActualValueInputKind.BOOLEAN -> achievedBoolean != null

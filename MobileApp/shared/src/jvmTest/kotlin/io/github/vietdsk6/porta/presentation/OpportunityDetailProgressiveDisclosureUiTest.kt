@@ -36,15 +36,14 @@ class OpportunityDetailProgressiveDisclosureUiTest {
             }
         }
 
-        onNodeWithText("6.5 band").assertExists()
-        onNodeWithText("7.0 band").assertExists()
+        onNodeWithText("6.5 band").assertDoesNotExist()
         onNodeWithText("Synthetic evidence note").assertDoesNotExist()
         onNodeWithText("Eligibility section").assertDoesNotExist()
 
-        onNodeWithTag("opportunity-evidence-toggle").performScrollTo().performClick()
+        onNodeWithTag("requirement-toggle-ielts").performScrollTo().performClick()
+        onNodeWithText("Current: 6.5 band · Required: 7.0 band").assertExists()
         onNodeWithText("Synthetic evidence note", substring = true).assertExists()
 
-        onNodeWithTag("opportunity-detail-content").performScrollToIndex(7)
         onNodeWithTag("opportunity-source-toggle").performScrollTo().performClick()
         onNodeWithText("Section: Eligibility section").assertExists()
     }
@@ -70,6 +69,73 @@ class OpportunityDetailProgressiveDisclosureUiTest {
         onNodeWithText("Evidence behind this conclusion").assertDoesNotExist()
     }
 
+    @Test
+    fun `manual check points to source without presenting a missing profile value`() = runComposeUiTest {
+        var openedUrl: String? = null
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 390.dp, height = 800.dp)) {
+                    OpportunityDetailScreen(
+                        uiState = detailState.copy(
+                            rules = listOf(
+                                RuleReceiptUiState(
+                                    id = "manual",
+                                    result = RuleResult.REVIEW,
+                                    explanation = "Confirm constituency conditions on the official page.",
+                                    actualLabel = "Not provided",
+                                    expectedLabel = "Manual source review",
+                                    sourceNote = "Eligibility section",
+                                ),
+                            ),
+                        ),
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onPreviewAction = {},
+                        onOpenSource = { openedUrl = it },
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("Needs source review").assertExists()
+        onNodeWithTag("requirement-toggle-manual").performScrollTo().performClick()
+        onNodeWithText("Not provided").assertDoesNotExist()
+        onNodeWithText("Confirm with the official source", substring = true).assertExists()
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(5)
+        onNodeWithTag("opportunity-open-source").performScrollTo().performClick()
+        kotlin.test.assertEquals("https://example.com/aurora", openedUrl)
+    }
+
+    @Test
+    fun `passed any branch keeps failed alternative out of needs action`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 390.dp, height = 800.dp)) {
+                    OpportunityDetailScreen(
+                        uiState = detailState.copy(
+                            state = EligibilityState.OPEN,
+                            rootResult = RuleResult.PASS,
+                            rules = listOf(
+                                detailState.rules.single().copy(id = "alternative"),
+                                detailState.rules.single().copy(
+                                    id = "current-path",
+                                    result = RuleResult.PASS,
+                                    explanation = "The current path is met.",
+                                ),
+                            ),
+                        ),
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onPreviewAction = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("Needs action").assertDoesNotExist()
+        onNodeWithText("Other published routes", substring = true).assertExists()
+    }
+
     private val detailState = OpportunityDetailUiState(
         id = "aurora",
         title = "Aurora Scholars",
@@ -81,6 +147,7 @@ class OpportunityDetailProgressiveDisclosureUiTest {
         deadlineLabel = "Deadline 2027-06-01",
         checkedLabel = "Checked 2026-10-20",
         sourceUrl = "https://example.com/aurora",
+        canOpenSource = true,
         sourceSection = "Eligibility section",
         disclaimer = "Sample data only.",
         rules = listOf(

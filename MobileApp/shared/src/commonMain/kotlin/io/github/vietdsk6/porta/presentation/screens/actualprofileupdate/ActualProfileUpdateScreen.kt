@@ -24,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -133,6 +132,14 @@ private fun UpdateForm(
         ValueComparisonCard(uiState)
         AchievedValueCard(uiState, onUiEvent)
         EvidenceCard(uiState, onUiEvent)
+        uiState.scopeWarning?.let { warning ->
+            Text(
+                text = warning,
+                modifier = Modifier.testTag("actual-profile-update-scope-warning"),
+                color = AppTheme.colors.status.warning,
+                style = AppTheme.typography.bodyMedium,
+            )
+        }
         ConfirmationCard()
         uiState.error?.let { error ->
             Text(
@@ -266,7 +273,7 @@ private fun AchievedValueCard(
 ) {
     FormCard(
         title = "What did you actually achieve?",
-        description = "The planned target is prefilled. Change it if your real result was different.",
+        description = "Choose or enter what is true now. The planned target is only a reference.",
     ) {
         when (uiState.inputKind) {
             ActualValueInputKind.BOOLEAN -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -342,11 +349,11 @@ private fun EvidenceCard(
                 label = { Text("Evidence label") },
                 placeholder = { Text("IELTS result, transcript, certificate…") },
                 supportingText = if (uiState.evidenceLabel.isBlank()) {
-                    { Text("Give the evidence a short label") }
+                    { Text(if (uiState.showEvidenceLabelError) "Give the evidence a short label" else "Required: name the evidence supporting this result") }
                 } else {
                     null
                 },
-                isError = uiState.evidenceLabel.isBlank(),
+                isError = uiState.showEvidenceLabelError,
                 singleLine = true,
             )
             OutlinedTextField(
@@ -363,18 +370,12 @@ private fun EvidenceCard(
 
 @Composable
 private fun ConfirmationCard() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE9FBF7)),
-        shape = RoundedCornerShape(18.dp),
-    ) {
-        Text(
-            "By confirming, you assert that this achieved value is true now. " +
-                "Doors will immediately re-evaluate against it. Passing current checks does not predict selection.",
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            color = Color(0xFF0B4C43),
-            style = AppTheme.typography.bodyMedium,
-        )
-    }
+    Text(
+        "This updates your self-reported profile and rechecks affected rules. " +
+            "Porta does not independently verify your evidence or predict selection.",
+        color = AppTheme.colors.text.secondary,
+        style = AppTheme.typography.bodyMedium,
+    )
 }
 
 @Composable
@@ -414,7 +415,7 @@ private fun ActualProfileUpdateScreenPreview() {
                 factLabel = "IELTS score",
                 currentValueLabel = "6.5 band",
                 plannedTargetLabel = "7.0 band",
-                achievedValue = "7.0",
+                achievedValue = "",
                 unitLabel = "band",
             ),
             onUiEvent = {},

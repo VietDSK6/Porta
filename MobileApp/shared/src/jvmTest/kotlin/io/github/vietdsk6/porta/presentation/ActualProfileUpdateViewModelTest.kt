@@ -12,6 +12,7 @@ import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
+import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
@@ -26,6 +27,8 @@ import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.RuleRef
+import io.github.vietdsk6.porta.domain.model.findAtomicRule
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateUiEvent
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
@@ -88,12 +91,16 @@ class ActualProfileUpdateViewModelTest {
         saveIelts(6.5)
         planRepository.replaceCurrentPlan(ieltsPlan()).getOrThrow()
 
-        val viewModel = ActualProfileUpdateViewModel(planRepository, profileRepository, ruleAssertionRepository)
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.hasCompletedPlan)
         assertEquals("6.5 band", viewModel.uiState.value.currentValueLabel)
         assertEquals("7.0 band", viewModel.uiState.value.plannedTargetLabel)
+        assertEquals("", viewModel.uiState.value.achievedValue)
+        assertFalse(viewModel.uiState.value.canConfirm)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.Confirm)
+        advanceUntilIdle()
         assertEquals(
             FactValue.NumberValue(6.5, "band"),
             profileRepository.getProfile().getOrThrow().facts[FactKey.IELTS_SCORE]?.value,
@@ -111,7 +118,7 @@ class ActualProfileUpdateViewModelTest {
             savedOpportunityRepository,
             CurrentLocalDateProvider { PortaSampleData.referenceDate },
         )
-        val update = ActualProfileUpdateViewModel(planRepository, profileRepository, ruleAssertionRepository)
+        val update = createViewModel()
         advanceUntilIdle()
 
         assertEquals(1, doors.uiState.value.openCount)
@@ -131,10 +138,12 @@ class ActualProfileUpdateViewModelTest {
     fun `confirmation can create a boolean fact with optional evidence`() = runTest(dispatcher) {
         saveGpa(3.6)
         planRepository.replaceCurrentPlan(availabilityPlan()).getOrThrow()
-        val viewModel = ActualProfileUpdateViewModel(planRepository, profileRepository, ruleAssertionRepository)
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertEquals(true, viewModel.uiState.value.achievedBoolean)
+        assertEquals(null, viewModel.uiState.value.achievedBoolean)
+        assertFalse(viewModel.uiState.value.canConfirm)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.AchievedBooleanChanged(true))
         viewModel.onUiEvent(ActualProfileUpdateUiEvent.IncludeEvidenceChanged(true))
         viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceLabelChanged("Programme calendar"))
         viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceReferenceChanged("calendar.pdf"))
@@ -159,20 +168,25 @@ class ActualProfileUpdateViewModelTest {
     @Test
     fun `programme confirmation saves only its scoped rule assertion`() = runTest(dispatcher) {
         saveGpa(3.6)
-        planRepository.replaceCurrentPlan(scopedAvailabilityPlan()).getOrThrow()
-        val viewModel = ActualProfileUpdateViewModel(planRepository, profileRepository, ruleAssertionRepository)
+        val plan = scopedAvailabilityPlan()
+        planRepository.replaceCurrentPlan(plan).getOrThrow()
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertEquals("Not confirmed", viewModel.uiState.value.currentValueLabel)
         assertTrue(viewModel.uiState.value.factLabel.startsWith("Programme-specific"))
         assertTrue(viewModel.uiState.value.isEvidenceRequired)
-        assertEquals(
-            "Programme oecd-internship-rolling · requirement oecd-availability",
-            viewModel.uiState.value.scopeDescription,
-        )
+        assertTrue(viewModel.uiState.value.scopeDescription?.startsWith("OECD Internship Programme ·") == true)
+        assertFalse(viewModel.uiState.value.scopeDescription?.contains("oecd-availability") == true)
+        assertEquals(null, viewModel.uiState.value.achievedBoolean)
+        assertFalse(viewModel.uiState.value.showEvidenceLabelError)
         assertFalse(viewModel.uiState.value.canConfirm)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceLabelChanged(""))
+        assertTrue(viewModel.uiState.value.showEvidenceLabelError)
         viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceLabelChanged("Signed programme calendar"))
         viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceReferenceChanged("calendar.pdf"))
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.AchievedBooleanChanged(false))
+        assertTrue(viewModel.uiState.value.canConfirm)
         viewModel.onUiEvent(ActualProfileUpdateUiEvent.Confirm)
         advanceUntilIdle()
 
@@ -180,8 +194,8 @@ class ActualProfileUpdateViewModelTest {
         val assertion = assertNotNull(
             profile.ruleAssertions[RuleRef("oecd-internship-rolling", "oecd-availability")],
         )
-        assertEquals(FactValue.BooleanValue(true), assertion.value)
-        assertEquals("oecd-availability-v1", assertion.ruleFingerprint)
+        assertEquals(FactValue.BooleanValue(false), assertion.value)
+        assertEquals((plan.target as ActionTarget.OpportunityRuleTarget).ruleFingerprint, assertion.ruleFingerprint)
         assertEquals("Signed programme calendar", assertion.evidence?.label)
         assertFalse(FactKey.AVAILABLE_FULL_PERIOD in profile.facts)
     }
@@ -189,7 +203,7 @@ class ActualProfileUpdateViewModelTest {
     @Test
     fun `an unfinished plan cannot update the actual profile`() = runTest(dispatcher) {
         planRepository.replaceCurrentPlan(ieltsPlan().copy(status = PlanStatus.IN_PROGRESS)).getOrThrow()
-        val viewModel = ActualProfileUpdateViewModel(planRepository, profileRepository, ruleAssertionRepository)
+        val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.hasCompletedPlan)
@@ -199,6 +213,53 @@ class ActualProfileUpdateViewModelTest {
 
         assertTrue(profileRepository.getProfile().getOrThrow().facts.isEmpty())
     }
+
+    @Test
+    fun `text result starts blank even when the planned target has text`() = runTest(dispatcher) {
+        val target = ActionTarget.ProfileFactTarget(
+            factKey = FactKey.COMMUNITY_PROJECT,
+            value = FactValue.TextValue("Community mentoring"),
+        )
+        planRepository.replaceCurrentPlan(
+            ieltsPlan().copy(
+                id = "default:community-project",
+                target = target,
+            ),
+        ).getOrThrow()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals("", viewModel.uiState.value.achievedValue)
+        assertFalse(viewModel.uiState.value.canConfirm)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.AchievedValueChanged("Led a study group"))
+        assertTrue(viewModel.uiState.value.canConfirm)
+        assertTrue(profileRepository.getProfile().getOrThrow().facts.isEmpty())
+    }
+
+    @Test
+    fun `stale scoped target cannot be confirmed into an obsolete assertion`() = runTest(dispatcher) {
+        val plan = scopedAvailabilityPlan()
+        val stale = (plan.target as ActionTarget.OpportunityRuleTarget).copy(ruleFingerprint = "outdated")
+        planRepository.replaceCurrentPlan(plan.copy(target = stale)).getOrThrow()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.uiState.value.scopeWarning)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.AchievedBooleanChanged(true))
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceLabelChanged("Programme calendar"))
+        assertFalse(viewModel.uiState.value.canConfirm)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.Confirm)
+        advanceUntilIdle()
+
+        assertTrue(profileRepository.getProfile().getOrThrow().ruleAssertions.isEmpty())
+    }
+
+    private fun createViewModel() = ActualProfileUpdateViewModel(
+        planRepository,
+        profileRepository,
+        ruleAssertionRepository,
+        opportunityPackRepository,
+    )
 
     private suspend fun saveIelts(value: Double) {
         profileRepository.saveFacts(
@@ -254,22 +315,28 @@ class ActualProfileUpdateViewModelTest {
         updatedAtEpochMillis = 1_700_000_000_000L,
     )
 
-    private fun scopedAvailabilityPlan(): PlanItem = PlanItem(
-        id = "default:oecd-availability",
-        actionTemplateId = "oecd-full-period-availability",
-        title = "Reserve the OECD programme period",
-        target = ActionTarget.OpportunityRuleTarget(
-            opportunityId = "oecd-internship-rolling",
-            ruleId = "oecd-availability",
-            ruleFingerprint = "oecd-availability-v1",
-            factKey = FactKey.AVAILABLE_FULL_PERIOD,
-            value = FactValue.BooleanValue(true),
-        ),
-        status = PlanStatus.COMPLETED,
-        expectedDurationDays = 14,
-        effort = EffortLevel.LOW,
-        costBand = CostBand.FREE,
-        createdAtEpochMillis = 1_700_000_000_000L,
-        updatedAtEpochMillis = 1_700_000_000_000L,
-    )
+    private suspend fun scopedAvailabilityPlan(): PlanItem {
+        opportunityPackRepository.importPack(BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson()).getOrThrow()
+        val opportunity = opportunityPackRepository.getActive().getOrThrow()!!.opportunities
+            .first { it.id == "oecd-internship-rolling" }
+        val rule = opportunity.eligibilityRule.findAtomicRule("oecd-availability")!!
+        return PlanItem(
+            id = "default:oecd-availability",
+            actionTemplateId = "oecd-full-period-availability",
+            title = "Reserve the OECD programme period",
+            target = ActionTarget.OpportunityRuleTarget(
+                opportunityId = "oecd-internship-rolling",
+                ruleId = "oecd-availability",
+                ruleFingerprint = rule.fingerprint(),
+                factKey = FactKey.AVAILABLE_FULL_PERIOD,
+                value = FactValue.BooleanValue(true),
+            ),
+            status = PlanStatus.COMPLETED,
+            expectedDurationDays = 14,
+            effort = EffortLevel.LOW,
+            costBand = CostBand.FREE,
+            createdAtEpochMillis = 1_700_000_000_000L,
+            updatedAtEpochMillis = 1_700_000_000_000L,
+        )
+    }
 }

@@ -2,29 +2,37 @@ package io.github.vietdsk6.porta.presentation.screens.profilesetup
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,14 +42,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.AppButton
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
@@ -49,6 +62,11 @@ import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Composable
 fun ProfileSetupScreen(
@@ -56,6 +74,7 @@ fun ProfileSetupScreen(
     viewModel: ProfileSetupViewModel,
     onCompleted: () -> Unit,
     onNavigateBack: () -> Unit,
+    onOpenDataPrivacy: () -> Unit = {},
     requestedFactKeyName: String? = null,
     requestContext: String? = null,
 ) {
@@ -76,6 +95,7 @@ fun ProfileSetupScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
+        onOpenDataPrivacy = onOpenDataPrivacy,
         requestedFactKey = requestedFactKey,
         requestContext = requestContext,
     )
@@ -87,17 +107,23 @@ fun ProfileSetupScreen(
     uiState: ProfileSetupUiState,
     onUiEvent: (ProfileSetupUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
+    onOpenDataPrivacy: () -> Unit = {},
     requestedFactKey: FactKey? = null,
     requestContext: String? = null,
 ) {
     var expandedSectionName by rememberSaveable(requestedFactKey?.name) {
         mutableStateOf(requestedFactKey?.setupSection()?.name)
     }
+    var hasEdited by rememberSaveable { mutableStateOf(false) }
+    val onEditEvent: (ProfileSetupUiEvent) -> Unit = { event ->
+        hasEdited = true
+        onUiEvent(event)
+    }
 
     ScreenWithToolbar(
         modifier = modifier,
         isScrollableContent = true,
-        title = "Edit academic profile",
+        title = "Edit profile",
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
@@ -120,11 +146,11 @@ fun ProfileSetupScreen(
                         requestContext = requestContext,
                     )
                 }
-                EssentialsSection(uiState = uiState, onUiEvent = onUiEvent)
+                EssentialsSection(uiState = uiState, onUiEvent = onEditEvent)
                 AdditionalFactsIntro()
                 AcademicRecordSection(
                     uiState = uiState,
-                    onUiEvent = onUiEvent,
+                    onUiEvent = onEditEvent,
                     isExpanded = expandedSectionName == ProfileSetupSection.ACADEMIC.name,
                     onToggle = {
                         expandedSectionName = ProfileSetupSection.ACADEMIC.name
@@ -133,7 +159,7 @@ fun ProfileSetupScreen(
                 )
                 ExperienceEvidenceSection(
                     uiState = uiState,
-                    onUiEvent = onUiEvent,
+                    onUiEvent = onEditEvent,
                     isExpanded = expandedSectionName == ProfileSetupSection.EXPERIENCE.name,
                     onToggle = {
                         expandedSectionName = ProfileSetupSection.EXPERIENCE.name
@@ -142,14 +168,14 @@ fun ProfileSetupScreen(
                 )
                 ContextSection(
                     uiState = uiState,
-                    onUiEvent = onUiEvent,
+                    onUiEvent = onEditEvent,
                     isExpanded = expandedSectionName == ProfileSetupSection.CONTEXT.name,
                     onToggle = {
                         expandedSectionName = ProfileSetupSection.CONTEXT.name
                             .takeUnless { it == expandedSectionName }
                     },
                 )
-                LocalDataNotice()
+                LocalDataNotice(onOpenDataPrivacy)
 
                 uiState.error?.let { error ->
                     Surface(
@@ -177,15 +203,10 @@ fun ProfileSetupScreen(
                     Text(
                         text = uiState.saveDisabledReason.orEmpty(),
                         modifier = Modifier.testTag("profile-setup-save-reason"),
-                        color = AppTheme.colors.status.error,
+                        color = if (hasEdited) AppTheme.colors.status.error else AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodyMedium,
                     )
                 }
-                Text(
-                    text = "Blank fields stay not provided. They are never interpreted as false or failed.",
-                    color = AppTheme.colors.text.secondary,
-                    style = AppTheme.typography.bodySmall,
-                )
             }
         }
     }
@@ -238,13 +259,13 @@ private fun RequestedFactNotice(
 private fun AdditionalFactsIntro() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Add only what helps",
+            text = "More about you",
             style = AppTheme.typography.h5,
             color = AppTheme.colors.text.primary,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Everything below is optional. If a value is missing, checks that depend on it stay marked as not checked.",
+            text = "Optional details. Leave anything you do not know blank.",
             style = AppTheme.typography.bodyMedium,
             color = AppTheme.colors.text.secondary,
         )
@@ -253,24 +274,11 @@ private fun AdditionalFactsIntro() {
 
 @Composable
 private fun ProfileSetupHeader() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "YOUR SOURCE OF TRUTH",
-            color = AppTheme.colors.primary,
-            style = AppTheme.typography.bodySmall,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp,
-        )
-        Text(
-            text = "Describe where you are now",
-            color = AppTheme.colors.text.primary,
-            style = AppTheme.typography.h3,
-            fontWeight = FontWeight.ExtraBold,
-        )
-        Text(
-            text = "Porta checks published requirements against these values. It does not predict selection outcomes.",
+            text = "Update what you know today",
             color = AppTheme.colors.text.secondary,
-            style = AppTheme.typography.bodyExtraLarge,
+            style = AppTheme.typography.bodyLarge,
         )
     }
 }
@@ -284,11 +292,10 @@ private fun EssentialsSection(
         title = "Essentials",
         description = "The minimum context needed to build your door map.",
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.defaultSpacing),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             StudyLevelOption.entries.forEach { option ->
                 FilterChip(
@@ -308,6 +315,7 @@ private fun EssentialsSection(
             label = { Text("Field of study") },
             placeholder = { Text("Computer Science") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
     }
 }
@@ -319,10 +327,14 @@ private fun AcademicRecordSection(
     isExpanded: Boolean,
     onToggle: () -> Unit,
 ) {
+    var gpaTouched by rememberSaveable { mutableStateOf(false) }
+    var ieltsTouched by rememberSaveable { mutableStateOf(false) }
     ProgressiveFormSection(
         title = "Academic record",
         description = "Keep the original GPA scale. Porta never silently converts it.",
-        status = uiState.academicProvidedCount.providedStatus(total = 4),
+        providedCount = uiState.academicProvidedCount,
+        totalCount = 4,
+        needsReview = uiState.gpaError != null || uiState.ieltsError != null,
         isExpanded = isExpanded,
         onToggle = onToggle,
         testTag = "profile-section-academic",
@@ -341,23 +353,31 @@ private fun AcademicRecordSection(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().testTag("profile-gpa"),
             value = uiState.gpa,
-            onValueChange = { onUiEvent(ProfileSetupUiEvent.GpaChanged(it)) },
+            onValueChange = {
+                gpaTouched = true
+                onUiEvent(ProfileSetupUiEvent.GpaChanged(it))
+            },
             label = { Text("Your GPA") },
             placeholder = { Text("3.6") },
             suffix = { Text("/ ${uiState.gpaScale.label}") },
-            supportingText = { uiState.gpaError?.let { Text(it) } },
-            isError = uiState.gpaError != null,
+            supportingText = { uiState.gpaError?.takeIf { gpaTouched }?.let { Text(it) } },
+            isError = gpaTouched && uiState.gpaError != null,
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().testTag("profile-ielts"),
             value = uiState.ielts,
-            onValueChange = { onUiEvent(ProfileSetupUiEvent.IeltsChanged(it)) },
+            onValueChange = {
+                ieltsTouched = true
+                onUiEvent(ProfileSetupUiEvent.IeltsChanged(it))
+            },
             label = { Text("IELTS overall band") },
             placeholder = { Text("Not provided") },
-            supportingText = { uiState.ieltsError?.let { Text(it) } },
-            isError = uiState.ieltsError != null,
+            supportingText = { uiState.ieltsError?.takeIf { ieltsTouched }?.let { Text(it) } },
+            isError = ieltsTouched && uiState.ieltsError != null,
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
         )
         BooleanFactField(
             label = "Currently enrolled",
@@ -381,44 +401,70 @@ private fun ExperienceEvidenceSection(
     isExpanded: Boolean,
     onToggle: () -> Unit,
 ) {
+    var experienceTouched by rememberSaveable { mutableStateOf(false) }
     ProgressiveFormSection(
         title = "Experience and evidence",
         description = "Growth evidence adds context. It never passes a published check automatically.",
-        status = uiState.experienceProvidedCount.providedStatus(total = 3),
+        providedCount = uiState.experienceProvidedCount,
+        totalCount = 3,
+        needsReview = uiState.experienceMonthsError != null ||
+            (
+                uiState.communityProjectEvidenceReference.isNotBlank() &&
+                    uiState.communityProjectTitle.isBlank() && uiState.communityProjectSummary.isBlank()
+                ) ||
+            (
+                uiState.leadershipEvidenceReference.isNotBlank() &&
+                    uiState.leadershipRole.isBlank() && uiState.leadershipTitle.isBlank()
+                ),
         isExpanded = isExpanded,
         onToggle = onToggle,
         testTag = "profile-section-experience",
     ) {
+        Text(
+            text = "Experience",
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.text.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().testTag("profile-experience-months"),
             value = uiState.experienceMonths,
-            onValueChange = { onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(it)) },
+            onValueChange = {
+                experienceTouched = true
+                onUiEvent(ProfileSetupUiEvent.ExperienceMonthsChanged(it))
+            },
             label = { Text("Relevant experience") },
             placeholder = { Text("Not provided") },
             suffix = { Text("months") },
-            supportingText = { uiState.experienceMonthsError?.let { Text(it) } },
-            isError = uiState.experienceMonthsError != null,
+            supportingText = { uiState.experienceMonthsError?.takeIf { experienceTouched }?.let { Text(it) } },
+            isError = experienceTouched && uiState.experienceMonthsError != null,
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
         )
-
+        HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.24f))
         GrowthEvidenceFields(
             heading = "Community project",
             firstLabel = "Project title",
             firstValue = uiState.communityProjectTitle,
             secondLabel = "Short summary",
             secondValue = uiState.communityProjectSummary,
+            firstPlaceholder = "Peer coding club",
+            secondPlaceholder = "Ran a Kotlin workshop for first-year students",
             evidenceValue = uiState.communityProjectEvidenceReference,
             tagPrefix = "community-project",
             onFirstChanged = { onUiEvent(ProfileSetupUiEvent.CommunityProjectTitleChanged(it)) },
             onSecondChanged = { onUiEvent(ProfileSetupUiEvent.CommunityProjectSummaryChanged(it)) },
             onEvidenceChanged = { onUiEvent(ProfileSetupUiEvent.CommunityProjectEvidenceChanged(it)) },
         )
+        HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.24f))
         GrowthEvidenceFields(
             heading = "Leadership",
             firstLabel = "Role",
             firstValue = uiState.leadershipRole,
             secondLabel = "Team or activity",
             secondValue = uiState.leadershipTitle,
+            firstPlaceholder = "Student mentor",
+            secondPlaceholder = "Faculty peer network",
             evidenceValue = uiState.leadershipEvidenceReference,
             tagPrefix = "leadership",
             onFirstChanged = { onUiEvent(ProfileSetupUiEvent.LeadershipRoleChanged(it)) },
@@ -435,10 +481,14 @@ private fun ContextSection(
     isExpanded: Boolean,
     onToggle: () -> Unit,
 ) {
+    var ageTouched by rememberSaveable { mutableStateOf(false) }
     ProgressiveFormSection(
         title = "Context",
         description = "Used only when an official rule depends on it; never suggested as something to change.",
-        status = uiState.contextProvidedCount.providedStatus(total = 4),
+        providedCount = uiState.contextProvidedCount,
+        totalCount = 4,
+        needsReview = uiState.nationalityError != null || uiState.residencyError != null ||
+            uiState.ageError != null || uiState.dateOfBirthError != null,
         isExpanded = isExpanded,
         onToggle = onToggle,
         testTag = "profile-section-context",
@@ -455,30 +505,28 @@ private fun ContextSection(
             testTag = "profile-residency",
             onSelected = { onUiEvent(ProfileSetupUiEvent.ResidencyChanged(it)) },
         )
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth().testTag("profile-date-of-birth"),
-            value = uiState.dateOfBirth,
-            onValueChange = { onUiEvent(ProfileSetupUiEvent.DateOfBirthChanged(it)) },
-            label = { Text("Date of birth") },
-            placeholder = { Text("YYYY-MM-DD") },
-            supportingText = {
-                Text(
-                    uiState.dateOfBirthError
-                        ?: "Used only when a source checks age on a named reference date.",
-                )
-            },
-            isError = uiState.dateOfBirthError != null,
-            singleLine = true,
+        BirthDateSelector(
+            selectedDate = uiState.dateOfBirthValue,
+            hasStoredValue = uiState.dateOfBirth.isNotBlank(),
+            latestDate = uiState.validationDate,
+            error = uiState.dateOfBirthError,
+            onSelected = { onUiEvent(ProfileSetupUiEvent.DateOfBirthChanged(it)) },
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().testTag("profile-age"),
             value = uiState.age,
-            onValueChange = { onUiEvent(ProfileSetupUiEvent.AgeChanged(it)) },
-            label = { Text("Age") },
+            onValueChange = {
+                ageTouched = true
+                onUiEvent(ProfileSetupUiEvent.AgeChanged(it))
+            },
+            label = { Text("Age today (self-reported)") },
             placeholder = { Text("Not provided") },
-            supportingText = { uiState.ageError?.let { Text(it) } },
-            isError = uiState.ageError != null,
+            supportingText = {
+                Text(uiState.ageError?.takeIf { ageTouched } ?: "Optional. Review this value as you get older.")
+            },
+            isError = ageTouched && uiState.ageError != null,
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
         )
     }
 }
@@ -490,6 +538,8 @@ private fun GrowthEvidenceFields(
     firstValue: String,
     secondLabel: String,
     secondValue: String,
+    firstPlaceholder: String,
+    secondPlaceholder: String,
     evidenceValue: String,
     tagPrefix: String,
     onFirstChanged: (String) -> Unit,
@@ -508,17 +558,19 @@ private fun GrowthEvidenceFields(
             value = firstValue,
             onValueChange = onFirstChanged,
             label = { Text(firstLabel) },
-            placeholder = { Text("Not provided") },
+            placeholder = { Text(firstPlaceholder) },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().testTag("profile-$tagPrefix-secondary"),
             value = secondValue,
             onValueChange = onSecondChanged,
             label = { Text(secondLabel) },
-            placeholder = { Text("Not provided") },
+            placeholder = { Text(secondPlaceholder) },
             minLines = 2,
             maxLines = 4,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth().testTag("profile-$tagPrefix-evidence"),
@@ -527,6 +579,7 @@ private fun GrowthEvidenceFields(
             label = { Text("Evidence reference (optional)") },
             placeholder = { Text("URL, document name, or portfolio reference") },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         )
     }
 }
@@ -539,64 +592,205 @@ private fun CountrySelector(
     onSelected: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var query by remember { mutableStateOf("") }
     val selectedCountry = countryForStoredValue(selectedCode)
-    val visibleCountries = remember(query) {
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).testTag(testTag),
+        onClick = { expanded = true },
+    ) {
+        Text(
+            text = selectedCountry?.let { "$label: ${it.name}" } ?: "$label: Not provided",
+            modifier = Modifier.fillMaxWidth(),
+            color = if (selectedCountry == null) AppTheme.colors.text.secondary else AppTheme.colors.text.primary,
+        )
+    }
+    if (expanded) {
+        CountryPickerDialog(
+            label = label,
+            selectedCode = selectedCountry?.alpha2,
+            onDismiss = { expanded = false },
+            onSelected = {
+                onSelected(it)
+                expanded = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun CountryPickerDialog(
+    label: String,
+    selectedCode: String?,
+    onDismiss: () -> Unit,
+    onSelected: (String) -> Unit,
+) {
+    var query by rememberSaveable(label) { mutableStateOf("") }
+    val searchFocus = remember { FocusRequester() }
+    val matches = remember(query) {
         val normalized = query.trim()
         ISO_COUNTRIES.filter { country ->
             normalized.isBlank() ||
                 country.name.contains(normalized, ignoreCase = true) ||
                 country.alpha2.contains(normalized, ignoreCase = true)
-        }.take(20)
-    }
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth().testTag(testTag),
-            onClick = { expanded = true },
-        ) {
-            Text(
-                text = selectedCountry?.let { "$label · ${it.displayName}" } ?: "$label · Not provided",
-                modifier = Modifier.fillMaxWidth(),
-                color = if (selectedCountry == null) AppTheme.colors.text.secondary else AppTheme.colors.text.primary,
-            )
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-                query = ""
-            },
-            modifier = Modifier.widthIn(min = 300.dp, max = 520.dp).heightIn(max = 420.dp),
-        ) {
-            OutlinedTextField(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth(),
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search countries") },
-                singleLine = true,
-            )
-            DropdownMenuItem(
-                text = { Text("Not provided") },
-                onClick = {
-                    onSelected("")
-                    expanded = false
-                    query = ""
-                },
-            )
-            visibleCountries.forEach { country ->
-                DropdownMenuItem(
-                    text = { Text(country.displayName) },
-                    onClick = {
-                        onSelected(country.alpha2)
-                        expanded = false
-                        query = ""
-                    },
-                )
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        BoxWithConstraints(Modifier.fillMaxWidth().imePadding()) {
+            val dialogHeight = maxHeight.coerceAtMost(560.dp)
+            Surface(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 520.dp).heightIn(max = dialogHeight),
+                shape = RoundedCornerShape(20.dp),
+                color = AppTheme.colors.surfaceContainer,
+            ) {
+                Column(
+                    modifier = Modifier.heightIn(max = dialogHeight).padding(AppTheme.spacing.defaultSpacing),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Choose $label",
+                            modifier = Modifier.weight(1f),
+                            style = AppTheme.typography.h6,
+                            color = AppTheme.colors.text.primary,
+                        )
+                        TextButton(onClick = onDismiss, modifier = Modifier.testTag("country-cancel")) {
+                            Text("Cancel")
+                        }
+                    }
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth().focusRequester(searchFocus).testTag("country-search"),
+                        value = query,
+                        onValueChange = { query = it },
+                        label = { Text("Search by name or code") },
+                        placeholder = { Text("Vietnam or VN") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    )
+                    Text(
+                        text = "${matches.size} results",
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.text.secondary,
+                    )
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f).testTag("country-results"),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        if (query.isBlank()) {
+                            item {
+                                CountryPickerRow(
+                                    text = "Not provided",
+                                    selected = selectedCode == null,
+                                    onClick = { onSelected("") },
+                                )
+                            }
+                        }
+                        items(matches, key = IsoCountry::alpha2) { country ->
+                            CountryPickerRow(
+                                text = country.displayName,
+                                selected = selectedCode == country.alpha2,
+                                onClick = { onSelected(country.alpha2) },
+                                testTag = "country-${country.alpha2.lowercase()}",
+                            )
+                        }
+                    }
+                }
             }
         }
     }
+    LaunchedEffect(Unit) { searchFocus.requestFocus() }
 }
+
+@Composable
+private fun CountryPickerRow(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    testTag: String = "",
+) {
+    Text(
+        text = if (selected) "$text · Selected" else text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .then(if (testTag.isNotBlank()) Modifier.testTag(testTag) else Modifier)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.text.primary,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BirthDateSelector(
+    selectedDate: LocalDate?,
+    hasStoredValue: Boolean,
+    latestDate: LocalDate?,
+    error: String?,
+    onSelected: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Date of birth", style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.primary)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(
+                modifier = Modifier.weight(1f).defaultMinSize(minHeight = 52.dp).testTag("profile-date-of-birth"),
+                onClick = { expanded = true },
+            ) {
+                Text(selectedDate?.let(::displayBirthDate) ?: "Choose a date", modifier = Modifier.fillMaxWidth())
+            }
+            if (hasStoredValue) {
+                TextButton(onClick = { onSelected("") }, modifier = Modifier.testTag("profile-date-clear")) {
+                    Text("Clear")
+                }
+            }
+        }
+        Text(
+            text = error ?: "Optional. Used for age checks on a named date; separate from age today.",
+            color = if (error == null) AppTheme.colors.text.secondary else AppTheme.colors.status.error,
+            style = AppTheme.typography.bodySmall,
+        )
+    }
+    if (expanded) {
+        val today = latestDate ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val initialDate = selectedDate ?: LocalDate(today.year - 20, 1, 1)
+        val selectableBirthDates = remember(today) {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= today.toUtcMillis()
+
+                override fun isSelectableYear(year: Int): Boolean = year <= today.year
+            }
+        }
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate?.toUtcMillis(),
+            initialDisplayedMonthMillis = initialDate.toUtcMillis(),
+            selectableDates = selectableBirthDates,
+        )
+        DatePickerDialog(
+            onDismissRequest = { expanded = false },
+            confirmButton = {
+                TextButton(
+                    enabled = datePickerState.selectedDateMillis?.let { it <= today.toUtcMillis() } == true,
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onSelected(Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date.toString())
+                        }
+                        expanded = false
+                    },
+                    modifier = Modifier.testTag("profile-date-confirm"),
+                ) { Text("Use date") }
+            },
+            dismissButton = {
+                TextButton(onClick = { expanded = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+private fun LocalDate.toUtcMillis(): Long = toEpochDays() * 86_400_000L
+
+private fun displayBirthDate(date: LocalDate): String = "${date.day} ${date.month.name.lowercase().replaceFirstChar(Char::uppercase)} ${date.year}"
 
 @Composable
 private fun BooleanFactField(
@@ -607,7 +801,10 @@ private fun BooleanFactField(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.text.primary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             FilterChip(
                 modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                 selected = value == true,
@@ -665,12 +862,15 @@ private fun FormSection(
 private fun ProgressiveFormSection(
     title: String,
     description: String,
-    status: String,
+    providedCount: Int,
+    totalCount: Int,
+    needsReview: Boolean,
     isExpanded: Boolean,
     onToggle: () -> Unit,
     testTag: String,
     content: @Composable () -> Unit,
 ) {
+    val status = providedCount.providedStatus(totalCount, needsReview)
     Card(
         modifier = Modifier.fillMaxWidth().testTag(testTag),
         colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
@@ -708,8 +908,9 @@ private fun ProgressiveFormSection(
                 Text(
                     text = when {
                         isExpanded -> "Hide"
-                        status.startsWith("All") -> "Review"
-                        else -> "Add"
+                        needsReview -> "Fix"
+                        providedCount == 0 -> "Add"
+                        else -> "Review"
                     },
                     color = AppTheme.colors.primary,
                     style = AppTheme.typography.bodyMedium,
@@ -732,27 +933,18 @@ private fun ProgressiveFormSection(
 }
 
 @Composable
-private fun LocalDataNotice() {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = AppTheme.colors.alternative,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(AppTheme.spacing.defaultSpacing),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+private fun LocalDataNotice(onOpenDataPrivacy: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = "Saved on this device.",
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodySmall,
+        )
+        TextButton(
+            onClick = onOpenDataPrivacy,
+            modifier = Modifier.testTag("profile-setup-data-privacy"),
         ) {
-            Text(
-                text = "LOCAL-FIRST",
-                color = AppTheme.colors.primary,
-                style = AppTheme.typography.bodySmall,
-                fontWeight = FontWeight.ExtraBold,
-            )
-            Text(
-                text = "This profile stays on this device in the contest MVP. Porta does not upload it.",
-                color = AppTheme.colors.text.primary,
-                style = AppTheme.typography.bodyMedium,
-            )
+            Text("Data & privacy")
         }
     }
 }
@@ -804,10 +996,10 @@ private fun FactKey.profileFieldLabel(): String = when (this) {
     FactKey.AVAILABLE_FULL_PERIOD -> "programme-specific availability"
 }
 
-private fun Int.providedStatus(total: Int): String = when (this) {
-    0 -> "Not checked yet · optional"
-    total -> "All $total values provided"
-    else -> "$this of $total values provided · missing checks stay unknown"
+private fun Int.providedStatus(total: Int, needsReview: Boolean = false): String = if (needsReview) {
+    "$this of $total provided · needs review"
+} else {
+    "$this of $total provided · optional"
 }
 
 @Preview

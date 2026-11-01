@@ -19,17 +19,53 @@ data class ActivePlanCardUiState(
     val effortLabel: String,
     val costLabel: String,
     val evidenceLabel: String,
-    val affectedDoorTitles: List<String>,
+    val candidateCheckChanges: List<PlanOpportunityImpactUiState>,
     val riskNote: String,
     val updatedLabel: String,
-    val progress: Float,
-    val checklist: List<PlanStepUiState>,
+    val steps: List<PlanStepUiState>,
+) {
+    val candidateOpportunityIds: List<String>
+        get() = candidateCheckChanges.map(PlanOpportunityImpactUiState::opportunityId)
+
+    val notRuledOutOpportunityIds: List<String>
+        get() = candidateCheckChanges.filter { it.timing.isNotRuledOut }.map(PlanOpportunityImpactUiState::opportunityId)
+
+    val knownDeadlineFeasibleOpportunityIds: List<String>
+        get() = candidateCheckChanges.filter { it.timing == PlanTimingStatus.WITHIN_KNOWN_DEADLINE }
+            .map(PlanOpportunityImpactUiState::opportunityId)
+
+    val deadlineMisses: List<PlanOpportunityImpactUiState>
+        get() = candidateCheckChanges.filter { it.timing == PlanTimingStatus.MISSES_KNOWN_DEADLINE }
+
+    val timingUnverified: List<PlanOpportunityImpactUiState>
+        get() = candidateCheckChanges.filter { it.timing == PlanTimingStatus.TIMING_UNVERIFIED }
+}
+
+data class PlanOpportunityImpactUiState(
+    val opportunityId: String,
+    val title: String,
+    val timing: PlanTimingStatus,
 )
+
+enum class PlanTimingStatus(val isNotRuledOut: Boolean) {
+    WITHIN_KNOWN_DEADLINE(true),
+    TIMING_UNVERIFIED(true),
+    MISSES_KNOWN_DEADLINE(false),
+    OUTSIDE_CURRENT_CYCLE(false),
+}
 
 data class PlanStepUiState(
     val title: String,
-    val isComplete: Boolean,
+    val state: PlanStepState,
 )
+
+enum class PlanStepState {
+    DONE,
+    IN_PROGRESS,
+    PAUSED,
+    NEXT,
+    LATER,
+}
 
 enum class ActivePlanStatusUi {
     PLANNED,

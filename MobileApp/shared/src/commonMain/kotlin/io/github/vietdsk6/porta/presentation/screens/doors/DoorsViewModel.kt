@@ -14,9 +14,8 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
-import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
-import io.github.vietdsk6.porta.presentation.components.headlineLabel
+import io.github.vietdsk6.porta.presentation.components.displayCopy
 import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
 import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
@@ -134,41 +133,20 @@ class DoorsViewModel(
             today = activeDate,
         )
         val isArchived = receipt.cycleStatus == OpportunityCycleStatus.ARCHIVED
+        val copy = receipt.displayCopy()
         DoorCardUiState(
             id = opportunity.id,
             title = opportunity.title,
             provider = opportunity.provider,
             categoryLabel = opportunity.category.label(),
             state = receipt.state,
-            stateLabel = receipt.headlineLabel().uppercase(),
+            stateLabel = copy.statusLabel.uppercase(),
             deadlineLabel = opportunity.deadline.label(),
             checkedLabel = opportunity.sourceReviewLabel(activeDate),
             isArchived = isArchived,
             sourceReviewNeedsAttention = opportunity.sourceReviewNeedsAttention(activeDate),
             isSaved = opportunity.id in effectiveSavedIds(),
-            primaryReason = when (receipt.state) {
-                EligibilityState.OPEN -> {
-                    "The published rules Porta can assess currently pass. Selection may still be competitive."
-                }
-
-                EligibilityState.CLOSED -> if (isArchived) {
-                    "This cycle is archived and kept only as a source-linked historical record."
-                } else {
-                    "This opportunity is closed for the current cycle."
-                }
-
-                EligibilityState.HAS_GAPS,
-                EligibilityState.NOT_ACTIONABLE,
-                -> receipt.rules.firstOrNull { it.result == RuleResult.FAIL }?.explanation
-
-                EligibilityState.NEEDS_INFO -> if (receipt.rootResult == RuleResult.PASS) {
-                    "The assessed rules pass, but the current deadline or application window is not confirmed."
-                } else {
-                    receipt.rules
-                        .firstOrNull { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }
-                        ?.explanation
-                }
-            }.orEmpty(),
+            primaryReason = copy.shortReason,
         )
     }
 

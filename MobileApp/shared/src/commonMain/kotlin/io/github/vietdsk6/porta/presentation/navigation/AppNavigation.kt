@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation3.runtime.EntryProviderScope
@@ -18,8 +21,8 @@ import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavItem
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavigationBar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
-import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_gallery
-import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_home
+import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_doors
+import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_frontier
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_profile
 import io.github.vietdsk6.porta.generated.resources.ic_doors
 import io.github.vietdsk6.porta.generated.resources.ic_doors_selected
@@ -31,6 +34,7 @@ import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanScreen
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateScreen
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
+import io.github.vietdsk6.porta.presentation.screens.dataprivacy.DataPrivacyScreen
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsScreen
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
@@ -66,12 +70,12 @@ private val noAnimationMetadata =
 // Top-level destinations in display order. Values render either the compact bar or wide rail.
 private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMapOf(
     DoorsScreenRoute to BottomNavItem(
-        label = Res.string.bottom_nav_label_home,
+        label = Res.string.bottom_nav_label_doors,
         icon = Res.drawable.ic_doors,
         selectedIcon = Res.drawable.ic_doors_selected,
     ),
     FrontierScreenRoute to BottomNavItem(
-        label = Res.string.bottom_nav_label_gallery,
+        label = Res.string.bottom_nav_label_frontier,
         icon = Res.drawable.ic_frontier,
         selectedIcon = Res.drawable.ic_frontier_selected,
     ),
@@ -125,8 +129,9 @@ fun AppNavigation() {
         primaryTopLevelRoute = DoorsScreenRoute,
     )
     val navigator = remember(navigationState) { Navigator(navigationState) }
+    val profileSaveNotice = rememberSaveable { mutableStateOf(false) }
 
-    val entryProvider = remember(navigator) { entryProvider { screens(navigator) } }
+    val entryProvider = remember(navigator) { entryProvider { screens(navigator, profileSaveNotice) } }
 
     val isAtRoot = navigationState.currentBackstack.size <= 1
     val activeTopLevel = navigationState.topLevelRoute
@@ -157,7 +162,10 @@ fun AppNavigation() {
 
 // Maps each route to its screen. Every `entry<X>` wires the screen's navigation callbacks to the
 // Navigator; ViewModels are obtained per-entry via koinViewModel<…>().
-private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
+private fun EntryProviderScope<ScreenRoute>.screens(
+    navigator: Navigator,
+    profileSaveNotice: MutableState<Boolean>,
+) {
     // ── Top-level (no animation when switching tabs) ────────────────────────────
 
     entry<DoorsScreenRoute>(metadata = noAnimationMetadata) {
@@ -185,8 +193,11 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         val viewModel = koinViewModel<StudentProfileViewModel>()
         StudentProfileScreen(
             viewModel = viewModel,
+            saveNotice = profileSaveNotice.value,
+            onSaveNoticeDismissed = { profileSaveNotice.value = false },
             onEditProfile = { navigator.navigate(ProfileSetupScreenRoute(returnToProfile = true)) },
             onOpenPackInspector = { navigator.navigate(PackInspectorScreenRoute) },
+            onOpenDataPrivacy = { navigator.navigate(DataPrivacyScreenRoute) },
         )
     }
 
@@ -214,8 +225,16 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
             viewModel = viewModel,
             requestedFactKeyName = key.requestedFactKeyName,
             requestContext = key.requestContext,
+            onOpenDataPrivacy = { navigator.navigate(DataPrivacyScreenRoute) },
             onCompleted = {
-                if (key.returnToProfile) navigator.goBack() else navigator.set(DoorsScreenRoute)
+                if (key.returnToProfile) {
+                    if (navigator.state.currentBackstack.dropLast(1).lastOrNull() == StudentProfileScreenRoute) {
+                        profileSaveNotice.value = true
+                    }
+                    navigator.goBack()
+                } else {
+                    navigator.set(DoorsScreenRoute)
+                }
             },
             onNavigateBack = {
                 if (key.returnToProfile) navigator.goBack() else navigator.set(DoorsScreenRoute)
@@ -275,6 +294,15 @@ private fun EntryProviderScope<ScreenRoute>.screens(navigator: Navigator) {
         PackInspectorScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
+        )
+    }
+
+    entry<DataPrivacyScreenRoute> {
+        val viewModel = koinViewModel<StudentProfileViewModel>()
+        DataPrivacyScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+            onOpenPackInspector = { navigator.navigate(PackInspectorScreenRoute) },
         )
     }
 

@@ -54,6 +54,10 @@ data object ActivePlanScreenRoute : ScreenRoute
 data object StudentProfileScreenRoute : TopLevelScreenRoute
 
 @Serializable
+@SerialName("DataPrivacy")
+data object DataPrivacyScreenRoute : ScreenRoute
+
+@Serializable
 @SerialName("PackInspector")
 data object PackInspectorScreenRoute : ScreenRoute
 

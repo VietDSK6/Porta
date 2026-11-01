@@ -1,6 +1,7 @@
 package io.github.vietdsk6.porta.presentation
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,7 +24,7 @@ class ActualProfileUpdateUiTest {
         setContent {
             AppTheme {
                 ActualProfileUpdateScreen(
-                    uiState = completedState,
+                    uiState = completedState.copy(achievedValue = "7.0"),
                     onUiEvent = { events += it },
                     onNavigateBack = { navigatedBack = true },
                 )
@@ -37,6 +38,42 @@ class ActualProfileUpdateUiTest {
         assertEquals(ActualProfileUpdateUiEvent.Confirm, events.last())
         onNodeWithTag("cancel-actual-profile-update").performScrollTo().performClick()
         assertTrue(navigatedBack)
+    }
+
+    @Test
+    fun `actual result starts empty and cannot be confirmed without user input`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                ActualProfileUpdateScreen(
+                    uiState = completedState,
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        onNodeWithText("Choose or enter what is true now. The planned target is only a reference.").assertExists()
+        onNodeWithTag("confirm-actual-profile-update").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `required evidence is explained without a premature error`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                ActualProfileUpdateScreen(
+                    uiState = completedState.copy(
+                        isEvidenceRequired = true,
+                        includeEvidence = true,
+                    ),
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        onNodeWithTag("evidence-label-input").performScrollTo().assertExists()
+        onNodeWithText("Required: name the evidence supporting this result").assertExists()
+        onNodeWithText("Give the evidence a short label").assertDoesNotExist()
     }
 
     @Test
@@ -64,7 +101,7 @@ class ActualProfileUpdateUiTest {
         factLabel = "IELTS score",
         currentValueLabel = "6.5 band",
         plannedTargetLabel = "7.0 band",
-        achievedValue = "7.0",
+        achievedValue = "",
         unitLabel = "band",
     )
 }

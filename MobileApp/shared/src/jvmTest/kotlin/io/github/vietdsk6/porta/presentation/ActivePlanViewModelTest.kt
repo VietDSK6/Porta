@@ -15,16 +15,21 @@ import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.ProfileFact
+import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanStatusUi
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanUiEvent
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
+import io.github.vietdsk6.porta.presentation.screens.activeplan.PlanStepState
+import io.github.vietdsk6.porta.presentation.screens.activeplan.PlanTimingStatus
+import io.github.vietdsk6.porta.presentation.screens.activeplan.projectPlanImpacts
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -32,6 +37,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -95,10 +101,29 @@ class ActivePlanViewModelTest {
         advanceUntilIdle()
 
         val initial = assertNotNull(viewModel.uiState.value.plan)
-        assertEquals(4, initial.affectedDoorTitles.size)
+        assertEquals(4, initial.candidateOpportunityIds.size)
+        assertEquals(4, initial.notRuledOutOpportunityIds.size)
+        assertEquals(4, initial.knownDeadlineFeasibleOpportunityIds.size)
         assertEquals(ActivePlanStatusUi.PLANNED, initial.status)
+        assertEquals(
+            listOf(PlanStepState.DONE, PlanStepState.NEXT, PlanStepState.LATER),
+            initial.steps.map { it.state },
+        )
+        assertEquals("Time estimate · 45 days (Porta assumption)", initial.durationLabel)
+        assertEquals("Effort · Medium", initial.effortLabel)
+        assertEquals("Cost · Low", initial.costLabel)
 
         viewModel.onUiEvent(ActivePlanUiEvent.Start)
+        advanceUntilIdle()
+        assertEquals(ActivePlanStatusUi.IN_PROGRESS, viewModel.uiState.value.plan?.status)
+        assertEquals(PlanStepState.IN_PROGRESS, viewModel.uiState.value.plan?.steps?.get(1)?.state)
+
+        viewModel.onUiEvent(ActivePlanUiEvent.Pause)
+        advanceUntilIdle()
+        assertEquals(ActivePlanStatusUi.PAUSED, viewModel.uiState.value.plan?.status)
+        assertEquals(PlanStepState.PAUSED, viewModel.uiState.value.plan?.steps?.get(1)?.state)
+
+        viewModel.onUiEvent(ActivePlanUiEvent.Resume)
         advanceUntilIdle()
         assertEquals(ActivePlanStatusUi.IN_PROGRESS, viewModel.uiState.value.plan?.status)
 
@@ -106,9 +131,63 @@ class ActivePlanViewModelTest {
         advanceUntilIdle()
         assertEquals(ActivePlanStatusUi.COMPLETED, viewModel.uiState.value.plan?.status)
         assertEquals(
+            listOf(PlanStepState.DONE, PlanStepState.DONE, PlanStepState.NEXT),
+            viewModel.uiState.value.plan?.steps?.map { it.state },
+        )
+        assertEquals(
             FactValue.NumberValue(6.5, "band"),
             profileRepository.getProfile().getOrThrow().facts[FactKey.IELTS_SCORE]?.value,
         )
+    }
+
+    @Test
+    fun `five changed checks keep the missed deadline out of four in-plan opportunities`() {
+        val opportunities = PortaSampleData.opportunities.map { opportunity ->
+            when (opportunity.id) {
+                "spark" -> opportunity.copy(deadline = Deadline.Known(LocalDate(2026, 11, 15)))
+
+                "local" -> opportunity.copy(
+                    eligibilityRule = (opportunity.eligibilityRule as RuleNode.Atomic).copy(
+                        expected = FactValue.NumberValue(7.0, "band"),
+                    ),
+                )
+
+                else -> opportunity
+            }
+        }
+
+        val impacts = projectPlanImpacts(
+            plan = plan(),
+            profile = PortaSampleData.profile,
+            opportunities = opportunities,
+            today = PortaSampleData.referenceDate,
+            scenarioEvaluator = ScenarioEvaluator(EligibilityEvaluator()),
+            minimumDurationDays = 45,
+        )
+
+        assertEquals(5, impacts.size)
+        assertEquals(4, impacts.count { it.timing.isNotRuledOut })
+        assertEquals(
+            listOf("spark"),
+            impacts.filter { it.timing == PlanTimingStatus.MISSES_KNOWN_DEADLINE }.map { it.opportunityId },
+        )
+        assertEquals(5, impacts.map { it.opportunityId }.distinct().size)
+    }
+
+    @Test
+    fun `unknown duration remains unverified instead of fitting a known deadline`() {
+        val impacts = projectPlanImpacts(
+            plan = plan().copy(expectedDurationDays = null),
+            profile = PortaSampleData.profile,
+            opportunities = PortaSampleData.opportunities,
+            today = PortaSampleData.referenceDate,
+            scenarioEvaluator = ScenarioEvaluator(EligibilityEvaluator()),
+            minimumDurationDays = null,
+        )
+
+        assertEquals(4, impacts.size)
+        assertEquals(4, impacts.count { it.timing == PlanTimingStatus.TIMING_UNVERIFIED })
+        assertEquals(0, impacts.count { it.timing == PlanTimingStatus.WITHIN_KNOWN_DEADLINE })
     }
 
     private fun plan(): PlanItem = PlanItem(

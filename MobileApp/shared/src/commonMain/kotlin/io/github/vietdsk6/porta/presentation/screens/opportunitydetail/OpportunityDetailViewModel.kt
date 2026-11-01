@@ -16,11 +16,9 @@ import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
-import io.github.vietdsk6.porta.presentation.components.requirementAssessmentLabel
+import io.github.vietdsk6.porta.presentation.components.displayCopy
 import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
 import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
-import io.github.vietdsk6.porta.presentation.components.timingLabel
-import io.github.vietdsk6.porta.presentation.components.trustSummary
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,6 +87,7 @@ class OpportunityDetailViewModel(
                 opportunity,
                 today,
             )
+            val displayCopy = receipt.displayCopy()
             val relatedAction = actionFrontierEngine.relevantActionFor(
                 profile = profile,
                 opportunity = opportunity,
@@ -118,9 +117,10 @@ class OpportunityDetailViewModel(
                 title = opportunity.title,
                 provider = opportunity.provider,
                 state = receipt.state,
-                stateLabel = receipt.requirementAssessmentLabel().uppercase(),
-                conclusionSummary = receipt.trustSummary(),
-                timingLabel = receipt.timingLabel(),
+                rootResult = receipt.rootResult,
+                stateLabel = displayCopy.statusLabel.uppercase(),
+                conclusionSummary = displayCopy.shortReason,
+                timingLabel = displayCopy.timingLabel,
                 deadlineLabel = opportunity.deadline.label(),
                 checkedLabel = opportunity.sourceReviewLabel(today),
                 sourceReviewNeedsAttention = opportunity.sourceReviewNeedsAttention(today),
@@ -136,6 +136,8 @@ class OpportunityDetailViewModel(
                         actualLabel = rule.actual?.displayValue() ?: "Not provided",
                         expectedLabel = rule.expected?.displayValue() ?: "Manual source review",
                         sourceNote = rule.sourceNote.orEmpty(),
+                        shortTitle = rule.factKey?.let { "${it.name.lowercase().replace('_', ' ')} check" }
+                            ?: "Programme condition",
                     )
                 },
                 softCriteria = opportunity.softCriteria,

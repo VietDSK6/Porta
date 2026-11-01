@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -38,20 +36,19 @@ class ScenarioPreviewProgressiveDisclosureUiTest {
             }
         }
 
-        onNodeWithText("1 door would pass current checks").assertExists()
-        onNodeWithTag("action-impact-diagram").assertExists()
-        onNodeWithTag("action-impact-node-aurora").assertExists()
+        onNodeWithText("1 opportunity affected").assertExists()
+        onNodeWithTag("action-impact-diagram").assertDoesNotExist()
         onNodeWithTag("scenario-scope-notice").assertExists()
-        onNodeWithText("What changes").assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(5)
+        onNodeWithTag("scenario-details-aurora").performClick()
+        onNodeWithText("Changed checks").assertExists()
         onNodeWithText("Requires IELTS 7.0 or above.").assertExists()
-        onAllNodesWithText("6.5 band → 7.0 band").assertCountEquals(2)
-        onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
         onNodeWithText("What remains").assertExists()
         onNodeWithText("Check result").assertDoesNotExist()
-        onNodeWithTag("scenario-details-aurora").performScrollTo().performClick()
+        onNodeWithTag("scenario-evidence-toggle-aurora").performScrollTo().performClick()
         onNodeWithTag("scenario-evidence-aurora").assertExists()
-        onNodeWithText("Check result").assertExists()
-        onNodeWithText("Planning timing").assertExists()
+        onNodeWithText("Check result", substring = true).assertExists()
+        onNodeWithText("Planning timing", substring = true).assertExists()
     }
 
     private val scenarioState = ScenarioPreviewUiState(
@@ -60,7 +57,7 @@ class ScenarioPreviewProgressiveDisclosureUiTest {
         beforeLabel = "6.5 band",
         afterLabel = "7.0 band",
         scopeNotice = "Would satisfy this programme-specific check if confirmed.",
-        openedDoors = listOf(
+        affectedDoors = listOf(
             ScenarioDoorUiState(
                 id = "aurora",
                 title = "Aurora Scholars",

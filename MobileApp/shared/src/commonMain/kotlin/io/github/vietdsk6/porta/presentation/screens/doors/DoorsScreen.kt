@@ -21,7 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -92,9 +91,9 @@ fun DoorsScreen(
                         isSampleProfile = uiState.isSampleMode,
                         isSampleCatalog = uiState.isSampleCatalog,
                         doorCount = uiState.catalogDoorCount,
+                        gapCount = uiState.gapCount,
                         sourceReviewDueCount = uiState.sourceReviewDueCount,
                     )
-                    StateSummary(uiState)
                 }
             }
             item {
@@ -129,24 +128,21 @@ private fun ProfileAndPackContext(
     isSampleProfile: Boolean,
     isSampleCatalog: Boolean,
     doorCount: Int,
+    gapCount: Int,
     sourceReviewDueCount: Int,
 ) {
+    val summary = "$doorCount ${if (doorCount == 1) "opportunity" else "opportunities"} · $gapCount need action"
     if (!isSampleProfile && !isSampleCatalog) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "$doorCount source-linked opportunities",
+                text = summary,
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
                 style = AppTheme.typography.bodySmall,
             )
-            Text(
-                text = "Your saved profile is compared with checks encoded from published sources.",
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodyMedium,
-            )
             if (sourceReviewDueCount > 0) {
                 Text(
-                    text = "$sourceReviewDueCount source records need a Porta catalog review. Open a door to confirm the live source.",
+                    text = "$sourceReviewDueCount source records need review.",
                     color = AppTheme.colors.status.warning,
                     style = AppTheme.typography.bodySmall,
                 )
@@ -159,64 +155,24 @@ private fun ProfileAndPackContext(
         Text(
             when {
                 isSampleProfile && isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
-                isSampleProfile -> "SAMPLE PROFILE · $doorCount SOURCED DOORS"
+                isSampleProfile -> "SAMPLE PROFILE"
                 isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
-                else -> "YOUR PROFILE · $doorCount SOURCED DOORS"
+                else -> "YOUR PROFILE"
             },
             color = AppTheme.colors.primary,
             fontWeight = FontWeight.Bold,
             style = AppTheme.typography.bodySmall,
         )
         Text(
-            when {
-                isSampleCatalog -> "The fallback catalog is fictional and is only used for a safe demo."
-                isSampleProfile -> "A sample student is compared with the active source-linked pack."
-                else -> "Your saved facts are compared with the active offline pack."
-            },
+            summary,
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StateSummary(uiState: DoorsUiState) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = AppTheme.colors.surfaceContainer,
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = when {
-                    uiState.gapCount > 0 -> "${uiState.gapCount} ${uiState.gapCount.doorNoun()} need action"
-                    uiState.openCount > 0 -> "${uiState.openCount} ${uiState.openCount.doorNoun()} pass the checks Porta can assess"
-                    uiState.needsInfoCount > 0 -> "${uiState.needsInfoCount} ${uiState.needsInfoCount.doorNoun()} need information"
-                    else -> "No current door conclusion yet"
-                },
-                color = AppTheme.colors.text.primary,
-                fontWeight = FontWeight.SemiBold,
-                style = AppTheme.typography.h6,
-            )
-            Text(
-                text = buildList {
-                    if (uiState.openCount > 0) add("${uiState.openCount} checks passed")
-                    if (uiState.needsInfoCount > 0) add("${uiState.needsInfoCount} need information")
-                    val inactiveCount = uiState.notAvailableCount + uiState.closedCount + uiState.archivedCount
-                    if (inactiveCount > 0) add("$inactiveCount inactive")
-                }.joinToString(" · ").ifBlank { "Open a door to inspect its published checks." },
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodySmall,
-            )
+        if (isSampleCatalog) {
+            Text("Fictional opportunities for demo only.", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }
-
-private fun Int.doorNoun(): String = if (this == 1) "door" else "doors"
 
 @Composable
 private fun DoorsEmptyState(
@@ -317,7 +273,18 @@ private fun DoorFilterChip(
             .testTag("door-filter-${filter.name}"),
         selected = filter == selected,
         onClick = { onSelected(filter) },
-        label = { Text(filter.label, style = AppTheme.typography.bodySmall) },
+        label = {
+            Text(
+                when (filter) {
+                    DoorFilter.ALL -> "All"
+                    DoorFilter.GAPS -> "Action"
+                    DoorFilter.VERIFY -> "Verify"
+                    DoorFilter.SAVED -> "Saved"
+                    else -> filter.label.lowercase().replaceFirstChar(Char::uppercaseChar)
+                },
+                style = AppTheme.typography.bodySmall,
+            )
+        },
     )
 }
 
@@ -342,7 +309,7 @@ private fun DoorCard(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             if (isHighlighted) {
                 Text(
@@ -397,14 +364,10 @@ private fun DoorCard(
                 color = AppTheme.colors.text.secondary,
             )
             Text(
-                text = when (door.state) {
-                    EligibilityState.HAS_GAPS -> "Next requirement · ${door.primaryReason}"
-                    EligibilityState.NEEDS_INFO -> "Verify · ${door.primaryReason}"
-                    else -> door.primaryReason
-                },
+                text = door.primaryReason,
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.primary,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
@@ -418,14 +381,6 @@ private fun DoorCard(
                     door.checkedLabel,
                     color = AppTheme.colors.status.warning,
                     fontWeight = FontWeight.SemiBold,
-                    style = AppTheme.typography.bodySmall,
-                )
-            }
-            if (door.isSaved) {
-                Text(
-                    "SAVED",
-                    color = AppTheme.colors.primary,
-                    fontWeight = FontWeight.Bold,
                     style = AppTheme.typography.bodySmall,
                 )
             }

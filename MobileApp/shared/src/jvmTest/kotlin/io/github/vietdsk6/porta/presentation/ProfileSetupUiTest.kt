@@ -14,11 +14,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.presentation.screens.profilesetup.GpaScaleOption
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupScreen
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupUiEvent
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupUiState
@@ -27,6 +29,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class ProfileSetupUiTest {
@@ -126,8 +129,169 @@ class ProfileSetupUiTest {
             }
         }
 
-        onNodeWithText("LOCAL-FIRST").assertExists()
+        onNodeWithText("Saved on this device.").assertExists()
         onNodeWithTag("profile-setup-save").performScrollTo().assertIsEnabled().performClick()
         assertEquals(ProfileSetupUiEvent.Save, events.last())
+    }
+
+    @Test
+    fun `country search reaches the full local catalog and saves alpha two code`() = runComposeUiTest {
+        val events = mutableListOf<ProfileSetupUiEvent>()
+        setContent {
+            AppTheme {
+                ProfileSetupScreen(
+                    uiState = ProfileSetupUiState(
+                        studyLevel = StudyLevelOption.UNDERGRADUATE,
+                        fieldOfStudy = "Computer Science",
+                    ),
+                    onUiEvent = { events += it },
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        onNodeWithText("Context").performScrollTo().performClick()
+        onNodeWithTag("profile-nationality").performScrollTo().performClick()
+        onNodeWithTag("country-search").performTextInput("Zimbabwe")
+        onNodeWithTag("country-zw").assertExists().performClick()
+        assertEquals(ProfileSetupUiEvent.NationalityChanged("ZW"), events.last())
+    }
+
+    @Test
+    fun `country search and cancel remain visible at 320 dp and 200 percent text`() = runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    AppTheme {
+                        ProfileSetupScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            uiState = ProfileSetupUiState(
+                                studyLevel = StudyLevelOption.UNDERGRADUATE,
+                                fieldOfStudy = "Computer Science",
+                            ),
+                            onUiEvent = {},
+                            onNavigateBack = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithText("Context").performScrollTo().performClick()
+        onNodeWithTag("profile-nationality").performScrollTo().performClick()
+        onNodeWithTag("country-search").assertIsDisplayed()
+        onNodeWithTag("country-cancel").assertIsDisplayed().performClick()
+        onNodeWithTag("country-search").assertDoesNotExist()
+    }
+
+    @Test
+    fun `birth date uses a picker and can be explicitly cleared`() = runComposeUiTest {
+        val events = mutableListOf<ProfileSetupUiEvent>()
+        setContent {
+            AppTheme {
+                ProfileSetupScreen(
+                    uiState = ProfileSetupUiState(
+                        studyLevel = StudyLevelOption.UNDERGRADUATE,
+                        fieldOfStudy = "Computer Science",
+                        dateOfBirth = "2004-09-18",
+                        validationDate = LocalDate(2026, 10, 29),
+                    ),
+                    onUiEvent = { events += it },
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        onNodeWithText("Context").performScrollTo().performClick()
+        onNodeWithTag("profile-date-of-birth").performScrollTo().performClick()
+        onNodeWithTag("profile-date-confirm").assertIsEnabled().performClick()
+        assertEquals(ProfileSetupUiEvent.DateOfBirthChanged("2004-09-18"), events.last())
+        onNodeWithTag("profile-date-clear").performScrollTo().performClick()
+        assertEquals(ProfileSetupUiEvent.DateOfBirthChanged(""), events.last())
+    }
+
+    @Test
+    fun `future birth date cannot be confirmed from calendar`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                ProfileSetupScreen(
+                    uiState = ProfileSetupUiState(
+                        studyLevel = StudyLevelOption.UNDERGRADUATE,
+                        fieldOfStudy = "Computer Science",
+                        dateOfBirth = "2027-01-01",
+                        validationDate = LocalDate(2026, 10, 29),
+                    ),
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        onNodeWithText("Context").performScrollTo().performClick()
+        onNodeWithTag("profile-date-of-birth").performScrollTo().performClick()
+        onNodeWithTag("profile-date-confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `birth date dialog keeps confirmation visible at 320 dp and 200 percent text`() = runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    AppTheme {
+                        ProfileSetupScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            uiState = ProfileSetupUiState(
+                                studyLevel = StudyLevelOption.UNDERGRADUATE,
+                                fieldOfStudy = "Computer Science",
+                                dateOfBirth = "2004-09-18",
+                                validationDate = LocalDate(2026, 10, 29),
+                            ),
+                            onUiEvent = {},
+                            onNavigateBack = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithText("Context").performScrollTo().performClick()
+        onNodeWithTag("profile-date-of-birth").performScrollTo().performClick()
+        onNodeWithTag("profile-date-confirm").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun `optional details and original GPA scale remain independent`() {
+        val state = ProfileSetupUiState(
+            studyLevel = StudyLevelOption.UNDERGRADUATE,
+            fieldOfStudy = "Computer Science",
+            gpa = "8.5",
+            gpaScale = GpaScaleOption.TEN,
+        )
+
+        assertTrue(state.canSave)
+        assertEquals(1, state.academicProvidedCount)
+        assertEquals(0, state.experienceProvidedCount)
+        assertEquals("Choose a valid nationality before saving.", state.copy(nationality = "XX").saveDisabledReason)
+    }
+
+    @Test
+    fun `privacy link is reachable from edit form`() = runComposeUiTest {
+        var opened = false
+        setContent {
+            AppTheme {
+                ProfileSetupScreen(
+                    uiState = ProfileSetupUiState(
+                        studyLevel = StudyLevelOption.UNDERGRADUATE,
+                        fieldOfStudy = "Computer Science",
+                    ),
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                    onOpenDataPrivacy = { opened = true },
+                )
+            }
+        }
+
+        onNodeWithTag("profile-setup-data-privacy").performScrollTo().performClick()
+        assertTrue(opened)
     }
 }

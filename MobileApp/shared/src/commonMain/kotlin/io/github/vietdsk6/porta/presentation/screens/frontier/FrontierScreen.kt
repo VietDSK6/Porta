@@ -47,6 +47,7 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.PlanStatus
 
 @Composable
 fun FrontierScreen(
@@ -114,6 +115,9 @@ private fun CompactFrontierContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { FrontierIntroduction(uiState = uiState) }
+        uiState.activePlan?.takeIf { it.needsPriorityPlacement }?.let { plan ->
+            item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
+        }
         recommendedAction?.let { action ->
             item {
                 FrontierCard(
@@ -137,7 +141,7 @@ private fun CompactFrontierContent(
                 )
             }
         }
-        uiState.activePlan?.let { plan ->
+        uiState.activePlan?.takeUnless { it.needsPriorityPlacement }?.let { plan ->
             item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
         }
         item {
@@ -210,6 +214,9 @@ private fun WideFrontierContent(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item { FrontierIntroduction(uiState = uiState) }
+                uiState.activePlan?.takeIf { it.needsPriorityPlacement }?.let { plan ->
+                    item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
+                }
                 recommendedAction?.let { action ->
                     item {
                         FrontierCard(
@@ -233,7 +240,7 @@ private fun WideFrontierContent(
                         )
                     }
                 }
-                uiState.activePlan?.let { plan ->
+                uiState.activePlan?.takeUnless { it.needsPriorityPlacement }?.let { plan ->
                     item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
                 }
                 item {
@@ -402,10 +409,9 @@ private fun AlternativeActionRow(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(action.scopeLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-            Text(action.title, style = AppTheme.typography.h6)
+            Text(action.programmeTitle ?: action.title, style = AppTheme.typography.h6)
             Text(
-                text = "${action.improvedCount} " +
-                    if (action.improvedCount == 1) "door affected" else "doors affected",
+                text = action.impactSummary(),
                 color = AppTheme.colors.status.success,
                 fontWeight = FontWeight.SemiBold,
                 style = AppTheme.typography.bodyMedium,
@@ -500,12 +506,21 @@ private fun ActivePlanPinnedCard(plan: ActivePlanSummaryUiState, onOpen: () -> U
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "ACTIVE PLAN · ${plan.statusLabel.uppercase()}",
+                if (plan.status == PlanStatus.COMPLETED) "RESULT TO CONFIRM" else "CURRENT PLAN · ${plan.statusLabel.uppercase()}",
                 color = AppTheme.colors.status.success,
                 fontWeight = FontWeight.Bold,
             )
             Text(plan.title, color = AppTheme.colors.onAlternative, style = AppTheme.typography.h6)
-            Button(modifier = Modifier.fillMaxWidth(), onClick = onOpen) { Text("Open plan") }
+            Button(modifier = Modifier.fillMaxWidth().testTag("frontier-open-active-plan"), onClick = onOpen) {
+                Text(
+                    when (plan.status) {
+                        PlanStatus.COMPLETED -> "Open plan to confirm"
+                        PlanStatus.IN_PROGRESS -> "Continue your plan"
+                        PlanStatus.PAUSED -> "Review paused plan"
+                        PlanStatus.PLANNED -> "Open plan"
+                    },
+                )
+            }
         }
     }
 }
@@ -574,13 +589,7 @@ private fun FrontierCard(
                 style = AppTheme.typography.bodySmall,
             )
             Text(
-                text = buildString {
-                    append("${action.improvedCount} ${if (action.improvedCount == 1) "door" else "doors"} affected")
-                    if (action.newlyOpenCount > 0) {
-                        append(" · ${action.newlyOpenCount} would pass current checks")
-                    }
-                    if (action.savedDoorCount > 0) append(" · ${action.savedDoorCount} saved")
-                },
+                text = action.impactSummary(),
                 color = AppTheme.colors.status.success,
                 style = AppTheme.typography.h6,
             )
@@ -592,6 +601,13 @@ private fun FrontierCard(
                 )
             } else {
                 AdaptiveMetricPills(action)
+            }
+            if (action.timingUnverifiedCount > 0) {
+                Text(
+                    "${action.timingUnverifiedCount} ${if (action.timingUnverifiedCount == 1) "deadline needs" else "deadlines need"} confirmation",
+                    color = AppTheme.colors.status.warning,
+                    style = AppTheme.typography.bodySmall,
+                )
             }
             if (showExplanation && detailsVisible) {
                 Text(
@@ -650,10 +666,9 @@ private fun GrowthHorizonPrompt(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("Growth moves need more time", style = AppTheme.typography.h6)
+            Text("Longer-term moves need more than $currentHorizonDays days", style = AppTheme.typography.h6)
             Text(
-                text = "Only shorter verification steps fit $currentHorizonDays days. " +
-                    "Use $suggestedHorizonDays days to compare longer-term profile changes.",
+                text = "Compare profile changes using a $suggestedHorizonDays-day planning horizon.",
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyMedium,
             )
@@ -670,18 +685,26 @@ private fun GrowthHorizonPrompt(
 @Composable
 private fun AdaptiveMetricPills(action: FrontierActionUiState) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val stackMetrics = maxWidth < 320.dp || LocalDensity.current.fontScale >= 1.5f
+        val stackMetrics = maxWidth < 260.dp || LocalDensity.current.fontScale >= 1.5f
         if (stackMetrics) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetricPill(action.durationLabel, Modifier.fillMaxWidth())
-                MetricPill(action.effortLabel, Modifier.fillMaxWidth())
-                MetricPill(action.costLabel, Modifier.fillMaxWidth())
+                MetricPill("Time · ${action.durationLabel}", Modifier.fillMaxWidth())
+                MetricPill("Effort · ${action.effortLabel}", Modifier.fillMaxWidth())
+                MetricPill("Cost · ${action.costLabel}", Modifier.fillMaxWidth())
+            }
+        } else if (maxWidth < 430.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetricPill("Time · ${action.durationLabel}", Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MetricPill("Effort · ${action.effortLabel}", Modifier.weight(1f))
+                    MetricPill("Cost · ${action.costLabel}", Modifier.weight(1f))
+                }
             }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MetricPill(action.durationLabel, Modifier.weight(1f))
-                MetricPill(action.effortLabel, Modifier.weight(1f))
-                MetricPill(action.costLabel, Modifier.weight(1f))
+                MetricPill("Time · ${action.durationLabel}", Modifier.weight(1f))
+                MetricPill("Effort · ${action.effortLabel}", Modifier.weight(1f))
+                MetricPill("Cost · ${action.costLabel}", Modifier.weight(1f))
             }
         }
     }
@@ -740,7 +763,7 @@ private fun FrontierComparisonPanel(
 
             HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.35f))
             Text(
-                text = "Affected doors · ${action.doorComparisons.size}",
+                text = "Opportunities with check progress · ${action.doorComparisons.size}",
                 style = AppTheme.typography.h6,
                 color = AppTheme.colors.text.primary,
             )
@@ -950,6 +973,15 @@ private fun FrontierUiState.alternativeFamilies(): List<FrontierActionFamilyUiSt
     }
 }
 
+private fun FrontierActionUiState.impactSummary(): String = buildString {
+    append(improvedCount)
+    append(if (improvedCount == 1) " opportunity" else " opportunities")
+    append(" · ")
+    append(changedCheckCount)
+    append(if (changedCheckCount == 1) " assessed check" else " assessed checks")
+    append(" could change")
+}
+
 private fun FrontierMoveKind.label(): String = when (this) {
     FrontierMoveKind.VERIFY -> "VERIFY"
     FrontierMoveKind.IMPROVE -> "IMPROVE"
@@ -1073,7 +1105,7 @@ private val previewState = FrontierUiState(
             durationDays = 45,
             effort = EffortLevel.MEDIUM,
             cost = CostBand.LOW,
-            durationLabel = "45 days",
+            durationLabel = "Est. 45 days",
             effortLabel = "Medium",
             costLabel = "Low",
             explanation = "Addresses a published requirement in four opportunities. Two would pass their current checks.",

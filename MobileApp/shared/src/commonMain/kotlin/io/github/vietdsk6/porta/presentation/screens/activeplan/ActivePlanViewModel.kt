@@ -7,6 +7,7 @@ import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
@@ -89,33 +90,16 @@ class ActivePlanViewModel(
         val action = opportunities
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionTemplateId }
-        val affectedDoors = if (profile.facts.isEmpty()) {
-            emptyList()
-        } else {
-            scenarioEvaluator.evaluate(
-                profile = profile,
-                overrides = target.asScenarioOverrides(),
-                opportunities = opportunities,
-                today = today,
-            ).resolvedHardGapOpportunityIds(target)
-                .filter { opportunityId ->
-                    opportunities.firstOrNull { it.id == opportunityId }
-                        ?.isFeasibleForPlanning(
-                            today = today,
-                            minimumDurationDays = expectedDurationDays ?: action?.minimumDurationDays ?: 0,
-                        )
-                        ?: false
-                }
-                .mapNotNull { opportunityId ->
-                    opportunities.firstOrNull { it.id == opportunityId }?.title
-                }
-        }
-        val hasStarted = status == PlanStatus.IN_PROGRESS ||
-            status == PlanStatus.PAUSED ||
-            status == PlanStatus.COMPLETED
-        val isComplete = status == PlanStatus.COMPLETED
-        val completedSteps = 1 + hasStarted.toInt() + isComplete.toInt()
-
+        val actionMinimumDurationDays = action?.minimumDurationDays?.takeIf { it > 0 }
+        val planningDurationDays = expectedDurationDays ?: actionMinimumDurationDays
+        val candidateCheckChanges = projectPlanImpacts(
+            plan = this,
+            profile = profile,
+            opportunities = opportunities,
+            today = today,
+            scenarioEvaluator = scenarioEvaluator,
+            minimumDurationDays = planningDurationDays,
+        )
         return ActivePlanCardUiState(
             id = id,
             actionId = actionTemplateId,
@@ -123,26 +107,34 @@ class ActivePlanViewModel(
             targetLabel = targetValue.displayValue(),
             status = status.toUiStatus(),
             statusLabel = status.label(),
-            durationLabel = expectedDurationDays?.let { "Est. $it days · Porta assumption" }
-                ?: "Time estimate unavailable",
-            effortLabel = effort.name.lowercase().replaceFirstChar(Char::uppercaseChar),
-            costLabel = costBand.name.lowercase().replaceFirstChar(Char::uppercaseChar),
+            durationLabel = when {
+                expectedDurationDays != null -> "Time estimate · $expectedDurationDays days (Porta assumption)"
+                actionMinimumDurationDays != null -> "Minimum time · $actionMinimumDurationDays days (Porta assumption)"
+                else -> "Time estimate · Unknown"
+            },
+            effortLabel = "Effort · ${effort.name.lowercase().replaceFirstChar(Char::uppercaseChar)}",
+            costLabel = "Cost · ${costBand.name.lowercase().replaceFirstChar(Char::uppercaseChar)}",
             evidenceLabel = action?.completionEvidenceTypes?.joinToString()?.replaceFirstChar(Char::uppercaseChar)
                 ?: "Evidence definition needs review",
-            affectedDoorTitles = affectedDoors,
+            candidateCheckChanges = candidateCheckChanges,
             riskNote = "This milestone can address the published checks Porta can evaluate. Confirm remaining manual checks and " +
                 "live deadlines on official sources before acting.",
             updatedLabel = "Updated ${updatedAtEpochMillis.asFormattedDate()}",
-            progress = completedSteps / 3f,
-            checklist = listOf(
-                PlanStepUiState("Milestone saved locally", isComplete = true),
-                PlanStepUiState("Work started", isComplete = hasStarted),
-                PlanStepUiState("Milestone marked complete", isComplete = isComplete),
+            steps = listOf(
+                PlanStepUiState("Plan saved", PlanStepState.DONE),
+                when (status) {
+                    PlanStatus.PLANNED -> PlanStepUiState("Start the work", PlanStepState.NEXT)
+                    PlanStatus.IN_PROGRESS -> PlanStepUiState("Work in progress", PlanStepState.IN_PROGRESS)
+                    PlanStatus.PAUSED -> PlanStepUiState("Work paused", PlanStepState.PAUSED)
+                    PlanStatus.COMPLETED -> PlanStepUiState("Work marked complete", PlanStepState.DONE)
+                },
+                PlanStepUiState(
+                    "Confirm actual result",
+                    if (status == PlanStatus.COMPLETED) PlanStepState.NEXT else PlanStepState.LATER,
+                ),
             ),
         )
     }
-
-    private fun Boolean.toInt(): Int = if (this) 1 else 0
 
     private fun PlanStatus.toUiStatus(): ActivePlanStatusUi = when (this) {
         PlanStatus.PLANNED -> ActivePlanStatusUi.PLANNED
@@ -162,4 +154,40 @@ class ActivePlanViewModel(
         val isWorking: Boolean = false,
         val error: String? = null,
     )
+}
+
+/** Candidate IDs come from the scenario check transition; timing is a separate planning filter. */
+internal fun projectPlanImpacts(
+    plan: PlanItem,
+    profile: ProfileSnapshot,
+    opportunities: List<Opportunity>,
+    today: LocalDate,
+    scenarioEvaluator: ScenarioEvaluator,
+    minimumDurationDays: Int?,
+): List<PlanOpportunityImpactUiState> {
+    val byId = opportunities.associateBy(Opportunity::id)
+    return scenarioEvaluator.evaluate(
+        profile = profile,
+        overrides = plan.target.asScenarioOverrides(),
+        opportunities = opportunities,
+        today = today,
+    ).resolvedHardGapOpportunityIds(plan.target)
+        .mapNotNull { opportunityId ->
+            byId[opportunityId]?.let { opportunity ->
+                PlanOpportunityImpactUiState(
+                    opportunityId = opportunityId,
+                    title = opportunity.title,
+                    timing = opportunity.planTiming(today, minimumDurationDays),
+                )
+            }
+        }
+}
+
+private fun Opportunity.planTiming(today: LocalDate, minimumDurationDays: Int?): PlanTimingStatus = when {
+    archived -> PlanTimingStatus.OUTSIDE_CURRENT_CYCLE
+    deadline is Deadline.Known && deadline.date < today -> PlanTimingStatus.MISSES_KNOWN_DEADLINE
+    minimumDurationDays == null -> PlanTimingStatus.TIMING_UNVERIFIED
+    deadline !is Deadline.Known -> PlanTimingStatus.TIMING_UNVERIFIED
+    isFeasibleForPlanning(today, minimumDurationDays) -> PlanTimingStatus.WITHIN_KNOWN_DEADLINE
+    else -> PlanTimingStatus.MISSES_KNOWN_DEADLINE
 }

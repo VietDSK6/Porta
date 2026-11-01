@@ -6,15 +6,21 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.runComposeUiTest
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanCardUiState
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanScreen
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanStatusUi
+import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanUiEvent
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanUiState
+import io.github.vietdsk6.porta.presentation.screens.activeplan.PlanOpportunityImpactUiState
+import io.github.vietdsk6.porta.presentation.screens.activeplan.PlanStepState
 import io.github.vietdsk6.porta.presentation.screens.activeplan.PlanStepUiState
+import io.github.vietdsk6.porta.presentation.screens.activeplan.PlanTimingStatus
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
@@ -36,11 +42,62 @@ class ActivePlanUiTest {
         }
 
         onNodeWithTag("active-plan-card").assertExists()
-        onNodeWithTag("active-plan-list").performScrollToNode(hasText("Work complete ≠ profile updated"))
-        onNodeWithText("Work complete ≠ profile updated").assertExists()
+        onNodeWithTag("active-plan-list").performScrollToNode(hasText("Work complete · actual result pending"))
+        onNodeWithText("Work complete · actual result pending").assertExists()
         onNodeWithTag("active-plan-list").performScrollToNode(hasTestTag("update-profile-button"))
         onNodeWithTag("update-profile-button").performClick()
         assertTrue(updateProfile)
+    }
+
+    @Test
+    fun `planned milestone shows next work step and start action without a percent bar`() = runComposeUiTest {
+        val events = mutableListOf<ActivePlanUiEvent>()
+        setContent {
+            AppTheme {
+                ActivePlanScreen(
+                    uiState = plannedState,
+                    onUiEvent = { events += it },
+                    onNavigateBack = {},
+                    onBrowseActions = {},
+                    onPreviewImpact = {},
+                    onUpdateProfile = {},
+                )
+            }
+        }
+
+        onNodeWithTag("active-plan-list").performScrollToNode(hasTestTag("plan-status-timeline"))
+        onNodeWithText("Plan status").assertExists()
+        onNodeWithText("Start the work").assertExists()
+        onNodeWithText("Next").assertExists()
+        onNodeWithTag("active-plan-list").performScrollToNode(hasTestTag("start-plan-button"))
+        onNodeWithTag("start-plan-button").performClick()
+        assertEquals(listOf<ActivePlanUiEvent>(ActivePlanUiEvent.Start), events)
+    }
+
+    @Test
+    fun `removing a plan requires confirmation`() = runComposeUiTest {
+        val events = mutableListOf<ActivePlanUiEvent>()
+        setContent {
+            AppTheme {
+                ActivePlanScreen(
+                    uiState = plannedState,
+                    onUiEvent = { events += it },
+                    onNavigateBack = {},
+                    onBrowseActions = {},
+                    onPreviewImpact = {},
+                    onUpdateProfile = {},
+                )
+            }
+        }
+
+        onNodeWithTag("active-plan-list").performScrollToNode(hasText("Remove local plan"))
+        onNodeWithText("Remove local plan").performClick()
+        assertTrue(events.isEmpty())
+        onNodeWithText("Keep plan").performClick()
+        assertTrue(events.isEmpty())
+        onNodeWithText("Remove local plan").performClick()
+        onNodeWithText("Remove plan").performClick()
+        assertEquals(listOf<ActivePlanUiEvent>(ActivePlanUiEvent.Remove), events)
     }
 
     @Test
@@ -63,6 +120,38 @@ class ActivePlanUiTest {
         assertTrue(browse)
     }
 
+    @Test
+    fun `plan separates five candidate checks from four not ruled out by known deadlines`() = runComposeUiTest {
+        val impacts = (0 until 5).map { index ->
+            PlanOpportunityImpactUiState(
+                opportunityId = "door-$index",
+                title = "Opportunity $index",
+                timing = if (index == 4) PlanTimingStatus.MISSES_KNOWN_DEADLINE else PlanTimingStatus.WITHIN_KNOWN_DEADLINE,
+            )
+        }
+        val state = plannedState.copy(plan = plannedState.plan!!.copy(candidateCheckChanges = impacts))
+        setContent {
+            AppTheme {
+                ActivePlanScreen(
+                    uiState = state,
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                    onBrowseActions = {},
+                    onPreviewImpact = {},
+                    onUpdateProfile = {},
+                )
+            }
+        }
+
+        onNodeWithText("Deadline concern", substring = true).assertExists()
+        onNodeWithTag("active-plan-list").performScrollToNode(hasTestTag("plan-candidate-impact-count"))
+        onNodeWithText("5 opportunities have a potential check change").assertExists()
+        onNodeWithText("4 not ruled out by a known deadline").assertExists()
+        onNodeWithTag("plan-impact-expand").performScrollTo().performClick()
+        onNodeWithTag("plan-impact-door-4").assertExists()
+        onNodeWithText("Estimate may miss the published deadline").assertExists()
+    }
+
     private val completedState = ActivePlanUiState(
         isLoading = false,
         plan = ActivePlanCardUiState(
@@ -72,18 +161,31 @@ class ActivePlanUiTest {
             targetLabel = "7.0 band",
             status = ActivePlanStatusUi.COMPLETED,
             statusLabel = "Work marked complete",
-            durationLabel = "45-day working window",
-            effortLabel = "Medium",
-            costLabel = "Low",
+            durationLabel = "Time estimate · 45 days (Porta assumption)",
+            effortLabel = "Effort · Medium",
+            costLabel = "Cost · Low",
             evidenceLabel = "Official score report",
-            affectedDoorTitles = listOf("Aurora Scholars"),
+            candidateCheckChanges = listOf(
+                PlanOpportunityImpactUiState("aurora", "Aurora Scholars", PlanTimingStatus.WITHIN_KNOWN_DEADLINE),
+            ),
             riskNote = "Synthetic pack; confirm real deadlines.",
             updatedLabel = "Updated 21.10.2026",
-            progress = 1f,
-            checklist = listOf(
-                PlanStepUiState("Milestone saved locally", true),
-                PlanStepUiState("Work started", true),
-                PlanStepUiState("Milestone marked complete", true),
+            steps = listOf(
+                PlanStepUiState("Plan saved", PlanStepState.DONE),
+                PlanStepUiState("Work marked complete", PlanStepState.DONE),
+                PlanStepUiState("Confirm actual result", PlanStepState.NEXT),
+            ),
+        ),
+    )
+
+    private val plannedState = completedState.copy(
+        plan = completedState.plan!!.copy(
+            status = ActivePlanStatusUi.PLANNED,
+            statusLabel = "Planned",
+            steps = listOf(
+                PlanStepUiState("Plan saved", PlanStepState.DONE),
+                PlanStepUiState("Start the work", PlanStepState.NEXT),
+                PlanStepUiState("Confirm actual result", PlanStepState.LATER),
             ),
         ),
     )

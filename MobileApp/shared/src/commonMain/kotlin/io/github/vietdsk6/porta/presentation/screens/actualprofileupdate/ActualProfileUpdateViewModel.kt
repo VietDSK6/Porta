@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.presentation.screens.actualprofileupdate
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
@@ -11,6 +12,7 @@ import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactProvenance
 import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileFact
@@ -18,6 +20,8 @@ import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.findAtomicRule
+import io.github.vietdsk6.porta.domain.model.fingerprint
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,15 +36,17 @@ class ActualProfileUpdateViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
     private val ruleAssertionRepository: RuleAssertionRepository,
+    private val opportunityPackRepository: OpportunityPackRepository,
 ) : ViewModel() {
     private val formState = MutableStateFlow(FormState())
 
     val uiState: StateFlow<ActualProfileUpdateUiState> = combine(
         planRepository.observeCurrentPlan(),
         profileRepository.observeProfile(),
+        opportunityPackRepository.observeActive(),
         formState,
-    ) { plan, profile, form ->
-        plan.toUiState(profile, form)
+    ) { plan, profile, packResult, form ->
+        plan.toUiState(profile, packResult.getOrNull(), form)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -79,7 +85,7 @@ class ActualProfileUpdateViewModel(
             }
 
             is ActualProfileUpdateUiEvent.EvidenceLabelChanged -> formState.update {
-                it.copy(evidenceLabel = event.value, error = null)
+                it.copy(evidenceLabel = event.value, evidenceLabelTouched = true, error = null)
             }
 
             is ActualProfileUpdateUiEvent.EvidenceReferenceChanged -> formState.update {
@@ -94,7 +100,10 @@ class ActualProfileUpdateViewModel(
 
     private fun confirmActualValue() {
         val state = uiState.value
-        if (!state.canConfirm) return
+        if (!state.canConfirm) {
+            formState.update { it.copy(submitted = true) }
+            return
+        }
 
         viewModelScope.launch {
             formState.update { it.copy(isSaving = true, error = null) }
@@ -108,6 +117,16 @@ class ActualProfileUpdateViewModel(
                     it.copy(
                         isSaving = false,
                         error = "This plan changed. Return to the active plan and review it again.",
+                    )
+                }
+                return@launch
+            }
+
+            if (!plan.scopeIsCurrent(opportunityPackRepository.getActive().getOrNull())) {
+                formState.update {
+                    it.copy(
+                        isSaving = false,
+                        error = "This programme check changed. Review the current source before confirming a result.",
                     )
                 }
                 return@launch
@@ -206,16 +225,21 @@ class ActualProfileUpdateViewModel(
 
     private fun PlanItem?.toUiState(
         profile: ProfileSnapshot,
+        pack: OpportunityPackDocument?,
         form: FormState,
     ): ActualProfileUpdateUiState {
         if (this == null) return ActualProfileUpdateUiState(isLoading = false)
 
+        val scopedTarget = target as? ActionTarget.OpportunityRuleTarget
+        val scopedOpportunity = pack?.opportunities?.firstOrNull { it.id == scopedTarget?.opportunityId }
+        val scopedRule = scopedTarget?.let { scopedOpportunity?.eligibilityRule?.findAtomicRule(it.ruleId) }
+        val scopeIsCurrent = scopeIsCurrent(pack)
         val currentValue = when (val actionTarget = target) {
             is ActionTarget.ProfileFactTarget -> profile.facts[actionTarget.factKey]?.value
 
             is ActionTarget.OpportunityRuleTarget -> profile.ruleAssertions[
                 RuleRef(actionTarget.opportunityId, actionTarget.ruleId),
-            ]?.value
+            ]?.takeIf { it.ruleFingerprint == actionTarget.ruleFingerprint }?.value
         }
         return ActualProfileUpdateUiState(
             isLoading = false,
@@ -225,8 +249,15 @@ class ActualProfileUpdateViewModel(
                 is ActionTarget.ProfileFactTarget -> targetFactKey.label()
                 is ActionTarget.OpportunityRuleTarget -> "Programme-specific ${targetFactKey.label().lowercase()}"
             },
-            scopeDescription = (target as? ActionTarget.OpportunityRuleTarget)?.let {
-                "Programme ${it.opportunityId} · requirement ${it.ruleId}"
+            scopeDescription = scopedTarget?.let {
+                val programme = scopedOpportunity?.title ?: "This programme"
+                val requirement = scopedRule?.explanation ?: targetFactKey.label()
+                "$programme · $requirement"
+            },
+            scopeWarning = if (scopeIsCurrent) {
+                null
+            } else {
+                "This programme check has changed or is unavailable. Review the current source before confirming a result."
             },
             currentValueLabel = currentValue?.displayValue() ?: "Not confirmed",
             plannedTargetLabel = targetValue.displayValue(),
@@ -238,11 +269,23 @@ class ActualProfileUpdateViewModel(
             isEvidenceRequired = target is ActionTarget.OpportunityRuleTarget,
             evidenceLabel = form.evidenceLabel,
             evidenceReference = form.evidenceReference,
+            showEvidenceLabelError = (form.evidenceLabelTouched || form.submitted) &&
+                form.includeEvidence && form.evidenceLabel.isBlank(),
             isSaving = form.isSaving,
             isSaved = form.isSaved,
             error = form.error,
             achievedValueError = form.validationError(targetFactKey, targetValue),
         )
+    }
+
+    private fun PlanItem.scopeIsCurrent(pack: OpportunityPackDocument?): Boolean {
+        val scopedTarget = target as? ActionTarget.OpportunityRuleTarget ?: return true
+        val rule = pack?.opportunities
+            ?.firstOrNull { it.id == scopedTarget.opportunityId }
+            ?.eligibilityRule
+            ?.findAtomicRule(scopedTarget.ruleId)
+            ?: return false
+        return rule.factKey == scopedTarget.factKey && rule.fingerprint() == scopedTarget.ruleFingerprint
     }
 
     private fun FormState.toFactValue(targetValue: FactValue): FactValue? = when (targetValue) {
@@ -351,43 +394,22 @@ class ActualProfileUpdateViewModel(
         val includeEvidence: Boolean = false,
         val evidenceLabel: String = "",
         val evidenceReference: String = "",
+        val evidenceLabelTouched: Boolean = false,
+        val submitted: Boolean = false,
         val isSaving: Boolean = false,
         val isSaved: Boolean = false,
         val error: String? = null,
     ) {
         companion object {
-            fun from(plan: PlanItem): FormState {
-                val initial = when (val target = plan.targetValue) {
-                    is FactValue.BooleanValue -> FormState(
-                        planId = plan.id,
-                        inputKind = ActualValueInputKind.BOOLEAN,
-                        achievedBoolean = target.value,
-                    )
-
-                    is FactValue.NumberValue -> FormState(
-                        planId = plan.id,
-                        inputKind = ActualValueInputKind.NUMBER,
-                        achievedValue = target.amount.toInputText(),
-                    )
-
-                    is FactValue.EnumValue -> FormState(
-                        planId = plan.id,
-                        inputKind = ActualValueInputKind.TEXT,
-                        achievedValue = target.value,
-                    )
-
-                    is FactValue.TextValue -> FormState(
-                        planId = plan.id,
-                        inputKind = ActualValueInputKind.TEXT,
-                        achievedValue = target.value,
-                    )
-
-                    else -> FormState(planId = plan.id, inputKind = ActualValueInputKind.TEXT)
-                }
-                return initial.copy(
-                    includeEvidence = plan.target is ActionTarget.OpportunityRuleTarget,
-                )
-            }
+            fun from(plan: PlanItem): FormState = FormState(
+                planId = plan.id,
+                inputKind = when (plan.targetValue) {
+                    is FactValue.BooleanValue -> ActualValueInputKind.BOOLEAN
+                    is FactValue.NumberValue -> ActualValueInputKind.NUMBER
+                    else -> ActualValueInputKind.TEXT
+                },
+                includeEvidence = plan.target is ActionTarget.OpportunityRuleTarget,
+            )
         }
     }
 }

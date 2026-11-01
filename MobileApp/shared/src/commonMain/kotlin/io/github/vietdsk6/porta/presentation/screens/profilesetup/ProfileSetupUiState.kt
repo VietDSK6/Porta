@@ -96,6 +96,16 @@ data class ProfileSetupUiState(
             else -> null
         }
 
+    val nationalityError: String?
+        get() = nationality.takeIf(String::isNotBlank)
+            ?.takeIf { countryForStoredValue(it) == null }
+            ?.let { "Choose a country from the list" }
+
+    val residencyError: String?
+        get() = residency.takeIf(String::isNotBlank)
+            ?.takeIf { countryForStoredValue(it) == null }
+            ?.let { "Choose a country from the list" }
+
     val canSave: Boolean
         get() = saveDisabledReason == null && !isSaving
 
@@ -112,6 +122,10 @@ data class ProfileSetupUiState(
             ageError != null -> "Check the age value before saving."
 
             dateOfBirthError != null -> "Check the date of birth before saving."
+
+            nationalityError != null -> "Choose a valid nationality before saving."
+
+            residencyError != null -> "Choose a valid country of residence before saving."
 
             experienceMonthsError != null -> "Check the experience duration before saving."
 

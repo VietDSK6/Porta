@@ -19,7 +19,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +47,9 @@ fun StudentProfileScreen(
     viewModel: StudentProfileViewModel,
     onEditProfile: () -> Unit,
     onOpenPackInspector: () -> Unit,
+    onOpenDataPrivacy: () -> Unit,
+    saveNotice: Boolean = false,
+    onSaveNoticeDismissed: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -58,6 +59,9 @@ fun StudentProfileScreen(
         onUiEvent = viewModel::onUiEvent,
         onEditProfile = onEditProfile,
         onOpenPackInspector = onOpenPackInspector,
+        onOpenDataPrivacy = onOpenDataPrivacy,
+        saveNotice = saveNotice,
+        onSaveNoticeDismissed = onSaveNoticeDismissed,
     )
 }
 
@@ -68,6 +72,9 @@ fun StudentProfileScreen(
     onUiEvent: (StudentProfileUiEvent) -> Unit,
     onEditProfile: () -> Unit,
     onOpenPackInspector: () -> Unit,
+    onOpenDataPrivacy: () -> Unit = {},
+    saveNotice: Boolean = false,
+    onSaveNoticeDismissed: () -> Unit = {},
 ) {
     ScreenWithToolbar(
         modifier = modifier,
@@ -106,25 +113,15 @@ fun StudentProfileScreen(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
                     onEditProfile = onEditProfile,
+                    saveNotice = saveNotice,
+                    onSaveNoticeDismissed = onSaveNoticeDismissed,
                 )
             }
 
             if (!uiState.isLoading) {
-                DataControls(
-                    hasProfile = uiState.hasRealProfile,
+                DataPrivacyEntry(
                     isWorking = uiState.isWorking,
-                    onOpenPackInspector = onOpenPackInspector,
-                    onExport = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
-                    onClearProfile = {
-                        onUiEvent(
-                            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.CLEAR_PROFILE_AND_PLANS),
-                        )
-                    },
-                    onResetAll = {
-                        onUiEvent(
-                            StudentProfileUiEvent.DataActionRequested(ProfileDataAction.RESET_ALL_LOCAL_DATA),
-                        )
-                    },
+                    onClick = onOpenDataPrivacy,
                 )
             }
 
@@ -152,30 +149,6 @@ fun StudentProfileScreen(
             dismissButton = {
                 TextButton(onClick = { onUiEvent(StudentProfileUiEvent.DeleteFactCancelled) }) {
                     Text("Cancel")
-                }
-            },
-        )
-    }
-
-    uiState.pendingDataAction?.let { action ->
-        AlertDialog(
-            modifier = Modifier.testTag("student-profile-data-confirmation"),
-            onDismissRequest = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) },
-            title = { Text(action.confirmationTitle()) },
-            text = {
-                Text(action.confirmationBody())
-            },
-            confirmButton = {
-                TextButton(
-                    modifier = Modifier.testTag("student-profile-data-confirm"),
-                    onClick = { onUiEvent(StudentProfileUiEvent.DataActionConfirmed) },
-                ) {
-                    Text(action.confirmationButton())
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) }) {
-                    Text("Keep data")
                 }
             },
         )
@@ -256,8 +229,17 @@ private fun ProfileContent(
     uiState: StudentProfileUiState,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
     onEditProfile: () -> Unit,
+    saveNotice: Boolean,
+    onSaveNoticeDismissed: () -> Unit,
 ) {
     ProfileIdentity(uiState = uiState)
+
+    if (saveNotice) {
+        MessageNotice(
+            message = "Profile saved on this device. Current opportunity checks will use these values.",
+            onDismiss = onSaveNoticeDismissed,
+        )
+    }
 
     if (uiState.uncheckedFacts.isNotEmpty()) {
         UncheckedFactsNotice(
@@ -295,19 +277,24 @@ private fun UncheckedFactsNotice(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "NOT CHECKED YET",
-                color = AppTheme.colors.primary,
-                style = AppTheme.typography.bodyExtraSmall,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.7.sp,
-            )
-            Text(
-                text = "${facts.size} missing ${if (facts.size == 1) "fact keeps" else "facts keep"} some door checks unknown.",
+                text = if (facts.size == 1) {
+                    "A current rule also references ${facts.single().label.lowercase()}"
+                } else {
+                    "${facts.size} more details appear in current rules"
+                },
                 style = AppTheme.typography.bodyLarge,
                 color = AppTheme.colors.text.primary,
                 fontWeight = FontWeight.SemiBold,
             )
-            facts.take(4).forEach { fact ->
+            if (facts.size == 1) {
+                val dependentCount = facts.single().dependentDoorCount
+                Text(
+                    text = "$dependentCount ${if (dependentCount == 1) "opportunity references it" else "opportunities reference it"}",
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.text.secondary,
+                )
+            }
+            facts.take(if (facts.size == 1) 0 else 3).forEach { fact ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -320,23 +307,23 @@ private fun UncheckedFactsNotice(
                     )
                     Text(
                         text = when (fact.dependentDoorCount) {
-                            1 -> "1 door"
-                            else -> "${fact.dependentDoorCount} doors"
+                            1 -> "1 opportunity"
+                            else -> "${fact.dependentDoorCount} opportunities"
                         },
                         style = AppTheme.typography.bodySmall,
                         color = AppTheme.colors.text.secondary,
                     )
                 }
             }
-            if (facts.size > 4) {
+            if (facts.size > 3) {
                 Text(
-                    text = "+${facts.size - 4} more optional facts",
+                    text = "+${facts.size - 3} more details in Edit profile",
                     style = AppTheme.typography.bodySmall,
                     color = AppTheme.colors.text.secondary,
                 )
             }
             Text(
-                text = "Missing never means failed. Add a fact only when you know it.",
+                text = "A missing detail can leave a check unknown. It never means failed.",
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.text.secondary,
             )
@@ -357,8 +344,6 @@ private fun ProfileIdentity(uiState: StudentProfileUiState) {
     val studyLevel = facts.valueOf(FactKey.STUDY_LEVEL)?.sentenceCase()
     val nationality = facts.valueOf(FactKey.NATIONALITY)
     val identityLine = listOfNotNull(studyLevel, nationality).joinToString(" · ")
-    val usedByDoorCount = facts.flatMap(ProfileFactUiState::dependentDoorTitles).distinct().size
-    val evidenceCount = facts.count { it.evidenceLabel != null }
 
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("student-profile-summary"),
@@ -401,17 +386,27 @@ private fun ProfileIdentity(uiState: StudentProfileUiState) {
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ProfilePill("${uiState.factCount} facts")
-                ProfilePill("$usedByDoorCount doors")
-                if (evidenceCount > 0) ProfilePill("$evidenceCount documented")
-            }
+            ProfilePill("${uiState.factCount} ${if (uiState.factCount == 1) "detail" else "details"} provided")
 
             Text(
-                text = "Private by design · stored only on this device",
+                text = when {
+                    uiState.catalogOpportunityCount == 0 -> "No opportunities are in the current catalog."
+
+                    uiState.dependentOpportunityCount == 0 -> {
+                        "No current pack rules reference these details yet."
+                    }
+
+                    else -> {
+                        "Rules in ${uiState.dependentOpportunityCount} of " +
+                            "${uiState.catalogOpportunityCount} catalog opportunities reference your details."
+                    }
+                },
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.text.secondary,
+            )
+
+            Text(
+                text = "Saved on this device · references are not independently verified",
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.text.secondary,
             )
@@ -508,11 +503,6 @@ private fun FactSection(
                     color = AppTheme.colors.text.primary,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(
-                    text = section.description,
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.text.secondary,
-                )
             }
             Text(
                 text = section.facts.size.toString().padStart(2, '0'),
@@ -603,35 +593,8 @@ private fun FactRow(
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "${fact.provenanceLabel} · ${fact.actionabilityLabel}",
-                modifier = Modifier.weight(1f),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.text.secondary,
-            )
-            DoorCountBadge(fact.dependentDoorTitles.size)
-        }
-
-        fact.evidenceLabel?.let { evidence ->
-            Text(
-                text = "Evidence · $evidence",
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.primary,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-
-        if (fact.isGrowthEvidence) {
-            Text(
-                text = "Growth evidence · never used to auto-pass a hard requirement",
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.text.secondary,
-            )
+        if (fact.dependentDoorTitles.isNotEmpty()) {
+            OpportunityCountBadge(fact.dependentDoorTitles.size)
         }
 
         if (expanded) {
@@ -641,21 +604,19 @@ private fun FactRow(
 }
 
 @Composable
-private fun DoorCountBadge(count: Int) {
-    val hasDependencies = count > 0
+private fun OpportunityCountBadge(count: Int) {
     Surface(
-        color = if (hasDependencies) AppTheme.colors.alternative else AppTheme.colors.background,
+        color = AppTheme.colors.alternative,
         shape = CircleShape,
     ) {
         Text(
             text = when (count) {
-                0 -> "No doors"
-                1 -> "1 door"
-                else -> "$count doors"
+                1 -> "1 opportunity references this"
+                else -> "$count opportunities reference this"
             },
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
             style = AppTheme.typography.bodyExtraSmall,
-            color = if (hasDependencies) AppTheme.colors.primary else AppTheme.colors.text.secondary,
+            color = AppTheme.colors.primary,
             fontWeight = FontWeight.Bold,
         )
     }
@@ -676,7 +637,7 @@ private fun DependencyDetails(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = if (fact.dependentDoorTitles.isEmpty()) "NO RULE DEPENDENCIES" else "USED BY THESE DOORS",
+                text = if (fact.dependentDoorTitles.isEmpty()) "CURRENT PACK" else "RULES REFERENCE THIS IN",
                 style = AppTheme.typography.bodyExtraSmall,
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.ExtraBold,
@@ -684,7 +645,7 @@ private fun DependencyDetails(
             )
             if (fact.dependentDoorTitles.isEmpty()) {
                 Text(
-                    text = "No encoded rule in the current pack reads this fact.",
+                    text = "No current pack rule references ${fact.label.lowercase()}. Other programmes may use it.",
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.text.primary,
                 )
@@ -697,6 +658,25 @@ private fun DependencyDetails(
                     )
                 }
             }
+            Text(
+                text = "${fact.provenanceLabel} · ${fact.actionabilityLabel}",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
+            fact.evidenceLabel?.let { evidence ->
+                Text(
+                    text = "Evidence reference · $evidence",
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.text.secondary,
+                )
+            }
+            if (fact.isGrowthEvidence) {
+                Text(
+                    text = "Growth evidence does not automatically pass a published check.",
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.text.secondary,
+                )
+            }
             TextButton(
                 modifier = Modifier.testTag("student-profile-delete-${fact.key.name.lowercase()}"),
                 onClick = onDelete,
@@ -708,93 +688,56 @@ private fun DependencyDetails(
 }
 
 @Composable
-private fun DataControls(
-    hasProfile: Boolean,
+private fun DataPrivacyEntry(
     isWorking: Boolean,
-    onOpenPackInspector: () -> Unit,
-    onExport: () -> Unit,
-    onClearProfile: () -> Unit,
-    onResetAll: () -> Unit,
+    onClick: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Privacy & data",
-                style = AppTheme.typography.h5,
-                color = AppTheme.colors.text.primary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "Review what uses your profile, take a copy, or remove it.",
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.text.secondary,
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth().testTag("student-profile-data-controls"),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-            border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("student-profile-data-privacy")
+            .clickable(enabled = !isWorking, role = Role.Button, onClick = onClick),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.32f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                DataActionRow(
-                    title = "Opportunity pack",
-                    supportingText = "See which encoded rules read your facts.",
-                    actionLabel = "Inspect",
-                    modifier = Modifier.testTag("student-profile-pack-inspector"),
-                    enabled = !isWorking,
-                    onClick = onOpenPackInspector,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "Data & privacy",
+                    style = AppTheme.typography.bodyLarge,
+                    color = AppTheme.colors.text.primary,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = AppTheme.colors.outline.copy(alpha = 0.24f),
-                )
-                DataActionRow(
-                    title = "Profile metadata",
-                    supportingText = "Export values and evidence metadata as JSON.",
-                    actionLabel = "Export",
-                    modifier = Modifier.testTag("student-profile-export"),
-                    enabled = hasProfile && !isWorking,
-                    onClick = onExport,
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = AppTheme.colors.outline.copy(alpha = 0.24f),
-                )
-                DataActionRow(
-                    title = "Academic profile and plans",
-                    supportingText = "Remove facts, confirmations, and plans. Keep saved doors, catalog, and preferences.",
-                    actionLabel = "Clear",
-                    modifier = Modifier.testTag("student-profile-clear"),
-                    enabled = hasProfile && !isWorking,
-                    actionColor = MaterialTheme.colorScheme.error,
-                    onClick = onClearProfile,
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = AppTheme.colors.outline.copy(alpha = 0.24f),
-                )
-                DataActionRow(
-                    title = "All Porta data on this device",
-                    supportingText = "Remove profile, plans, saved doors, imported catalogs, and preferences.",
-                    actionLabel = "Reset",
-                    modifier = Modifier.testTag("student-profile-reset-all"),
-                    enabled = !isWorking,
-                    actionColor = MaterialTheme.colorScheme.error,
-                    onClick = onResetAll,
+                Text(
+                    text = "Inspect sources, export or remove local data",
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.text.secondary,
                 )
             }
+            Text(
+                text = "Open",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.primary,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }
 
-private fun ProfileDataAction.confirmationTitle(): String = when (this) {
+internal fun ProfileDataAction.confirmationTitle(): String = when (this) {
     ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> "Clear academic profile and plans?"
     ProfileDataAction.RESET_ALL_LOCAL_DATA -> "Reset Porta on this device?"
 }
 
-private fun ProfileDataAction.confirmationBody(): String = when (this) {
+internal fun ProfileDataAction.confirmationBody(): String = when (this) {
     ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> {
         "This permanently removes profile facts, programme confirmations, and plans. " +
             "Saved doors, the opportunity catalog, and planning preferences stay on this device."
@@ -807,52 +750,9 @@ private fun ProfileDataAction.confirmationBody(): String = when (this) {
     }
 }
 
-private fun ProfileDataAction.confirmationButton(): String = when (this) {
+internal fun ProfileDataAction.confirmationButton(): String = when (this) {
     ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> "Clear profile and plans"
     ProfileDataAction.RESET_ALL_LOCAL_DATA -> "Reset Porta"
-}
-
-@Composable
-private fun DataActionRow(
-    title: String,
-    supportingText: String,
-    actionLabel: String,
-    modifier: Modifier = Modifier,
-    enabled: Boolean,
-    actionColor: Color = AppTheme.colors.primary,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                text = title,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.text.primary.copy(alpha = if (enabled) 1f else 0.5f),
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = supportingText,
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.text.secondary.copy(alpha = if (enabled) 1f else 0.5f),
-            )
-        }
-        Text(
-            text = actionLabel,
-            style = AppTheme.typography.bodyMedium,
-            color = actionColor.copy(alpha = if (enabled) 1f else 0.5f),
-            fontWeight = FontWeight.Bold,
-        )
-    }
 }
 
 @Composable
@@ -906,6 +806,7 @@ private fun StudentProfileScreenPreview() {
             onUiEvent = {},
             onEditProfile = {},
             onOpenPackInspector = {},
+            onOpenDataPrivacy = {},
         )
     }
 }
@@ -919,27 +820,21 @@ private fun StudentProfileExpandedScreenPreview() {
             onUiEvent = {},
             onEditProfile = {},
             onOpenPackInspector = {},
+            onOpenDataPrivacy = {},
         )
     }
 }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun StudentProfileDataControlsPreview() {
+private fun StudentProfileDataPrivacyEntryPreview() {
     AppTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = AppTheme.colors.background,
         ) {
             Box(modifier = Modifier.padding(24.dp)) {
-                DataControls(
-                    hasProfile = true,
-                    isWorking = false,
-                    onOpenPackInspector = {},
-                    onExport = {},
-                    onClearProfile = {},
-                    onResetAll = {},
-                )
+                DataPrivacyEntry(isWorking = false, onClick = {})
             }
         }
     }
@@ -948,7 +843,9 @@ private fun StudentProfileDataControlsPreview() {
 private val previewState = StudentProfileUiState(
     isLoading = false,
     hasRealProfile = true,
-    factCount = 10,
+    factCount = 9,
+    catalogOpportunityCount = 15,
+    dependentOpportunityCount = 9,
     isSampleCatalog = false,
     expandedFactKey = null,
     sections = listOf(
@@ -1051,8 +948,8 @@ private val previewState = StudentProfileUiState(
             ),
         ),
         ProfileFactSectionUiState(
-            title = "Experience and availability",
-            description = "Experience, projects and time commitments.",
+            title = "Experience and evidence",
+            description = "Experience and documented projects.",
             facts = listOf(
                 ProfileFactUiState(
                     key = FactKey.EXPERIENCE_MONTHS,
@@ -1062,20 +959,6 @@ private val previewState = StudentProfileUiState(
                     actionabilityLabel = "Changes with time",
                     evidenceLabel = null,
                     dependentDoorTitles = listOf("DAAD EPOS", "Joint Japan/World Bank Graduate Scholarship"),
-                ),
-                ProfileFactUiState(
-                    key = FactKey.AVAILABLE_FULL_PERIOD,
-                    label = "Available for full period",
-                    value = "No",
-                    provenanceLabel = "Self-reported",
-                    actionabilityLabel = "Can change",
-                    evidenceLabel = null,
-                    dependentDoorTitles = listOf(
-                        "OECD Internship Programme",
-                        "World Bank Treasury Summer Internship",
-                        "ESA Student Internships",
-                        "CERN openlab Summer Student Programme",
-                    ),
                 ),
             ),
         ),

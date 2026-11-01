@@ -3,8 +3,56 @@ package io.github.vietdsk6.porta.presentation.components
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityReceipt
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.RuleResult
+
+data class EligibilityDisplayCopy(
+    val statusLabel: String,
+    val requirementLabel: String,
+    val shortReason: String,
+    val timingLabel: String,
+)
+
+/** One presentation projection shared by the catalog and the opportunity receipt. */
+fun EligibilityReceipt.displayCopy(): EligibilityDisplayCopy {
+    val firstFailure = rules.firstOrNull { it.result == RuleResult.FAIL }
+    val firstUnknown = rules.firstOrNull { it.result == RuleResult.UNKNOWN }
+    val needsManualReview = rules.any { it.result == RuleResult.REVIEW }
+    val reason = when {
+        cycleStatus == OpportunityCycleStatus.ARCHIVED -> "Past cycle; check the provider for a new call."
+
+        state == EligibilityState.CLOSED -> "Application window closed for this cycle."
+
+        state == EligibilityState.NOT_ACTIONABLE -> "A requirement is not changeable for this cycle."
+
+        rootResult == RuleResult.PASS && deadline !is Deadline.Known -> "Confirm the current application dates."
+
+        rootResult == RuleResult.PASS -> "The checks Porta can assess pass; selection is separate."
+
+        rootResult == RuleResult.FAIL && firstFailure != null -> firstFailure.factKey?.let { "Review the ${it.shortLabel()} requirement." }
+            ?: "Review an unmet programme requirement."
+
+        rootResult == RuleResult.FAIL -> "Review an unmet programme requirement."
+
+        rootResult == RuleResult.REVIEW -> "Confirm a condition with the official source."
+
+        firstUnknown != null -> firstUnknown.factKey?.let { "Add or confirm ${it.shortLabel()}." }
+            ?: "A required detail is missing."
+
+        needsManualReview -> "Confirm a condition with the official source."
+
+        else -> "Review the published conditions."
+    }
+    return EligibilityDisplayCopy(
+        statusLabel = headlineLabel(),
+        requirementLabel = requirementAssessmentLabel(),
+        shortReason = reason,
+        timingLabel = timingLabel(),
+    )
+}
+
+private fun FactKey.shortLabel(): String = name.lowercase().replace('_', ' ')
 
 /**
  * User-facing language for Porta's deterministic rule assessment.

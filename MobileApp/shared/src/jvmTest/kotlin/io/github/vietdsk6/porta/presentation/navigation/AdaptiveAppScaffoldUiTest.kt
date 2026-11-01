@@ -18,7 +18,7 @@ import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_home
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
-import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_home
+import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_doors
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
@@ -68,7 +68,7 @@ class AdaptiveAppScaffoldUiTest {
 
     private val items = listOf(
         BottomNavItem(
-            label = Res.string.bottom_nav_label_home,
+            label = Res.string.bottom_nav_label_doors,
             icon = UiRes.drawable.ic_home,
         ),
     )

@@ -245,8 +245,10 @@ class PersistedProfileViewModelTest {
         assertFalse(frontier.uiState.value.isSampleCatalog)
         assertEquals(4, frontier.uiState.value.actions.size)
         assertTrue(frontier.uiState.value.actions.all { it.improvedCount == 1 })
+        assertTrue(frontier.uiState.value.actions.all { it.changedCheckCount == 1 })
         assertEquals(4, frontier.uiState.value.actions.map { it.title }.distinct().size)
-        assertTrue(frontier.uiState.value.actions.all { it.title.startsWith("Confirm full-period availability for ") })
+        assertTrue(frontier.uiState.value.actions.all { it.title.startsWith("Confirm your availability for ") })
+        assertTrue(frontier.uiState.value.actions.all { it.programmeTitle != null })
         assertTrue(frontier.uiState.value.actions.all { it.kind == FrontierMoveKind.VERIFY })
         assertTrue(frontier.uiState.value.actions.all { "Porta assumption" in it.estimateSourceLabel })
         assertEquals(180, frontier.uiState.value.suggestedGrowthHorizonDays)
@@ -390,6 +392,7 @@ class PersistedProfileViewModelTest {
         assertFalse(frontier.uiState.value.isSampleMode)
         val action = frontier.uiState.value.actions.first()
         assertEquals("6.5 band", action.currentLabel)
+        assertEquals(4, action.changedCheckCount)
         assertEquals(action.id, frontier.uiState.value.selectedActionId)
         assertTrue(action.doorComparisons.any { it.previewStateLabel == "Assessed rules passed" })
         val scenario = ScenarioPreviewViewModel(
@@ -404,7 +407,9 @@ class PersistedProfileViewModelTest {
 
         assertFalse(scenario.uiState.value.isSampleProfile)
         assertEquals("6.5 band", scenario.uiState.value.beforeLabel)
+        assertEquals(4, scenario.uiState.value.affectedDoors.size)
         assertEquals(4, scenario.uiState.value.openedDoors.size)
+        assertEquals(4, scenario.uiState.value.affectedDoors.map { it.id }.toSet().size)
         assertEquals(
             FactValue.NumberValue(6.5, "band"),
             repository.getProfile().getOrThrow().facts[FactKey.IELTS_SCORE]?.value,
@@ -438,6 +443,10 @@ class PersistedProfileViewModelTest {
         assertTrue(frontier.uiState.value.exclusions.isNotEmpty())
         assertTrue(scenario.uiState.value.openedDoors.isEmpty())
         assertEquals(4, scenario.uiState.value.progressedDoors.size)
+        assertEquals(
+            scenario.uiState.value.affectedDoors.map { it.id },
+            scenario.uiState.value.progressedDoors.map { it.id },
+        )
         assertTrue(scenario.uiState.value.progressedDoors.all { it.timingWarning != null })
         assertEquals(1, scenario.uiState.value.unchangedDoors.size)
     }
@@ -468,11 +477,12 @@ class PersistedProfileViewModelTest {
         )
         assertEquals(
             listOf("oecd-internship-rolling"),
-            (scenario.uiState.value.openedDoors + scenario.uiState.value.progressedDoors)
-                .map { it.id },
+            scenario.uiState.value.affectedDoors.map { it.id },
         )
-        val oecd = (scenario.uiState.value.openedDoors + scenario.uiState.value.progressedDoors).single()
+        val oecd = scenario.uiState.value.affectedDoors.single()
         assertEquals(listOf("oecd-availability"), oecd.changedRules.map { it.id })
+        assertTrue(oecd.sourceUrl.startsWith("https://"))
+        assertTrue(oecd.lastCheckedLabel.startsWith("Source checked "))
         assertTrue(oecd.changedRules.single().resultTransitionLabel.contains("Check passed"))
         assertTrue(oecd.remainingBlockers.any { it.startsWith("Still needs information:") })
         assertTrue(oecd.remainingBlockers.any { it.startsWith("Still needs source review:") })

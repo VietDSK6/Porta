@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,7 +81,8 @@ fun OpportunityDetailScreen(
     ScreenWithToolbar(
         modifier = modifier.testTag("opportunity-receipt-screen"),
         isScrollableContent = false,
-        title = "Opportunity details",
+        title = "Details",
+        titleContent = { Text("Details", style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
@@ -142,11 +141,7 @@ private fun CompactOpportunityDetailContent(
     ) {
         item { OpportunityHeader(uiState) }
         item { CurrentConclusion(uiState) }
-        item {
-            if (uiState.rules.any { it.result == RuleResult.FAIL }) {
-                NeedsActionSection(uiState)
-            }
-        }
+        item { ChecksSection(uiState) }
         item {
             if (uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
                 SuggestedNextMoveSection(
@@ -165,13 +160,7 @@ private fun CompactOpportunityDetailContent(
                 )
             }
         }
-        item {
-            if (uiState.rules.any { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }) {
-                NeedsInformationSection(uiState)
-            }
-        }
-        item { EvidenceDisclosure(uiState) }
-        item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
+        item { EvidenceAndSources(uiState = uiState, onOpenSource = onOpenSource) }
     }
 }
 
@@ -203,9 +192,7 @@ private fun WideOpportunityDetailContent(
             ) {
                 item { OpportunityHeader(uiState) }
                 item { CurrentConclusion(uiState) }
-                if (uiState.rules.any { it.result == RuleResult.FAIL }) {
-                    item { NeedsActionSection(uiState) }
-                }
+                item { ChecksSection(uiState) }
                 item {
                     if (uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
                         SuggestedNextMoveSection(
@@ -232,41 +219,122 @@ private fun WideOpportunityDetailContent(
                     .testTag("opportunity-detail-evidence-pane"),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                if (uiState.rules.any { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) }) {
-                    item { NeedsInformationSection(uiState) }
-                }
-                item { EvidenceDisclosure(uiState) }
-                item { SourceDetails(uiState = uiState, onOpenSource = onOpenSource) }
+                item { EvidenceAndSources(uiState = uiState, onOpenSource = onOpenSource) }
             }
         }
     }
 }
 
 @Composable
-private fun NeedsActionSection(uiState: OpportunityDetailUiState) {
-    RuleSection(
-        title = "Needs action",
-        rules = uiState.rules.filter { it.result == RuleResult.FAIL },
-        accent = AppTheme.colors.status.warning,
-    )
+private fun ChecksSection(uiState: OpportunityDetailUiState) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("opportunity-checks"),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Your checks", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
+        if (uiState.rootResult == RuleResult.PASS) {
+            CheckGroup("Met in assessed checks", uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
+            CheckGroup(
+                "Other published routes · not needed for this result",
+                uiState.rules.filter { it.result != RuleResult.PASS },
+                AppTheme.colors.text.secondary,
+                isAlternative = true,
+            )
+        } else {
+            CheckGroup("Needs action", uiState.rules.filter { it.result == RuleResult.FAIL }, AppTheme.colors.status.warning)
+            CheckGroup("Needs information", uiState.rules.filter { it.result == RuleResult.UNKNOWN }, AppTheme.colors.primary)
+            CheckGroup("Needs source review", uiState.rules.filter { it.result == RuleResult.REVIEW }, AppTheme.colors.primary)
+            CheckGroup("Met in assessed checks", uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
+        }
+    }
 }
 
 @Composable
-private fun NeedsInformationSection(uiState: OpportunityDetailUiState) {
-    RuleSection(
-        title = "Needs verification",
-        rules = uiState.rules.filter { it.result in setOf(RuleResult.UNKNOWN, RuleResult.REVIEW) },
-        accent = AppTheme.colors.primary,
-    )
+private fun CheckGroup(label: String, rules: List<RuleReceiptUiState>, accent: Color, isAlternative: Boolean = false) {
+    if (rules.isEmpty()) return
+    Text(label, color = accent, fontWeight = FontWeight.SemiBold, style = AppTheme.typography.bodyMedium)
+    rules.forEach { rule -> RequirementCheckRow(rule, accent, isAlternative) }
 }
 
 @Composable
-private fun PassedChecksSection(uiState: OpportunityDetailUiState) {
-    RuleSection(
-        title = "Passed checks",
-        rules = uiState.rules.filter { it.result == RuleResult.PASS },
-        accent = AppTheme.colors.status.success,
-    )
+private fun RequirementCheckRow(rule: RuleReceiptUiState, accent: Color, isAlternative: Boolean = false) {
+    var expanded by rememberSaveable(rule.id) { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("requirement-check-${rule.id}"),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                rule.shortTitle.ifBlank { "Programme condition" },
+                modifier = Modifier.weight(1f),
+                color = AppTheme.colors.text.primary,
+                style = AppTheme.typography.bodyLarge,
+            )
+            TextButton(modifier = Modifier.testTag("requirement-toggle-${rule.id}"), onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Hide" else "Details")
+            }
+        }
+        Text(
+            if (isAlternative) {
+                "Alternative route; no action needed for the assessed result"
+            } else {
+                when (rule.result) {
+                    RuleResult.PASS -> "Current check passed"
+                    RuleResult.FAIL -> "Required: ${rule.expectedLabel}"
+                    RuleResult.UNKNOWN -> "More information needed"
+                    RuleResult.REVIEW -> "Confirm on the official source"
+                }
+            },
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodySmall,
+        )
+        if (expanded) {
+            Text(rule.explanation, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
+            if (rule.result != RuleResult.REVIEW) {
+                Text(
+                    "Current: ${rule.actualLabel} · Required: ${rule.expectedLabel}",
+                    color = accent,
+                    style = AppTheme.typography.bodySmall,
+                )
+            } else {
+                Text("Confirm with the official source; this is not a missing editable fact.", color = accent, style = AppTheme.typography.bodySmall)
+            }
+            if (rule.sourceNote.isNotBlank()) {
+                Text(rule.sourceNote, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            }
+        }
+        HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.3f))
+    }
+}
+
+@Composable
+private fun EvidenceAndSources(uiState: OpportunityDetailUiState, onOpenSource: (String) -> Unit) {
+    var expanded by rememberSaveable(uiState.id) { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("opportunity-evidence-sources"),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Evidence & sources", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
+        Text(
+            uiState.checkedLabel,
+            color = if (uiState.sourceReviewNeedsAttention) AppTheme.colors.status.warning else AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodySmall,
+        )
+        if (uiState.canOpenSource) {
+            TextButton(modifier = Modifier.testTag("opportunity-open-source"), onClick = { onOpenSource(uiState.sourceUrl) }) {
+                Text("Open official source")
+            }
+        }
+        TextButton(modifier = Modifier.testTag("opportunity-source-toggle"), onClick = { expanded = !expanded }) {
+            Text(if (expanded) "Hide source context" else "Source context & selection factors")
+        }
+        if (expanded) {
+            if (uiState.sourceSection.isNotBlank()) Text("Section: ${uiState.sourceSection}")
+            Text(uiState.disclaimer, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
+            if (uiState.isArchived) Text("Archived cycle retained for reference; excluded from current planning.")
+            if (uiState.softCriteria.isNotEmpty()) SoftSelectionFactors(uiState.softCriteria)
+        }
+    }
 }
 
 @Composable
@@ -294,7 +362,7 @@ private fun SuggestedNextMoveSection(
                     onPreviewAction(actionId)
                 },
             ) {
-                Text(uiState.relatedActionTitle.ifBlank { "Preview this profile change" })
+                Text("Preview impact")
             }
         }
     }
@@ -388,132 +456,13 @@ private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Current conclusion",
-                modifier = Modifier.semantics { heading() },
-                style = AppTheme.typography.h6,
-            )
-            Text(
                 uiState.stateLabel,
                 color = uiState.stateColor(),
                 fontWeight = FontWeight.Bold,
                 style = AppTheme.typography.bodySmall,
             )
-            Text(uiState.conclusionSummary, color = AppTheme.colors.text.primary)
+            Text(uiState.conclusionSummary, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
             Text(uiState.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun RuleSection(
-    title: String,
-    rules: List<RuleReceiptUiState>,
-    accent: Color,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = title,
-            modifier = Modifier.semantics { heading() },
-            style = AppTheme.typography.h6,
-            color = AppTheme.colors.text.primary,
-        )
-        rules.forEachIndexed { index, rule ->
-            RuleRow(rule = rule, accent = accent)
-            if (index != rules.lastIndex) {
-                HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.3f))
-            }
-        }
-    }
-}
-
-@Composable
-@OptIn(ExperimentalLayoutApi::class)
-private fun RuleRow(rule: RuleReceiptUiState, accent: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(rule.explanation, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.text.primary)
-        if (rule.result == RuleResult.REVIEW) {
-            Text(
-                text = "Programme-specific confirmation · ${rule.expectedLabel}",
-                color = accent,
-                fontWeight = FontWeight.SemiBold,
-                style = AppTheme.typography.bodyMedium,
-            )
-        } else {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = rule.actualLabel,
-                    color = accent,
-                    fontWeight = FontWeight.SemiBold,
-                    style = AppTheme.typography.bodyMedium,
-                )
-                Text("→", color = AppTheme.colors.text.secondary)
-                Text(
-                    text = rule.expectedLabel,
-                    fontWeight = FontWeight.SemiBold,
-                    style = AppTheme.typography.bodyMedium,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EvidenceDisclosure(uiState: OpportunityDetailUiState) {
-    var expanded by rememberSaveable(uiState.id) { mutableStateOf(false) }
-    val passedRules = uiState.rules.filter { it.result == RuleResult.PASS }
-    val sourceNotes = uiState.rules.map(RuleReceiptUiState::sourceNote).filter(String::isNotBlank).distinct()
-    if (passedRules.isEmpty() && sourceNotes.isEmpty() && uiState.softCriteria.isEmpty()) return
-    Column(
-        modifier = Modifier.fillMaxWidth().testTag("opportunity-evidence"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Evidence behind this conclusion",
-                modifier = Modifier.semantics { heading() },
-                style = AppTheme.typography.h6,
-            )
-            Text(
-                text = buildList {
-                    if (passedRules.isNotEmpty()) {
-                        add("${passedRules.size} passed ${if (passedRules.size == 1) "check" else "checks"}")
-                    }
-                    if (sourceNotes.isNotEmpty()) {
-                        add("${sourceNotes.size} rule ${if (sourceNotes.size == 1) "note" else "notes"}")
-                    }
-                    if (uiState.softCriteria.isNotEmpty()) {
-                        add("${uiState.softCriteria.size} non-scoring selection factors")
-                    }
-                }.joinToString(" · "),
-                color = AppTheme.colors.text.secondary,
-                style = AppTheme.typography.bodyMedium,
-            )
-        }
-        TextButton(
-            modifier = Modifier.testTag("opportunity-evidence-toggle"),
-            onClick = { expanded = !expanded },
-        ) {
-            Text(if (expanded) "Hide evidence" else "Review evidence")
-        }
-        if (expanded) {
-            if (passedRules.isNotEmpty()) {
-                PassedChecksSection(uiState)
-            }
-            if (uiState.softCriteria.isNotEmpty()) {
-                SoftSelectionFactors(uiState.softCriteria)
-            }
-            if (sourceNotes.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Rule source notes", style = AppTheme.typography.h6)
-                    sourceNotes.forEach { note ->
-                        Text("• $note", color = AppTheme.colors.text.secondary)
-                    }
-                }
-            }
         }
     }
 }
@@ -532,56 +481,6 @@ private fun SoftSelectionFactors(criteria: List<String>) {
             style = AppTheme.typography.bodyMedium,
         )
         criteria.forEach { criterion -> Text("• $criterion", color = AppTheme.colors.text.primary) }
-    }
-}
-
-@Composable
-private fun SourceDetails(
-    uiState: OpportunityDetailUiState,
-    onOpenSource: (String) -> Unit,
-) {
-    var expanded by rememberSaveable(uiState.id) { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Source and last review",
-            modifier = Modifier.semantics { heading() },
-            style = AppTheme.typography.h6,
-        )
-        Text(
-            uiState.checkedLabel,
-            color = if (uiState.sourceReviewNeedsAttention) {
-                AppTheme.colors.status.warning
-            } else {
-                AppTheme.colors.text.primary
-            },
-            fontWeight = if (uiState.sourceReviewNeedsAttention) FontWeight.SemiBold else FontWeight.Normal,
-        )
-        Text(uiState.disclaimer, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
-        TextButton(
-            modifier = Modifier.testTag("opportunity-source-toggle"),
-            onClick = { expanded = !expanded },
-        ) {
-            Text(if (expanded) "Hide source details" else "Source details")
-        }
-        if (expanded) {
-            if (uiState.sourceSection.isNotBlank()) {
-                Text("Section: ${uiState.sourceSection}", color = AppTheme.colors.text.primary)
-            }
-            if (uiState.isArchived) {
-                Text(
-                    "Archived records are retained for reference and are excluded from current planning.",
-                    color = AppTheme.colors.text.secondary,
-                    style = AppTheme.typography.bodyMedium,
-                )
-            }
-            if (uiState.canOpenSource) {
-                TextButton(onClick = { onOpenSource(uiState.sourceUrl) }) {
-                    Text("Open official source")
-                }
-            } else {
-                Text("Official source unavailable", color = AppTheme.colors.text.secondary)
-            }
-        }
     }
 }
 
@@ -664,6 +563,7 @@ private val previewOpportunityDetailState = OpportunityDetailUiState(
             actualLabel = "6.5 band",
             expectedLabel = "7.0 band",
             sourceNote = "Synthetic sample rule; not a real requirement.",
+            shortTitle = "IELTS score",
         ),
     ),
     softCriteria = listOf("Community leadership", "Clear study goals"),

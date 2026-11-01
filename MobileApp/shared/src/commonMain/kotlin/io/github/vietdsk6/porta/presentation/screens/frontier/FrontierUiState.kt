@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.presentation.screens.frontier
 
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.PlanStatus
 
 data class FrontierUiState(
     val isSampleMode: Boolean = true,
@@ -44,8 +45,12 @@ data class FrontierUiState(
 
 data class ActivePlanSummaryUiState(
     val title: String,
+    val status: PlanStatus,
     val statusLabel: String,
-)
+) {
+    val needsPriorityPlacement: Boolean
+        get() = status != PlanStatus.PLANNED
+}
 
 data class FrontierActionUiState(
     val id: String,
@@ -71,6 +76,8 @@ data class FrontierActionUiState(
     val scopeLabel: String = "Profile-wide",
     val estimateSourceLabel: String = "Time estimate · basis not stated",
     val impactBasisLabel: String = "Impact based on encoded rule simulation",
+    val changedCheckCount: Int = improvedCount,
+    val programmeTitle: String? = null,
 )
 
 enum class FrontierMoveKind {

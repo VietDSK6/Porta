@@ -7,6 +7,8 @@ data class StudentProfileUiState(
     val isWorking: Boolean = false,
     val hasRealProfile: Boolean = false,
     val factCount: Int = 0,
+    val catalogOpportunityCount: Int = 0,
+    val dependentOpportunityCount: Int = 0,
     val sections: List<ProfileFactSectionUiState> = emptyList(),
     val uncheckedFacts: List<UncheckedProfileFactUiState> = emptyList(),
     val isSampleCatalog: Boolean = true,
@@ -47,9 +49,9 @@ data class ProfileFactUiState(
 ) {
     val usedByLabel: String
         get() = when (dependentDoorTitles.size) {
-            0 -> "Not used by the current door pack"
-            1 -> "Used by 1 door"
-            else -> "Used by ${dependentDoorTitles.size} doors"
+            0 -> "No current pack rule references this detail"
+            1 -> "Referenced by 1 opportunity"
+            else -> "Referenced by ${dependentDoorTitles.size} opportunities"
         }
 }
 

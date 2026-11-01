@@ -22,6 +22,7 @@ import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleRef
+import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.presentation.components.trustLabel
@@ -91,6 +92,7 @@ class FrontierViewModel(
                 activePlan = plan?.let {
                     ActivePlanSummaryUiState(
                         title = it.title,
+                        status = it.status,
                         statusLabel = when (it.status) {
                             PlanStatus.PLANNED -> "Planned"
                             PlanStatus.IN_PROGRESS -> "In progress"
@@ -184,9 +186,20 @@ class FrontierViewModel(
         )
         val actions = evaluation.actions.map { action ->
             val moveKind = action.template.moveKind()
+            val programmeTitle = (action.template.target as? ActionTarget.OpportunityRuleTarget)
+                ?.let { opportunitiesById[it.opportunityId]?.title }
+            val improvedIds = action.improvedOpportunityIds.toSet()
+            val changedCheckCount = action.scenario.impacts
+                .asSequence()
+                .filter { it.opportunityId in improvedIds }
+                .sumOf { impact ->
+                    impact.changedRules.count { change ->
+                        change.afterResult == RuleResult.PASS && change.beforeResult != RuleResult.PASS
+                    }
+                }
             FrontierActionUiState(
                 id = action.template.id,
-                title = action.template.title,
+                title = action.template.userFacingTitle(programmeTitle, moveKind),
                 currentLabel = when (val target = action.template.target) {
                     is ActionTarget.ProfileFactTarget -> activeProfile.facts[target.factKey]
                         ?.value
@@ -205,7 +218,11 @@ class FrontierViewModel(
                 durationDays = action.template.minimumDurationDays,
                 effort = action.template.effort,
                 cost = action.template.costBand,
-                durationLabel = "Est. ${action.template.minimumDurationDays} days",
+                durationLabel = if (action.template.estimateSourceLabel().contains("basis not stated")) {
+                    "Planner assumes ${action.template.minimumDurationDays} days"
+                } else {
+                    "Est. ${action.template.minimumDurationDays} days"
+                },
                 effortLabel = action.template.effort.readable(),
                 costLabel = action.template.costBand.readable(),
                 explanation = buildString {
@@ -256,15 +273,9 @@ class FrontierViewModel(
                 kind = moveKind,
                 familyId = action.template.familyId(moveKind),
                 familyLabel = action.template.familyLabel(moveKind),
-                scopeLabel = when (val target = action.template.target) {
-                    is ActionTarget.ProfileFactTarget -> buildString {
-                        append("Profile-wide · ")
-                        append(action.improvedOpportunityIds.size)
-                        append(if (action.improvedOpportunityIds.size == 1) " door" else " doors")
-                    }
-
-                    is ActionTarget.OpportunityRuleTarget ->
-                        "${opportunitiesById[target.opportunityId]?.title ?: "One door"} · programme-specific"
+                scopeLabel = when (action.template.target) {
+                    is ActionTarget.ProfileFactTarget -> "Profile-wide action"
+                    is ActionTarget.OpportunityRuleTarget -> "Programme-specific check"
                 },
                 estimateSourceLabel = action.template.estimateSourceLabel(),
                 impactBasisLabel = buildString {
@@ -273,6 +284,8 @@ class FrontierViewModel(
                         append(" · deadline not confirmed")
                     }
                 },
+                changedCheckCount = changedCheckCount,
+                programmeTitle = programmeTitle,
             )
         }
         val exclusions = evaluation.exclusions.map { exclusion ->
@@ -324,6 +337,15 @@ class FrontierViewModel(
         targetActionability == Actionability.TIME_DEPENDENT -> FrontierMoveKind.PREPARE
         target is ActionTarget.OpportunityRuleTarget -> FrontierMoveKind.VERIFY
         else -> FrontierMoveKind.IMPROVE
+    }
+
+    private fun ActionTemplate.userFacingTitle(programmeTitle: String?, kind: FrontierMoveKind): String {
+        if (kind != FrontierMoveKind.VERIFY || programmeTitle == null) return title
+        return when (targetFactKey) {
+            FactKey.AVAILABLE_FULL_PERIOD -> "Confirm your availability for $programmeTitle"
+            FactKey.ENROLLED -> "Confirm your enrollment for $programmeTitle"
+            else -> "Confirm a requirement for $programmeTitle"
+        }
     }
 
     private fun ActionTemplate.familyId(kind: FrontierMoveKind): String = "${kind.name}:${targetFactKey.name}:${targetValue.displayValue()}"

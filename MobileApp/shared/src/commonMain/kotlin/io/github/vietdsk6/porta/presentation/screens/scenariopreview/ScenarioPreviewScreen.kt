@@ -1,14 +1,11 @@
 package io.github.vietdsk6.porta.presentation.screens.scenariopreview
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -27,12 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -59,6 +55,7 @@ fun ScenarioPreviewScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
             viewModel.onUiEvent(ScenarioPreviewUiEvent.SaveHandled)
@@ -70,6 +67,7 @@ fun ScenarioPreviewScreen(
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
         onBuildProfile = onBuildProfile,
+        onOpenSource = { url -> if (url.startsWith("https://")) runCatching { uriHandler.openUri(url) } },
         modifier = modifier.fillMaxSize(),
     )
 }
@@ -80,12 +78,16 @@ fun ScenarioPreviewScreen(
     onUiEvent: (ScenarioPreviewUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
     onBuildProfile: () -> Unit,
+    onOpenSource: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var selectedDoorId by rememberSaveable(uiState.actionId) { mutableStateOf<String?>(null) }
+    var showRipple by rememberSaveable(uiState.actionId) { mutableStateOf(false) }
     ScreenWithToolbar(
         modifier = modifier.testTag("scenario-preview-screen"),
         isScrollableContent = false,
         title = "What if?",
+        titleContent = { Text("What if?", style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
@@ -94,68 +96,45 @@ fun ScenarioPreviewScreen(
             ErrorState(uiState.error, onNavigateBack)
             return@ScreenWithToolbar
         }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().testTag("scenario-preview-content"),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            item { SimulationBanner() }
-            item {
-                ScenarioOutcomeSummary(uiState)
-            }
-            if (uiState.openedDoors.isNotEmpty() || uiState.progressedDoors.isNotEmpty()) {
-                item { ScenarioImpactPath(uiState) }
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wide = maxWidth >= 960.dp && LocalDensity.current.fontScale < 1.5f
+            if (wide) {
+                DesktopScenarioContent(
+                    uiState = uiState,
+                    selectedDoorId = selectedDoorId ?: uiState.affectedDoors.firstOrNull()?.id,
+                    onSelectDoor = { selectedDoorId = it },
+                    onUiEvent = onUiEvent,
+                    onNavigateBack = onNavigateBack,
+                    onBuildProfile = onBuildProfile,
+                    onOpenSource = onOpenSource,
+                )
             } else {
-                item { BeforeAfterCard(uiState) }
-            }
-            items(uiState.openedDoors, key = ScenarioDoorUiState::id) { door ->
-                ScenarioDoorCard(door = door)
-            }
-            items(uiState.progressedDoors, key = ScenarioDoorUiState::id) { door ->
-                ScenarioDoorCard(door = door)
-            }
-            if (uiState.openedDoors.isEmpty() && uiState.progressedDoors.isEmpty()) {
-                item { NoChangedDoorsCard() }
-            }
-            if (uiState.unchangedDoors.isNotEmpty()) {
-                item {
-                    Text(
-                        text = if (uiState.unchangedDoors.size == 1) {
-                            "1 other door is unchanged."
-                        } else {
-                            "${uiState.unchangedDoors.size} other doors are unchanged."
-                        },
-                        color = AppTheme.colors.text.secondary,
-                        style = AppTheme.typography.bodyMedium,
-                    )
-                }
-            }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSaving,
-                        onClick = {
-                            if (uiState.isSampleProfile) {
-                                onBuildProfile()
-                            } else {
-                                onUiEvent(ScenarioPreviewUiEvent.SavePlan)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().testTag("scenario-preview-content"),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    item { SimulationBanner() }
+                    item { ScenarioOutcomeSummary(uiState) }
+                    item { FactTransition(uiState) }
+                    if (uiState.affectedDoors.isNotEmpty()) {
+                        item {
+                            TextButton(modifier = Modifier.testTag("scenario-ripple-toggle"), onClick = { showRipple = !showRipple }) {
+                                Text(if (showRipple) "Hide ripple map" else "View ripple map")
                             }
-                        },
-                    ) {
-                        Text(
-                            when {
-                                uiState.isSampleProfile -> "Build my profile to save"
-                                uiState.isSaving -> "Saving locally…"
-                                else -> "Add milestone to plan"
-                            },
-                        )
+                        }
+                        if (showRipple) item { ScenarioImpactPath(uiState) }
+                        item { Text("Results", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6) }
+                        items(uiState.affectedDoors, key = ScenarioDoorUiState::id) { door ->
+                            ScenarioResultRow(door, selectedDoorId == door.id, onSelect = {
+                                selectedDoorId = if (selectedDoorId == door.id) null else door.id
+                            })
+                            if (selectedDoorId == door.id) ScenarioSelectedDetail(door, onOpenSource)
+                        }
+                    } else {
+                        item { NoChangedDoorsCard() }
                     }
-                    uiState.saveError?.let { message ->
-                        Text(message, color = AppTheme.colors.status.error, style = AppTheme.typography.bodyMedium)
-                    }
-                    OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNavigateBack) {
-                        Text("Discard scenario")
-                    }
+                    item { UnchangedCount(uiState) }
+                    item { ScenarioActions(uiState, onUiEvent, onNavigateBack, onBuildProfile) }
                 }
             }
         }
@@ -163,10 +142,107 @@ fun ScenarioPreviewScreen(
 }
 
 @Composable
+private fun DesktopScenarioContent(
+    uiState: ScenarioPreviewUiState,
+    selectedDoorId: String?,
+    onSelectDoor: (String) -> Unit,
+    onUiEvent: (ScenarioPreviewUiEvent) -> Unit,
+    onNavigateBack: () -> Unit,
+    onBuildProfile: () -> Unit,
+    onOpenSource: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxSize().testTag("scenario-desktop-workspace"),
+        horizontalArrangement = Arrangement.spacedBy(28.dp),
+    ) {
+        LazyColumn(
+            modifier = Modifier.weight(0.46f).fillMaxHeight().testTag("scenario-desktop-overview"),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item { SimulationBanner() }
+            item { ScenarioOutcomeSummary(uiState) }
+            item { FactTransition(uiState) }
+            if (uiState.affectedDoors.isNotEmpty()) {
+                item { ScenarioImpactPath(uiState) }
+            } else {
+                item { NoChangedDoorsCard() }
+            }
+        }
+        Column(
+            modifier = Modifier.weight(0.54f).fillMaxHeight().testTag("scenario-desktop-results"),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Results", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
+            LazyColumn(modifier = Modifier.weight(0.48f).testTag("scenario-desktop-result-list"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(uiState.affectedDoors, key = ScenarioDoorUiState::id) { door ->
+                    ScenarioResultRow(door, selectedDoorId == door.id, onSelect = { onSelectDoor(door.id) })
+                }
+            }
+            LazyColumn(modifier = Modifier.weight(0.52f).testTag("scenario-desktop-selected-detail"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                selectedDoorId?.let { selected ->
+                    uiState.affectedDoors.firstOrNull { it.id == selected }?.let { door ->
+                        item { ScenarioSelectedDetail(door, onOpenSource) }
+                    }
+                }
+                item { UnchangedCount(uiState) }
+                item { ScenarioActions(uiState, onUiEvent, onNavigateBack, onBuildProfile) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScenarioActions(
+    uiState: ScenarioPreviewUiState,
+    onUiEvent: (ScenarioPreviewUiEvent) -> Unit,
+    onNavigateBack: () -> Unit,
+    onBuildProfile: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        val concerns = uiState.affectedDoors.count { it.timingWarning != null }
+        if (concerns > 0) {
+            Text(
+                "$concerns ${if (concerns == 1) "timeline" else "timelines"} may miss a published deadline. Check the affected results before planning.",
+                color = AppTheme.colors.status.warning,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+        Button(
+            modifier = Modifier.fillMaxWidth().testTag("scenario-save-plan"),
+            enabled = !uiState.isSaving,
+            onClick = {
+                if (uiState.isSampleProfile) onBuildProfile() else onUiEvent(ScenarioPreviewUiEvent.SavePlan)
+            },
+        ) {
+            Text(
+                when {
+                    uiState.isSampleProfile -> "Build my profile to save"
+                    uiState.isSaving -> "Saving locally…"
+                    else -> "Add milestone to plan"
+                },
+            )
+        }
+        uiState.saveError?.let { message ->
+            Text(message, color = AppTheme.colors.status.error, style = AppTheme.typography.bodyMedium)
+        }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNavigateBack) { Text("Discard scenario") }
+    }
+}
+
+@Composable
+private fun UnchangedCount(uiState: ScenarioPreviewUiState) {
+    if (uiState.unchangedDoors.isNotEmpty()) {
+        Text(
+            "${uiState.unchangedDoors.size} other ${if (uiState.unchangedDoors.size == 1) "opportunity" else "opportunities"} unchanged.",
+            color = AppTheme.colors.text.secondary,
+            style = AppTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
 private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
-    val nodes = uiState.openedDoors.map { door ->
-        door.toImpactNode(ImpactOutcome.CURRENT_CHECKS_PASSED)
-    } + uiState.progressedDoors.map { door ->
+    val nodes = uiState.affectedDoors.take(5).map { door ->
         door.toImpactNode(
             when (door.outcome) {
                 ScenarioDoorOutcome.CURRENT_CHECKS_PASSED -> ImpactOutcome.CURRENT_CHECKS_PASSED
@@ -191,6 +267,8 @@ private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
             simulatedLabel = uiState.afterLabel,
             nodes = nodes,
         )
+        val moreCount = uiState.affectedDoors.size - nodes.size
+        if (moreCount > 0) Text("+$moreCount more in Results", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
     }
 }
 
@@ -205,34 +283,20 @@ private fun ScenarioDoorUiState.toImpactNode(outcome: ImpactOutcome): ActionImpa
 
 @Composable
 private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
-    val affectedCount = uiState.openedDoors.size + uiState.progressedDoors.size
-    val headline = when {
-        uiState.openedDoors.isNotEmpty() ->
-            "${uiState.openedDoors.size} ${if (uiState.openedDoors.size == 1) "door" else "doors"} would pass current checks"
-
-        uiState.progressedDoors.isNotEmpty() ->
-            "${uiState.progressedDoors.size} ${if (uiState.progressedDoors.size == 1) "door moves" else "doors move"} forward"
-
-        else -> "No checked conclusion changes"
+    val affected = uiState.affectedDoors
+    val changedChecks = affected.sumOf { it.changedRules.size }
+    val needsVerification = affected.count { it.outcome == ScenarioDoorOutcome.NEEDS_VERIFICATION }
+    val timingConcerns = affected.count { it.timingWarning != null }
+    val headline = if (affected.isEmpty()) {
+        "No assessed checks change"
+    } else {
+        "${affected.size} ${if (affected.size == 1) "opportunity" else "opportunities"} affected"
     }
     val announcement = buildList {
-        add(
-            if (affectedCount == 1) {
-                "1 door is affected by this simulation."
-            } else {
-                "$affectedCount doors are affected by this simulation."
-            },
-        )
-        if (uiState.openedDoors.isNotEmpty()) {
-            add("${uiState.openedDoors.size} would pass current checks.")
-        }
-        if (uiState.progressedDoors.isNotEmpty()) {
-            add("${uiState.progressedDoors.size} show checked progress but still have unresolved checks.")
-        }
-        if (uiState.unchangedDoors.isNotEmpty()) {
-            add("${uiState.unchangedDoors.size} remain unchanged.")
-        }
-    }.joinToString(" ")
+        add("$changedChecks ${if (changedChecks == 1) "check" else "checks"} could change")
+        if (needsVerification > 0) add("$needsVerification still need information or source review")
+        if (timingConcerns > 0) add("$timingConcerns timing ${if (timingConcerns == 1) "concern" else "concerns"}")
+    }.joinToString(" · ")
 
     Column(
         modifier = Modifier
@@ -247,7 +311,7 @@ private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
             style = AppTheme.typography.h5,
         )
         Text(
-            text = announcement,
+            text = announcement.ifBlank { "Your saved profile stays unchanged." },
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
@@ -259,21 +323,35 @@ private fun SimulationBanner() {
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("scenario-simulation-banner"),
         color = AppTheme.colors.alternative,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Text(
+            text = "Simulation — your saved profile is unchanged.",
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            color = AppTheme.colors.onAlternative,
+            fontWeight = FontWeight.SemiBold,
+            style = AppTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun FactTransition(uiState: ScenarioPreviewUiState) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("scenario-fact-transition"),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Text(uiState.title, style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Text(
+            "${uiState.beforeLabel} → ${uiState.afterLabel} · hypothetical",
+            color = AppTheme.colors.primary,
+            style = AppTheme.typography.bodyMedium,
+        )
+        uiState.scopeNotice?.let { notice ->
             Text(
-                text = "Simulation — your saved profile is unchanged.",
-                color = AppTheme.colors.onAlternative,
-                fontWeight = FontWeight.Bold,
-                style = AppTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "Check every conclusion against the linked official source.",
-                color = AppTheme.colors.onAlternative.copy(alpha = 0.74f),
+                notice,
+                modifier = Modifier.testTag("scenario-scope-notice"),
+                color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
         }
@@ -281,166 +359,85 @@ private fun SimulationBanner() {
 }
 
 @Composable
-private fun BeforeAfterCard(uiState: ScenarioPreviewUiState) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
-        shape = RoundedCornerShape(16.dp),
+private fun ScenarioResultRow(door: ScenarioDoorUiState, selected: Boolean, onSelect: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("scenario-result-${door.id}"),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(12.dp),
+        border = if (selected) BorderStroke(1.dp, AppTheme.colors.primary) else null,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text(uiState.title, style = AppTheme.typography.h5)
-            uiState.scopeNotice?.let { notice ->
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = notice,
-                    color = AppTheme.colors.primary,
-                    style = AppTheme.typography.bodyMedium,
+                    door.title,
+                    modifier = Modifier.weight(1f).testTag("scenario-door-title-${door.id}"),
+                    style = AppTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
-            }
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val stackValues = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                if (stackValues) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ValueCell("Actual", uiState.beforeLabel, Modifier.fillMaxWidth())
-                        ValueCell("Scenario", uiState.afterLabel, Modifier.fillMaxWidth())
-                    }
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ValueCell("Actual", uiState.beforeLabel, Modifier.weight(1f))
-                        ValueCell("Scenario", uiState.afterLabel, Modifier.weight(1f))
-                    }
+                TextButton(modifier = Modifier.testTag("scenario-details-${door.id}"), onClick = onSelect) {
+                    Text(if (selected) "Hide" else "Details")
                 }
+            }
+            Text(
+                "${door.actualStateLabel.ifBlank { "Current state" }} → ${door.simulatedStateLabel.ifBlank { door.stateLabel }}",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(door.stateLabel, color = door.outcome.color(), style = AppTheme.typography.bodySmall)
+            if (door.timingWarning != null) {
+                Text("Timing concern · estimate may exceed the deadline", color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
             }
         }
     }
 }
 
 @Composable
-private fun ValueCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
-        shape = RoundedCornerShape(16.dp),
+private fun ScenarioSelectedDetail(door: ScenarioDoorUiState, onOpenSource: (String) -> Unit) {
+    var showEvidence by rememberSaveable(door.id) { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("scenario-selected-${door.id}").padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-            Text(value, color = AppTheme.colors.onAlternative, style = AppTheme.typography.h6)
-        }
-    }
-}
-
-@Composable
-private fun ScenarioDoorCard(door: ScenarioDoorUiState) {
-    var visible by remember(door.id) { mutableStateOf(false) }
-    var detailsExpanded by rememberSaveable(door.id) { mutableStateOf(false) }
-    LaunchedEffect(door.id) { visible = true }
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(DOOR_TRANSITION_DURATION_MILLIS)) +
-            slideInVertically(tween(DOOR_TRANSITION_DURATION_MILLIS)) { height -> height / 12 },
-    ) {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-            border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = door.title,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("scenario-door-title-${door.id}")
-                        .semantics { heading() },
-                    style = AppTheme.typography.h6,
-                )
-                ScenarioStateTransition(door)
-                Text(door.stateLabel, color = door.outcome.color(), fontWeight = FontWeight.Bold)
-                ScenarioDeltaSummary(door)
-                door.timingWarning?.let { warning ->
-                    Text(
-                        warning,
-                        color = AppTheme.colors.status.warning,
-                        style = AppTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                if (door.changedRules.isNotEmpty() || door.timingLabel.isNotBlank()) {
-                    TextButton(
-                        modifier = Modifier.testTag("scenario-details-${door.id}"),
-                        onClick = { detailsExpanded = !detailsExpanded },
-                    ) {
-                        Text(if (detailsExpanded) "Hide evidence details" else "Review evidence details")
-                    }
-                }
-                if (detailsExpanded) {
-                    ScenarioDoorEvidence(door)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ScenarioDeltaSummary(door: ScenarioDoorUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (door.changedRules.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().testTag("scenario-changes-${door.id}"),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Text("What changes", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                door.changedRules.forEach { change ->
+            Text("Changed checks", style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            door.changedRules.forEach { change ->
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(change.explanation, style = AppTheme.typography.bodyMedium)
-                    Text(
-                        "${change.beforeLabel} → ${change.afterLabel}",
-                        color = AppTheme.colors.text.primary,
-                        style = AppTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    Text("${change.beforeLabel} → ${change.afterLabel}", color = AppTheme.colors.primary, style = AppTheme.typography.bodySmall)
                 }
             }
         }
         if (door.remainingBlockers.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().testTag("scenario-remains-${door.id}"),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Text("What remains", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                door.remainingBlockers.forEach { blocker ->
-                    Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-                }
-            }
+            Text("What remains", style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            door.remainingBlockers.forEach { blocker -> Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall) }
         }
+        door.timingWarning?.let { warning ->
+            Text(warning, color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
+        }
+        TextButton(modifier = Modifier.testTag("scenario-evidence-toggle-${door.id}"), onClick = { showEvidence = !showEvidence }) {
+            Text(if (showEvidence) "Hide evidence" else "Review evidence")
+        }
+        if (showEvidence) ScenarioEvidence(door, onOpenSource)
     }
 }
 
 @Composable
-private fun ScenarioDoorEvidence(door: ScenarioDoorUiState) {
+private fun ScenarioEvidence(door: ScenarioDoorUiState, onOpenSource: (String) -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().testTag("scenario-evidence-${door.id}"),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.28f))
+        HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.3f))
         door.changedRules.forEach { change ->
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Check result", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                Text(
-                    change.resultTransitionLabel,
-                    color = AppTheme.colors.text.secondary,
-                    style = AppTheme.typography.bodySmall,
-                )
-            }
+            Text("Check result · ${change.resultTransitionLabel}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            if (change.sourceNote.isNotBlank()) Text(change.sourceNote, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
-        if (door.timingLabel.isNotBlank()) {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Planning timing", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                Text(door.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.timingLabel.isNotBlank()) Text("Planning timing · ${door.timingLabel}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.lastCheckedLabel.isNotBlank()) Text(door.lastCheckedLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.sourceSection.isNotBlank()) Text("Section: ${door.sourceSection}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.sourceUrl.startsWith("https://")) {
+            TextButton(modifier = Modifier.testTag("scenario-source-${door.id}"), onClick = { onOpenSource(door.sourceUrl) }) {
+                Text("Open official source")
             }
         }
     }
@@ -451,46 +448,6 @@ private fun ScenarioDoorOutcome.color(): Color = when (this) {
     ScenarioDoorOutcome.CURRENT_CHECKS_PASSED -> AppTheme.colors.status.success
     ScenarioDoorOutcome.CHECKED_PROGRESS -> AppTheme.colors.primary
     ScenarioDoorOutcome.NEEDS_VERIFICATION -> AppTheme.colors.status.warning
-}
-
-@Composable
-private fun ScenarioStateTransition(door: ScenarioDoorUiState) {
-    val actual = door.actualStateLabel.ifBlank { "Current state" }
-    val simulated = door.simulatedStateLabel.ifBlank { door.stateLabel }
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val stackStates = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-        if (stackStates) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                StateCell(label = "Actual", value = actual, modifier = Modifier.fillMaxWidth())
-                Text(
-                    text = "Then",
-                    color = AppTheme.colors.text.secondary,
-                    style = AppTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                StateCell(label = "Simulated", value = simulated, modifier = Modifier.fillMaxWidth())
-            }
-        } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StateCell(label = "Actual", value = actual, modifier = Modifier.weight(1f))
-                Text(
-                    text = "→",
-                    modifier = Modifier.padding(top = 24.dp),
-                    color = AppTheme.colors.text.secondary,
-                    fontWeight = FontWeight.Bold,
-                )
-                StateCell(label = "Simulated", value = simulated, modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun StateCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-        Text(value, style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-    }
 }
 
 @Composable
@@ -505,9 +462,9 @@ private fun NoChangedDoorsCard() {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text("No door status changes", fontWeight = FontWeight.SemiBold)
+            Text("No assessed check changes", fontWeight = FontWeight.SemiBold)
             Text(
-                text = "This step may still help your profile, but it does not change any published-check conclusion yet.",
+                text = "This step may still help your profile, but it does not change any assessed requirement in the current pack.",
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyMedium,
             )
@@ -524,19 +481,28 @@ private fun ErrorState(message: String, onNavigateBack: () -> Unit) {
     }
 }
 
-private const val DOOR_TRANSITION_DURATION_MILLIS = 220
+@Preview
+@Composable
+private fun ScenarioPreviewScreenLightPreview() {
+    ScenarioPreviewContentPreview(isDarkMode = false)
+}
 
 @Preview
 @Composable
 private fun ScenarioPreviewScreenPreview() {
-    AppTheme(isDarkMode = true) {
+    ScenarioPreviewContentPreview(isDarkMode = true)
+}
+
+@Composable
+private fun ScenarioPreviewContentPreview(isDarkMode: Boolean) {
+    AppTheme(isDarkMode = isDarkMode) {
         ScenarioPreviewScreen(
             uiState = ScenarioPreviewUiState(
                 actionId = "raise-ielts",
                 title = "Raise IELTS from 6.5 to 7.0",
                 beforeLabel = "6.5 band",
                 afterLabel = "7.0 band",
-                openedDoors = listOf(
+                affectedDoors = listOf(
                     ScenarioDoorUiState(
                         id = "aurora",
                         title = "Aurora Scholars",
@@ -544,6 +510,7 @@ private fun ScenarioPreviewScreenPreview() {
                         outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
                         actualStateLabel = "Needs action",
                         simulatedStateLabel = "Assessed rules passed",
+                        changedRules = listOf(ScenarioRuleChangeUiState(id = "aurora-ielts", explanation = "IELTS threshold", beforeLabel = "6.5", afterLabel = "7.0", resultTransitionLabel = "Needs action → Check passed")),
                     ),
                     ScenarioDoorUiState(
                         id = "forge",
@@ -552,9 +519,8 @@ private fun ScenarioPreviewScreenPreview() {
                         outcome = ScenarioDoorOutcome.CURRENT_CHECKS_PASSED,
                         actualStateLabel = "Needs action",
                         simulatedStateLabel = "Assessed rules passed",
+                        changedRules = listOf(ScenarioRuleChangeUiState(id = "forge-ielts", explanation = "IELTS threshold", beforeLabel = "6.5", afterLabel = "7.0", resultTransitionLabel = "Needs action → Check passed")),
                     ),
-                ),
-                progressedDoors = listOf(
                     ScenarioDoorUiState(
                         id = "erasmus-mundus",
                         title = "Erasmus Mundus Joint Masters",
@@ -562,6 +528,7 @@ private fun ScenarioPreviewScreenPreview() {
                         outcome = ScenarioDoorOutcome.NEEDS_VERIFICATION,
                         actualStateLabel = "Needs action",
                         simulatedStateLabel = "Needs information",
+                        changedRules = listOf(ScenarioRuleChangeUiState(id = "erasmus-ielts", explanation = "IELTS threshold", beforeLabel = "6.5", afterLabel = "7.0", resultTransitionLabel = "Needs action → Check passed")),
                     ),
                 ),
             ),

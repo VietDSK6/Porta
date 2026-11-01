@@ -248,6 +248,8 @@ class StudentProfileViewModel(
             isWorking = transient.isWorking,
             hasRealProfile = facts.isNotEmpty(),
             factCount = facts.size,
+            catalogOpportunityCount = opportunities.map(Opportunity::id).distinct().size,
+            dependentOpportunityCount = referencedOpportunityCount(opportunities, facts.keys),
             sections = sections,
             uncheckedFacts = uncheckedFacts,
             isSampleCatalog = isSampleCatalog,
@@ -256,13 +258,6 @@ class StudentProfileViewModel(
             pendingDataAction = transient.pendingDataAction,
             message = transient.message,
         )
-    }
-
-    private fun RuleNode.uses(key: FactKey): Boolean = when (this) {
-        is RuleNode.All -> children.any { it.uses(key) }
-        is RuleNode.Any -> children.any { it.uses(key) }
-        is RuleNode.Atomic -> factKey == key
-        is RuleNode.ManualCheck -> false
     }
 
     private fun RuleNode.factKeys(): Set<FactKey> = when (this) {
@@ -374,4 +369,21 @@ class StudentProfileViewModel(
             ),
         )
     }
+}
+
+internal fun referencedOpportunityCount(
+    opportunities: List<Opportunity>,
+    providedKeys: Set<FactKey>,
+): Int = opportunities
+    .asSequence()
+    .filter { opportunity -> providedKeys.any { key -> opportunity.eligibilityRule.uses(key) } }
+    .map(Opportunity::id)
+    .distinct()
+    .count()
+
+private fun RuleNode.uses(key: FactKey): Boolean = when (this) {
+    is RuleNode.All -> children.any { it.uses(key) }
+    is RuleNode.Any -> children.any { it.uses(key) }
+    is RuleNode.Atomic -> factKey == key
+    is RuleNode.ManualCheck -> false
 }

@@ -175,11 +175,11 @@ class ProfileSetupViewModel(
         val values = buildList<FactDraft> {
             add(FactDraft(FactKey.STUDY_LEVEL, FactValue.EnumValue(checkNotNull(studyLevel).storedValue)))
             add(FactDraft(FactKey.FIELD_OF_STUDY, FactValue.TextValue(fieldOfStudy.trim())))
-            nationality.takeIf(String::isNotBlank)?.let {
-                add(FactDraft(FactKey.NATIONALITY, FactValue.EnumValue(it.uppercase())))
+            countryForStoredValue(nationality)?.let {
+                add(FactDraft(FactKey.NATIONALITY, FactValue.EnumValue(it.alpha2)))
             }
-            residency.takeIf(String::isNotBlank)?.let {
-                add(FactDraft(FactKey.RESIDENCY, FactValue.EnumValue(it.uppercase())))
+            countryForStoredValue(residency)?.let {
+                add(FactDraft(FactKey.RESIDENCY, FactValue.EnumValue(it.alpha2)))
             }
             gpaValue?.let {
                 add(FactDraft(FactKey.GPA, FactValue.NumberValue(it, "${gpaScale.label} scale")))

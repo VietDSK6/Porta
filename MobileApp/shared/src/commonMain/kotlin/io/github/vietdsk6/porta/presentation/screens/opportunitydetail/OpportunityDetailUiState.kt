@@ -9,6 +9,7 @@ data class OpportunityDetailUiState(
     val title: String = "",
     val provider: String = "",
     val state: EligibilityState? = null,
+    val rootResult: RuleResult? = null,
     val stateLabel: String = "",
     val conclusionSummary: String = "",
     val timingLabel: String = "",
@@ -38,6 +39,7 @@ data class RuleReceiptUiState(
     val actualLabel: String,
     val expectedLabel: String,
     val sourceNote: String,
+    val shortTitle: String = "",
 )
 
 data class InformationTaskUiState(

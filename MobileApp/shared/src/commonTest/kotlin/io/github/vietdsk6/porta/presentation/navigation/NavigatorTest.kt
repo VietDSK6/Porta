@@ -93,6 +93,17 @@ class NavigatorTest {
     }
 
     @Test
+    fun `data and privacy is one pushed route from profile and back returns to profile`() {
+        val nav = Navigator(newState())
+        nav.navigate(StudentProfileScreenRoute)
+        nav.navigate(DataPrivacyScreenRoute)
+
+        assertEquals(listOf(StudentProfileScreenRoute, DataPrivacyScreenRoute), nav.state.currentBackstack.toList())
+        nav.goBack()
+        assertEquals(listOf(StudentProfileScreenRoute), nav.state.currentBackstack.toList())
+    }
+
+    @Test
     fun `goBack on the primary tab root is a no-op`() {
         val nav = Navigator(newState())
         nav.goBack()

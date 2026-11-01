@@ -92,8 +92,7 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("15 source-linked opportunities").assertExists()
-        onNodeWithText("Your saved profile is compared with checks encoded from published sources.").assertExists()
+        onNodeWithText("15 opportunities · 4 need action").assertExists()
         onAllNodesWithText(
             "Your local facts are evaluated against published rules checked in the active offline pack.",
         ).assertCountEquals(0)
@@ -438,29 +437,32 @@ class PortaVerticalSliceUiTest {
         )
         setContent {
             AppTheme {
-                ScenarioPreviewScreen(
-                    uiState = scenarioState.copy(openedDoors = listOf(changedDoor)),
-                    onUiEvent = { events += it },
-                    onNavigateBack = {},
-                    onBuildProfile = {},
-                )
+                Box(Modifier.size(width = 360.dp, height = 760.dp)) {
+                    ScenarioPreviewScreen(
+                        uiState = scenarioState.copy(affectedDoors = listOf(changedDoor)),
+                        onUiEvent = { events += it },
+                        onNavigateBack = {},
+                        onBuildProfile = {},
+                    )
+                }
             }
         }
 
         onNodeWithText("Simulation — your saved profile is unchanged.").assertExists()
-        onNodeWithText("1 door is affected by this simulation.", substring = true).assertExists()
+        onNodeWithText("1 opportunity affected").assertExists()
         onNodeWithTag("scenario-outcome-summary").assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.LiveRegion,
                 LiveRegionMode.Polite,
             ),
         )
-        onNodeWithText("What changes").assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(5)
+        onNodeWithTag("scenario-details-aurora").performClick()
+        onNodeWithText("Changed checks").assertExists()
         onNodeWithText("What remains").assertExists()
-        onNodeWithTag("scenario-details-aurora").performScrollTo().performClick()
-        onNodeWithText("Check result").assertExists()
-        onNodeWithText("Needs action → Check passed").assertExists()
-        onNodeWithTag("scenario-preview-content").performScrollToIndex(4)
+        onNodeWithTag("scenario-evidence-toggle-aurora").performScrollTo().performClick()
+        onNodeWithText("Check result · Needs action → Check passed").assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(7)
         onNodeWithText("Add milestone to plan").performClick()
         assertTrue(events.contains(ScenarioPreviewUiEvent.SavePlan))
     }
@@ -471,18 +473,20 @@ class PortaVerticalSliceUiTest {
     ) {
         setContent {
             AppTheme {
-                ScenarioPreviewScreen(
-                    uiState = scenarioState,
-                    onUiEvent = {},
-                    onNavigateBack = {},
-                    onBuildProfile = {},
-                )
+                Box(Modifier.size(width = 360.dp, height = 760.dp)) {
+                    ScenarioPreviewScreen(
+                        uiState = scenarioState,
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onBuildProfile = {},
+                    )
+                }
             }
         }
 
         onNodeWithTag("scenario-outcome-summary").assertExists()
-        onNodeWithText("4 doors are affected by this simulation.", substring = true).assertExists()
-        onNodeWithTag("scenario-preview-content").performScrollToIndex(3)
+        onNodeWithText("4 opportunities affected").assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(5)
         onNodeWithTag("scenario-door-title-aurora").assertExists()
     }
 
@@ -492,8 +496,7 @@ class PortaVerticalSliceUiTest {
             AppTheme {
                 ScenarioPreviewScreen(
                     uiState = scenarioState.copy(
-                        openedDoors = emptyList(),
-                        progressedDoors = listOf(
+                        affectedDoors = listOf(
                             ScenarioDoorUiState(
                                 id = "erasmus-mundus",
                                 title = "Erasmus Mundus Joint Masters",
@@ -511,7 +514,7 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithTag("scenario-door-title-erasmus-mundus").assertWidthIsAtLeast(200.dp)
+        onNodeWithTag("scenario-door-title-erasmus-mundus", useUnmergedTree = true).assertWidthIsAtLeast(200.dp)
     }
 
     @Test
@@ -529,10 +532,10 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("6.5 band").assertExists()
-        onNodeWithText("7.0 band").assertExists()
-        onNodeWithTag("opportunity-detail-content").performScrollToIndex(7)
-        onNodeWithText("Source and last review").assertExists()
+        onNodeWithTag("requirement-toggle-ielts").performScrollTo().performClick()
+        onNodeWithText("Current: 6.5 band · Required: 7.0 band").assertExists()
+        onNodeWithTag("opportunity-source-toggle").performScrollTo().performClick()
+        onNodeWithText("Evidence & sources").assertExists()
         onNodeWithText("Sample data only.").assertExists()
     }
 
@@ -733,7 +736,7 @@ class PortaVerticalSliceUiTest {
         title = "Raise IELTS from 6.5 to 7.0",
         beforeLabel = "6.5 band",
         afterLabel = "7.0 band",
-        openedDoors = listOf(
+        affectedDoors = listOf(
             ScenarioDoorUiState(
                 "aurora",
                 "Aurora Scholars",
