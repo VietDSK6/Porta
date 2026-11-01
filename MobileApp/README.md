@@ -65,11 +65,9 @@ they are not declared Porta contest targets and are excluded from the submission
 
 ```properties
 sdk.dir=/absolute/path/to/Android/sdk
-GOOGLE_WEB_CLIENT_ID=test
 ```
 
-The committed Firebase configuration files are starter placeholders. Porta's core contest flow does not depend on
-Firebase, authentication, billing, or AI services; inherited background online services are disabled in this build.
+Porta does not require Firebase configuration, authentication credentials, billing keys, or AI-provider API keys.
 
 ## Run Android
 
@@ -180,9 +178,9 @@ Always confirm the linked official source before acting on an opportunity.
 ## Provenance and starter-kit boundary
 
 This repository began from the MIT-licensed **KMP Contest Starter Kit (Koko)**. Inherited scaffold includes Gradle
-target configuration, platform launchers, CI/release helpers, the generic design system, and optional auth, billing,
-AI, and media-generation modules. Those optional starter services are not reachable from Porta's navigation graph and
-are not required by its contest flow.
+target configuration, platform launchers, CI/release helpers, and the generic design system. The unused starter auth,
+billing, AI/media-generation, ads, analytics, Remote Config, and push-notification infrastructure has been removed from
+the Porta app.
 
 Porta-specific contest work includes the typed opportunity/rule models, deterministic eligibility and scenario
 engines, constrained Pareto Action Frontier, pack schema/validation/import, profile and plan persistence, the Porta
