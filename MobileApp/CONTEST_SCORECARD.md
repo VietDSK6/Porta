@@ -24,10 +24,10 @@
 | Substantial application, not template/Hello World/library | PASS | Porta-owned engine, Room repositories, Compose flows, pack validation/import and 15-record catalog are implemented; keep separating these changes from Koko template code in README evidence. |
 | Original work or sufficient rights | IN PROGRESS | `OPPORTUNITY_PACK_SOURCES.md` records independent interpretations and official URLs; retain starter-kit/dependency notices and still audit icons, media and generated assets before publication. |
 | Cross-platform Kotlin project | PASS | Product logic, persistence and most UI are shared Kotlin; Android debug builds, the JVM Desktop package builds and launches past startup, and JS/Wasm shared compilation remains a compatibility check. Android + JVM Desktop are the declared contest targets. |
-| GitHub repository submitted | TODO | Create/publish the final repository and verify judge access. |
+| GitHub repository submitted | PASS | Public repository: `https://github.com/VietDSK6/Porta`. Commit `5a17882` was cloned and read without a credential helper, then passed the documented automated paths. |
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
-| Comprehensive README | IN PROGRESS | `README.md` now covers the product story, demo path, architecture, data provenance, limitations, quality gates and starter-kit boundary; add final media and fresh-setup troubleshooting evidence before submission. |
-| Launch instructions for every declared target | IN PROGRESS | Android and JVM Desktop are explicitly declared with exact build/run commands; verify both from a fresh setup before freezing the README. |
+| Comprehensive README | PASS | The public root README covers product story, demo path, architecture, declared targets, provenance, limitations, quality gates, trust boundaries and starter-kit separation. |
+| Launch instructions for every declared target | PASS | Android and JVM Desktop have exact commands. A credential-free public clone builds the APK and DMG; the rebuilt Desktop package was observed launching past startup. Android device interaction remains a disclosed manual QA item, not an instruction gap. |
 | 300-word essay | IN PROGRESS | `SUBMISSION/ESSAY.md` has an exactly 300-word body and four explicit entrant-fact placeholders. Replace them truthfully and recount before submission. |
 | Submission form before deadline | TODO | Save the final form link and submission receipt outside the repository. |
 | Truthful and rights-safe submission/media | IN PROGRESS | Source every factual claim and opportunity rule; obtain permission for any identifiable third party in media. |
@@ -161,5 +161,5 @@ A green formatter alone must never be recorded as `20/20`.
    personal eligibility/solo-entry gates.
 2. Have a second person re-read all 15 official sources, refresh every TBA deadline, and capture rights-safe Android
    and Desktop media from the frozen build.
-3. Publish the frozen snapshot to an entrant-owned public GitHub repository, run the documented judge path from that
-   public clone, record the video URL, and submit before the deadline.
+3. Complete Android-device plus keyboard/screen-reader QA, record the video URL, replace the essay placeholders, and
+   submit the verified public repository before the deadline.

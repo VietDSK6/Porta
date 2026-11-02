@@ -6,8 +6,8 @@ only troubleshooting that was actually encountered. Do not repeatedly rerun a fa
 ## Environment record
 
 ```text
-Commit SHA: d3d34dc
-Clone URL: local no-hardlink clone of the repository (public URL still blocked)
+Commit SHA: 5a17882 (public evidence snapshot; product Kotlin head d3d34dc)
+Clone URL: https://github.com/VietDSK6/Porta.git, cloned with credential helper disabled
 Host OS/version: macOS 27.2 (26B123), Apple Silicon
 JDK distribution/version: JetBrains Runtime 21.0.11+10-b1163.116
 Android Studio/version: not used for automated verification
@@ -15,18 +15,18 @@ Android SDK/API: existing local SDK configuration; manual device/API verificatio
 Android device/emulator: not used; manual launch pending
 Desktop package type: macOS DMG
 Verification date/time: 2026-11-02 15:42 +07
-Verifier: Codex automated gates; entrant observed packaged Desktop launch past splash
+Verifier: Codex public-clone automated gates; entrant observed packaged Desktop launch past splash
 ```
 
 ## Automated paths
 
 | Check | Command | Result | Evidence / note |
 |---|---|---|---|
-| Formatting | `./gradlew spotlessCheck` | PASS | Fresh clone; 11 s. |
-| Shared/JVM/UI tests | `./gradlew :shared:jvmTest :shared:testAndroidHostTest` | PASS | Fresh clone; 236 JVM + 94 Android-host tests in the source-workspace run, same test tasks green in clone. |
-| Android debug build | `./gradlew :androidApp:assembleDebug` | PASS | Fresh clone; APK assembled in 10 s. Manual device launch remains below. |
-| Desktop package | `./gradlew :desktopApp:packageDistributionForCurrentOS` | PASS | Fresh clone; DMG assembled in 34 s. Runtime image explicitly contains `jdk.unsupported` and `sun.misc.Unsafe`. |
-| JS/Wasm compatibility | `./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs` | PASS | Fresh clone; both shared targets compiled in 10 s. |
+| Formatting | `./gradlew spotlessCheck` | PASS | Credential-free public clone; 1 s with shared Gradle cache. |
+| Shared/JVM/UI tests | `./gradlew :shared:jvmTest :shared:testAndroidHostTest` | PASS | Public clone; 236 JVM + 94 Android-host tests, 3 s with shared cache. |
+| Android debug build | `./gradlew :androidApp:assembleDebug` | PASS | Public clone; APK assembled in 2 s with shared cache. Manual device launch remains below. |
+| Desktop package | `./gradlew :desktopApp:packageDistributionForCurrentOS` | PASS | Public clone; DMG assembled in 34 s. Runtime image explicitly contains `jdk.unsupported` and `sun.misc.Unsafe`. |
+| JS/Wasm compatibility | `./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs` | PASS | Public clone; both shared targets compiled in 1 s with shared cache. |
 
 ### Startup regression note
 
