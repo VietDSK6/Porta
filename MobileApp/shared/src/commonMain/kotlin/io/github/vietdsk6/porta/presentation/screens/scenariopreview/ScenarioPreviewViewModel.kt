@@ -9,6 +9,7 @@ import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Deadline
+import io.github.vietdsk6.porta.domain.model.EligibilityReceipt
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Opportunity
@@ -191,6 +192,8 @@ class ScenarioPreviewViewModel(
             title = action.title,
             beforeLabel = currentLabel,
             afterLabel = action.targetValue.displayValue(),
+            baselineCounts = scenario.baseline.values.toConclusionCounts(),
+            simulatedCounts = scenario.simulated.values.toConclusionCounts(),
             scopeNotice = if (action.target is ActionTarget.OpportunityRuleTarget) {
                 "Would satisfy this programme-specific check if confirmed."
             } else {
@@ -201,6 +204,14 @@ class ScenarioPreviewViewModel(
             isSampleProfile = isSampleProfile,
         )
     }
+
+    private fun Collection<EligibilityReceipt>.toConclusionCounts(): ScenarioConclusionCountsUiState = ScenarioConclusionCountsUiState(
+        currentChecksPassed = count { it.state == EligibilityState.OPEN },
+        needsAction = count { it.state == EligibilityState.HAS_GAPS },
+        needsInformation = count { it.state == EligibilityState.NEEDS_INFO },
+        notAvailable = count { it.state == EligibilityState.NOT_ACTIONABLE },
+        closed = count { it.state == EligibilityState.CLOSED },
+    )
 
     private fun FactKey.readable(): String = when (this) {
         FactKey.IELTS_SCORE -> "IELTS"

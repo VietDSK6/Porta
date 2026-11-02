@@ -17,7 +17,7 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
  */
 internal object PortaContestPackData {
     const val REVIEWED_ON = "2026-10-21"
-    const val VERTICAL_SLICE_REVIEWED_ON = "2026-10-25"
+    const val SOURCE_REFRESH_REVIEWED_ON = "2026-11-02"
 
     fun create(): OpportunityPackDto = OpportunityPackDto(
         schemaVersion = OpportunityPackCodec.CURRENT_SCHEMA_VERSION,
@@ -25,6 +25,7 @@ internal object PortaContestPackData {
         name = "Porta curated opportunity pack",
         publisher = "Porta · independently curated from official sources",
         version = BundledOpportunityPackProvider.PACK_VERSION,
+        // Pack-wide pass; selected records carry their newer individual review dates.
         lastCheckedOn = REVIEWED_ON,
         opportunities = listOf(
             kotlinStudentContest(),
@@ -129,14 +130,14 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants may apply with a completed bachelor's degree.",
-                    sourceNote = checked(source, "What you need", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "What you need", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
                 manual(
                     id = "erasmus-final-year",
                     explanation = "Final-year applicants must confirm they will graduate before their selected master's begins.",
-                    sourceNote = checked(source, "What you need", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "What you need", SOURCE_REFRESH_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Scholarships are awarded to the best-ranked students."),
@@ -145,21 +146,22 @@ internal object PortaContestPackData {
                 "Confirm the exact programme deadline; the EU page says most applications fall between October and January",
             ),
             actions = listOf(degreeAction),
-            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 
     private fun chevening(): OpportunityDto {
-        val source = "https://www.chevening.org/resource-hub/guidance/eligibility/"
-        val degreeAction = degreeAction("chevening", source)
+        val eligibilitySource = "https://www.chevening.org/resource-hub/guidance/eligibility/"
+        val timelineSource = "https://www.chevening.org/scholarships/application-timeline/"
+        val degreeAction = degreeAction("chevening", eligibilitySource)
         return opportunity(
             id = "chevening-scholarship-2027",
             title = "Chevening Scholarship",
             provider = "UK Foreign, Commonwealth & Development Office",
             category = OpportunityCategory.SCHOLARSHIP,
-            cycle = "Next cycle · dates to be confirmed",
-            sourceUrl = source,
-            sourceSection = "Chevening eligibility criteria",
+            cycle = "2027–28 awards · applications closed October 2026",
+            sourceUrl = timelineSource,
+            sourceSection = "Chevening eligibility criteria; Application timeline",
             deadline = DeadlineDto.Tba,
             rule = all(
                 "chevening-root",
@@ -169,28 +171,35 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants need an undergraduate degree that qualifies them for a UK master's programme.",
-                    sourceNote = checked(source, "Eligibility criteria"),
+                    sourceNote = checked(eligibilitySource, "Eligibility criteria", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
                 manual(
                     id = "chevening-experience",
                     explanation = "Confirm at least 2,800 eligible post-graduation work hours under Chevening's counting rules.",
-                    sourceNote = checked(source, "Eligibility criteria and work-experience guidance"),
+                    sourceNote = checked(
+                        eligibilitySource,
+                        "Eligibility criteria and work-experience guidance",
+                        SOURCE_REFRESH_REVIEWED_ON,
+                    ),
                 ),
                 manual(
                     id = "chevening-context",
                     explanation = "Confirm eligible citizenship/residency, return commitment, degree timing, " +
                         "employment conflicts and course offers.",
-                    sourceNote = checked(source, "Eligibility criteria"),
+                    sourceNote = checked(eligibilitySource, "Eligibility criteria", SOURCE_REFRESH_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Leadership", "Networking", "A clear course and career plan"),
             readinessItems = listOf(
                 "Apply to three eligible UK courses",
                 "Obtain at least one unconditional offer by the official timeline deadline",
+                "Applications for 2027–28 closed in October 2026; recheck the next published cycle on $timelineSource",
             ),
             actions = listOf(degreeAction),
+            archived = true,
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 
@@ -233,7 +242,7 @@ internal object PortaContestPackData {
             category = OpportunityCategory.SCHOLARSHIP,
             cycle = "Class of 2028–2029",
             sourceUrl = source,
-            sourceSection = "Next Selection Cycle; Check Your Eligibility",
+            sourceSection = "Next Selection Cycle; Check Your Eligibility; Language Skills",
             deadline = DeadlineDto.Tba,
             rule = all(
                 "schwarzman-root",
@@ -243,7 +252,7 @@ internal object PortaContestPackData {
                     operator = Operator.DATE_BEFORE,
                     expected = date("2010-08-02"),
                     explanation = "Candidates must be at least 18 as of 1 August in the enrollment year.",
-                    sourceNote = checked(source, "Check Your Eligibility"),
+                    sourceNote = checked(source, "Check Your Eligibility", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.IMMUTABLE,
                 ),
                 atomic(
@@ -252,29 +261,62 @@ internal object PortaContestPackData {
                     operator = Operator.DATE_AFTER,
                     expected = date("1999-08-01"),
                     explanation = "Candidates must not yet be 29 as of 1 August in the enrollment year.",
-                    sourceNote = checked(source, "Check Your Eligibility"),
+                    sourceNote = checked(source, "Check Your Eligibility", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.IMMUTABLE,
                 ),
-                atomic(
-                    id = "schwarzman-degree",
-                    factKey = FactKey.DEGREE_COMPLETED,
-                    operator = Operator.EQUALS,
-                    expected = bool(true),
-                    explanation = "All undergraduate degree requirements must be complete before 1 August 2028.",
-                    sourceNote = checked(source, "Check Your Eligibility"),
-                    actionability = Actionability.TIME_DEPENDENT,
-                    actionTemplateId = degreeAction.id,
+                any(
+                    "schwarzman-degree-status",
+                    atomic(
+                        id = "schwarzman-degree",
+                        factKey = FactKey.DEGREE_COMPLETED,
+                        operator = Operator.EQUALS,
+                        expected = bool(true),
+                        explanation = "A completed undergraduate degree meets the degree-presence check.",
+                        sourceNote = checked(source, "Check Your Eligibility", SOURCE_REFRESH_REVIEWED_ON),
+                        actionability = Actionability.TIME_DEPENDENT,
+                        actionTemplateId = degreeAction.id,
+                    ),
+                    manual(
+                        id = "schwarzman-degree-before-start",
+                        explanation = "Otherwise confirm all undergraduate degree requirements will be complete before 1 August 2028.",
+                        sourceNote = checked(source, "Check Your Eligibility", SOURCE_REFRESH_REVIEWED_ON),
+                    ),
+                ),
+                any(
+                    "schwarzman-english-route",
+                    atomic(
+                        id = "schwarzman-ielts-seven",
+                        factKey = FactKey.IELTS_SCORE,
+                        operator = Operator.GREATER_THAN_OR_EQUAL,
+                        expected = number(7.0, "band"),
+                        explanation = "IELTS 7.0 meets the published score for the IELTS route only.",
+                        sourceNote = checked(source, "Language Skills", SOURCE_REFRESH_REVIEWED_ON),
+                        actionability = Actionability.CONTROLLABLE,
+                    ),
+                    manual(
+                        id = "schwarzman-other-english-route",
+                        explanation = "Otherwise verify an accepted TOEFL, Duolingo or Cambridge score, or a native/English-medium exemption.",
+                        sourceNote = checked(source, "Language Skills", SOURCE_REFRESH_REVIEWED_ON),
+                    ),
                 ),
                 manual(
-                    id = "schwarzman-english",
-                    explanation = "Confirm an accepted English-proficiency report or an official exemption " +
-                        "based on prior English-medium study.",
-                    sourceNote = checked(source, "English language requirements"),
+                    id = "schwarzman-english-evidence",
+                    explanation = "If using a test, confirm its report is valid; otherwise confirm exemption evidence.",
+                    sourceNote = checked(source, "Language Skills", SOURCE_REFRESH_REVIEWED_ON),
+                ),
+                manual(
+                    id = "schwarzman-passport-route",
+                    explanation = "Confirm the citizenship/passport application route and all programme-specific conditions.",
+                    sourceNote = checked(source, "Personal Information and Next Selection Cycle", SOURCE_REFRESH_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Leadership", "Intellectual ability", "Character and integrity"),
-            readinessItems = listOf("Confirm the exact 2027 application close date when published"),
+            readinessItems = listOf(
+                "U.S./Global applications are expected April–September 2027; confirm the exact closing date when published",
+                "IELTS 7.0 is one route; accepted tests and exemptions may also satisfy the language condition",
+            ),
             actions = listOf(degreeAction),
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 
@@ -325,7 +367,7 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants need an appropriate first university degree.",
-                    sourceNote = checked(source, "Requirements", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Requirements", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
@@ -335,7 +377,7 @@ internal object PortaContestPackData {
                     operator = Operator.GREATER_THAN_OR_EQUAL,
                     expected = number(24.0, "months"),
                     explanation = "The general EPOS criteria require at least two years of professional experience.",
-                    sourceNote = checked(source, "Requirements", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Requirements", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = experienceAction.id,
                 ),
@@ -346,19 +388,19 @@ internal object PortaContestPackData {
                     sourceNote = checked(
                         source,
                         "Requirements and selected course page",
-                        VERTICAL_SLICE_REVIEWED_ON,
+                        SOURCE_REFRESH_REVIEWED_ON,
                     ),
                 ),
                 manual(
                     id = "daad-country-course",
                     explanation = "Confirm developing-country scope, course fit, language requirements and the course-specific deadline.",
-                    sourceNote = checked(source, "EPOS country and course lists", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "EPOS country and course lists", SOURCE_REFRESH_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Above-average academic performance", "Development motivation"),
             readinessItems = listOf("Apply to the selected university/course, not directly to DAAD unless instructed"),
             actions = listOf(degreeAction, experienceAction),
-            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 
@@ -383,7 +425,7 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants must hold a bachelor's degree or equivalent.",
-                    sourceNote = checked(source, "Who is Eligible to Apply?", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Who is Eligible to Apply?", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = degreeAction.id,
                 ),
@@ -393,14 +435,14 @@ internal object PortaContestPackData {
                     operator = Operator.GREATER_THAN_OR_EQUAL,
                     expected = number(36.0, "months"),
                     explanation = "The broad criteria require at least three years of paid development-related employment.",
-                    sourceNote = checked(source, "Who is Eligible to Apply?", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Who is Eligible to Apply?", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = experienceAction.id,
                 ),
                 manual(
                     id = "jj-degree-timing",
                     explanation = "Confirm the bachelor's degree was earned at least three years before the application deadline.",
-                    sourceNote = checked(source, "Who is Eligible to Apply?", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Who is Eligible to Apply?", SOURCE_REFRESH_REVIEWED_ON),
                 ),
                 manual(
                     id = "jj-experience-timing",
@@ -409,20 +451,25 @@ internal object PortaContestPackData {
                     sourceNote = checked(
                         source,
                         "Who is Eligible to Apply? and application guidelines",
-                        VERTICAL_SLICE_REVIEWED_ON,
+                        SOURCE_REFRESH_REVIEWED_ON,
                     ),
                 ),
                 manual(
                     id = "jj-country-admission",
-                    explanation = "Confirm eligible nationality, no disqualifying dual citizenship, and " +
-                        "unconditional admission to a participating programme.",
-                    sourceNote = checked(source, "2027 Application Cycle", VERTICAL_SLICE_REVIEWED_ON),
+                    explanation = "Confirm nationality against the 2027 country list, no disqualifying dual citizenship, " +
+                        "and unconditional admission to a participating programme. Viet Nam is absent from that list.",
+                    sourceNote = checked(source, "2027 Application Cycle", SOURCE_REFRESH_REVIEWED_ON) +
+                        " 2027 country list (https://www.worldbank.org/en/brief/2026/07/15/" +
+                        "countries-eligible-for-jjwbgsp-scholarship), reviewed $SOURCE_REFRESH_REVIEWED_ON.",
                 ),
             ),
             softCriteria = listOf("Commitment to supporting the applicant's country's development"),
-            readinessItems = listOf("The university must shortlist the admitted candidate before the application link is issued"),
+            readinessItems = listOf(
+                "The university must shortlist the admitted candidate before the application link is issued",
+                "The 2027 eligible-country list does not include Viet Nam; check all citizenships before planning this path",
+            ),
             actions = listOf(degreeAction, experienceAction),
-            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 
@@ -452,7 +499,7 @@ internal object PortaContestPackData {
                     operator = Operator.EQUALS,
                     expected = bool(true),
                     explanation = "Applicants must remain enrolled in a full-time accredited degree for the internship.",
-                    sourceNote = checked(source, "Who can apply?", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Who can apply?", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.TIME_DEPENDENT,
                     actionTemplateId = enrollmentAction.id,
                 ),
@@ -465,7 +512,7 @@ internal object PortaContestPackData {
                     sourceNote = checked(
                         source,
                         "Who can apply? and Internship duration",
-                        VERTICAL_SLICE_REVIEWED_ON,
+                        SOURCE_REFRESH_REVIEWED_ON,
                     ),
                     actionability = Actionability.CONTROLLABLE,
                     actionTemplateId = availabilityAction.id,
@@ -473,13 +520,13 @@ internal object PortaContestPackData {
                 manual(
                     id = "oecd-field-language",
                     explanation = "Confirm a relevant study field and the official-language expectations for the intended team.",
-                    sourceNote = checked(source, "Who can apply?", VERTICAL_SLICE_REVIEWED_ON),
+                    sourceNote = checked(source, "Who can apply?", SOURCE_REFRESH_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Quantitative and IT skills", "Drafting and communication skills"),
             readinessItems = listOf("State accurate availability; OECD recruits on a rolling basis"),
             actions = listOf(enrollmentAction, availabilityAction),
-            lastCheckedOn = VERTICAL_SLICE_REVIEWED_ON,
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 
@@ -503,7 +550,7 @@ internal object PortaContestPackData {
                     operator = Operator.GREATER_THAN_OR_EQUAL,
                     expected = number(18.0, "years"),
                     explanation = "Applicants must be at least 18 years old.",
-                    sourceNote = checked(source, "Requirements"),
+                    sourceNote = checked(source, "Requirements", SOURCE_REFRESH_REVIEWED_ON),
                     actionability = Actionability.IMMUTABLE,
                 ),
                 any(
@@ -514,25 +561,26 @@ internal object PortaContestPackData {
                         operator = Operator.EQUALS,
                         expected = bool(true),
                         explanation = "Current undergraduate, graduate or PhD enrollment satisfies the study-status branch.",
-                        sourceNote = checked(source, "Requirements"),
+                        sourceNote = checked(source, "Requirements", SOURCE_REFRESH_REVIEWED_ON),
                         actionability = Actionability.TIME_DEPENDENT,
                         actionTemplateId = enrollmentAction.id,
                     ),
                     manual(
                         id = "unicef-recent-graduate",
                         explanation = "Otherwise confirm graduation within the past two years.",
-                        sourceNote = checked(source, "Requirements"),
+                        sourceNote = checked(source, "Requirements", SOURCE_REFRESH_REVIEWED_ON),
                     ),
                 ),
                 manual(
                     id = "unicef-language-family",
                     explanation = "Confirm the vacancy language requirement and UNICEF family/reporting-line conflict rules.",
-                    sourceNote = checked(source, "Requirements"),
+                    sourceNote = checked(source, "Requirements", SOURCE_REFRESH_REVIEWED_ON),
                 ),
             ),
             softCriteria = listOf("Strong academic performance", "Motivation", "Relevant professional experience"),
             readinessItems = listOf("Review the requirements and deadline of the specific vacancy"),
             actions = listOf(enrollmentAction),
+            lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
 

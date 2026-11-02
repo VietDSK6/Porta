@@ -20,6 +20,9 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "io.github.vietdsk6.porta"
             packageVersion = "1.0.0"
+            // DataStore Preferences' protobuf runtime uses sun.misc.Unsafe on the JVM.
+            // jlink otherwise omits this module and the packaged app remains on its splash.
+            modules("jdk.unsupported")
         }
     }
 }

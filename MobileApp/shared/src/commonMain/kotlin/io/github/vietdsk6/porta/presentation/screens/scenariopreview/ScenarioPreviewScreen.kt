@@ -42,8 +42,8 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
-import io.github.vietdsk6.porta.presentation.components.porta.ActionImpactDiagram
 import io.github.vietdsk6.porta.presentation.components.porta.ActionImpactNodeUiState
+import io.github.vietdsk6.porta.presentation.components.porta.ActionRipple
 import io.github.vietdsk6.porta.presentation.components.porta.ImpactOutcome
 
 @Composable
@@ -242,7 +242,7 @@ private fun UnchangedCount(uiState: ScenarioPreviewUiState) {
 
 @Composable
 private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
-    val nodes = uiState.affectedDoors.take(5).map { door ->
+    val nodes = uiState.affectedDoors.map { door ->
         door.toImpactNode(
             when (door.outcome) {
                 ScenarioDoorOutcome.CURRENT_CHECKS_PASSED -> ImpactOutcome.CURRENT_CHECKS_PASSED
@@ -261,14 +261,13 @@ private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        ActionImpactDiagram(
+        ActionRipple(
             actionLabel = uiState.title,
             actualLabel = uiState.beforeLabel,
             simulatedLabel = uiState.afterLabel,
             nodes = nodes,
+            overflowDestination = "Results",
         )
-        val moreCount = uiState.affectedDoors.size - nodes.size
-        if (moreCount > 0) Text("+$moreCount more in Results", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
     }
 }
 
@@ -279,6 +278,7 @@ private fun ScenarioDoorUiState.toImpactNode(outcome: ImpactOutcome): ActionImpa
     transitionLabel = "${actualStateLabel.ifBlank { "Current state" }} → " +
         simulatedStateLabel.ifBlank { stateLabel },
     outcome = outcome,
+    timingWarning = timingWarning,
 )
 
 @Composable
@@ -315,8 +315,24 @@ private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
+        if (uiState.hasCatalogCounts) {
+            Text(
+                text = uiState.aggregateTransitionLabel(),
+                modifier = Modifier.testTag("scenario-aggregate-transition"),
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
     }
 }
+
+private fun ScenarioPreviewUiState.aggregateTransitionLabel(): String = listOf(
+    "Checks passed ${baselineCounts.currentChecksPassed} → ${simulatedCounts.currentChecksPassed}",
+    "Needs action ${baselineCounts.needsAction} → ${simulatedCounts.needsAction}",
+    "Needs information ${baselineCounts.needsInformation} → ${simulatedCounts.needsInformation}",
+    "Not available ${baselineCounts.notAvailable} → ${simulatedCounts.notAvailable}",
+    "Closed ${baselineCounts.closed} → ${simulatedCounts.closed}",
+).joinToString(" · ")
 
 @Composable
 private fun SimulationBanner() {

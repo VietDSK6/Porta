@@ -157,7 +157,8 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("Adjust").performScrollTo().performClick()
+        onNodeWithTag("frontier-compact-content").performScrollToIndex(3)
+        onNodeWithText("Adjust").performClick()
         onNodeWithTag("frontier-horizon-30").performScrollTo().performClick()
         assertTrue(events.contains(FrontierUiEvent.HorizonChanged(30)))
     }
@@ -178,7 +179,8 @@ class PortaVerticalSliceUiTest {
             }
         }
 
-        onNodeWithText("Adjust").performScrollTo().performClick()
+        onNodeWithTag("frontier-compact-content").performScrollToIndex(3)
+        onNodeWithText("Adjust").performClick()
         onNodeWithTag("frontier-effort-MEDIUM").performScrollTo().performClick()
         onNodeWithTag("frontier-cost-LOW").performScrollTo().performClick()
         onNodeWithTag("frontier-prioritize-saved").performScrollTo().performClick()
@@ -368,6 +370,7 @@ class PortaVerticalSliceUiTest {
             }
         }
 
+        onNodeWithTag("frontier-detail-pane").performScrollToIndex(1)
         onNodeWithTag("frontier-impact-map").assertExists()
         onNodeWithText("1. 2 moves share this trade-off").assertExists()
     }
@@ -392,7 +395,8 @@ class PortaVerticalSliceUiTest {
         onNodeWithText("SIMULATION PREVIEW").assertExists()
         onNodeWithText("6.5 band").assertExists()
         onNodeWithText("7.0 band").assertExists()
-        onNodeWithText("Aurora Scholars").assertExists()
+        onNodeWithTag("frontier-door-comparison-aurora").assertExists()
+        onNodeWithTag("frontier-detail-pane").performScrollToIndex(1)
         onNodeWithTag("frontier-impact-map").assertExists()
         onNodeWithTag("frontier-plot-point-raise-ielts").performClick()
         assertTrue(events.contains(FrontierUiEvent.ActionSelected("raise-ielts")))
@@ -486,7 +490,10 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithTag("scenario-outcome-summary").assertExists()
         onNodeWithText("4 opportunities affected").assertExists()
-        onNodeWithTag("scenario-preview-content").performScrollToIndex(5)
+        onNodeWithTag("scenario-ripple-toggle").performScrollTo().performClick()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(4)
+        onNodeWithTag("action-ripple").assertExists()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(6)
         onNodeWithTag("scenario-door-title-aurora").assertExists()
     }
 

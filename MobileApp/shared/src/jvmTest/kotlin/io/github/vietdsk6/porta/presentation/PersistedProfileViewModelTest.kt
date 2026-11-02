@@ -23,11 +23,14 @@ import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
+import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorDeadlineBucket
+import io.github.vietdsk6.porta.presentation.screens.doors.DoorDeadlineFilter
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorFilter
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsUiEvent
 import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
@@ -239,9 +242,22 @@ class PersistedProfileViewModelTest {
         assertFalse(doors.uiState.value.isSampleCatalog)
         assertEquals(15, doors.uiState.value.catalogDoorCount)
         assertTrue(doors.uiState.value.doors.any { it.title == "Kotlin Student Coding Competition" })
-        assertEquals(1, doors.uiState.value.archivedCount)
+        assertEquals(2, doors.uiState.value.archivedCount)
         doors.onUiEvent(DoorsUiEvent.FilterChanged(DoorFilter.ARCHIVED))
-        assertEquals(listOf("Swift Student Challenge"), doors.uiState.value.doors.map { it.title })
+        assertEquals(
+            setOf("Chevening Scholarship", "Swift Student Challenge"),
+            doors.uiState.value.doors.mapTo(mutableSetOf()) { it.title },
+        )
+        doors.onUiEvent(DoorsUiEvent.FilterChanged(DoorFilter.ALL))
+        doors.onUiEvent(DoorsUiEvent.SearchChanged("Kotlin Student"))
+        assertEquals(listOf("Kotlin Student Coding Competition"), doors.uiState.value.doors.map { it.title })
+        doors.onUiEvent(DoorsUiEvent.SearchChanged(""))
+        doors.onUiEvent(DoorsUiEvent.CategoryChanged(OpportunityCategory.STUDENT_CONTEST))
+        assertTrue(doors.uiState.value.doors.all { it.category == OpportunityCategory.STUDENT_CONTEST })
+        doors.onUiEvent(DoorsUiEvent.CategoryChanged(null))
+        doors.onUiEvent(DoorsUiEvent.DeadlineFilterChanged(DoorDeadlineFilter.TBA_OR_MISSING))
+        assertTrue(doors.uiState.value.doors.isNotEmpty())
+        assertTrue(doors.uiState.value.doors.all { it.deadlineBucket == DoorDeadlineBucket.TBA_OR_MISSING })
         assertFalse(frontier.uiState.value.isSampleCatalog)
         assertEquals(4, frontier.uiState.value.actions.size)
         assertTrue(frontier.uiState.value.actions.all { it.improvedCount == 1 })

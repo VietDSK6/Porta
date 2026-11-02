@@ -146,3 +146,64 @@
 - `./gradlew spotlessCheck`, `./gradlew :shared:jvmTest :shared:testAndroidHostTest`, and `./gradlew :androidApp:assembleDebug` — PASS on the final code. Roborazzi record — PASS; `git diff --check` — PASS.
 - Focused tests cover 0/13/15 referenced-opportunity counts, country search and ISO code selection, date picker confirmation/clear/future guard, 320dp with 200% text, optional GPA scale behavior, the post-save notice, privacy navigation, export availability and destructive confirmation copy.
 - Live Android/Desktop interaction, on-screen keyboard behavior on a device, and restart/persistence remain W5 checks. T12/T13 visual primitives and Action Ripple are the next UI slice.
+
+## 2026-11-01 — T12/T13 Semantic visuals and Action Ripple
+
+### Changed behavior
+
+- Added small Arch, Threshold, Path and status glyphs with caller-supplied assessment labels. The check, action and verification shapes remain distinct without color. They are static, so reduced-motion settings do not remove information.
+- Replaced the old What-if impact diagram with Action Ripple. It consumes the same ordered `affectedDoors` as Results, shows each actual → simulated state and a per-door timing warning, and caps the drawing at five nodes with an exact overflow count. Zero affected doors show no ripple.
+- Next moves uses the engine-derived `doorComparisons` IDs. Mobile shows the recommended move and its preview button before an optional ripple disclosure; desktop puts the ripple next to the full comparison. A `needsVerification` flag is projected from the evaluated state, rather than guessed from display text.
+- The source action and each outcome remain text-labeled. A scenario never changes the saved profile. No ripple state represents an admission prediction.
+
+### Files and evidence
+
+- Shared visuals: `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/EditorialVisualPrimitives.kt` and `ActionRipple.kt` (replacing `ActionImpactDiagram.kt`).
+- Screens: `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/scenariopreview/ScenarioPreviewScreen.kt` and `presentation/screens/frontier/FrontierScreen.kt`, `FrontierUiState.kt`, `FrontierViewModel.kt`.
+- Tests: `shared/src/jvmTest/kotlin/io/github/vietdsk6/porta/presentation/EditorialVisualPrimitivesUiTest.kt`, `ScenarioPreviewScalabilityUiTest.kt`, `ScenarioPreviewProgressiveDisclosureUiTest.kt`, `FrontierPriorityUiTest.kt`, and `PortaVerticalSliceUiTest.kt`.
+- Roborazzi fixtures under `shared/src/androidHostTest/snapshots/` include `ActionRippleKt_ActionRippleLightPreview.png`, `ActionRippleKt_ActionRippleDarkPreview.png`, `ActionRippleKt_ActionRippleLargeTextPreview.png`, and the three `EditorialVisualPrimitivesKt_` previews. Light/dark and 320dp/200% Ripple images were inspected; the large-text image exposed a truncated programme name, which was fixed. These are rendered fixtures, not live-device captures.
+
+### Validation and remaining work
+
+- `./gradlew spotlessCheck`, `./gradlew :shared:jvmTest :shared:testAndroidHostTest`, and `./gradlew :androidApp:assembleDebug` — PASS on the T12/T13 implementation. Roborazzi record — PASS. A height constraint exposed by the first rendered image was corrected before the final renders.
+- UI tests cover 0/1/5/12 affected IDs, grouping, per-node timing concern, optional mobile disclosure, desktop comparison, and reduced-motion content. Live Android/Desktop interaction remains a W5 runtime check; T15 onboarding clarity is next.
+
+## 2026-11-02 — T15 Fictional onboarding clarity
+
+### Changed behavior
+
+- Kept the evaluator-backed 6.5 → 7.0 IELTS demo and its four fictional checks. The slider now has a labeled threshold glyph; the summary states the sample threshold and that other conditions were not assessed.
+- The result counts **sample IELTS checks changed**, not applications made available. The final choice emphasizes creating a real profile and gives sample exploration a separate, plainly named action. “Skip to sample” now names the actual skip destination.
+- No sample interaction saves a real profile fact. The demo does not claim acceptance, full eligibility, or a change to the current catalog.
+
+### Files and evidence
+
+- UI and copy: `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/onboarding/OnBoardingScreenVariation1.kt` and `OnBoardingUiState.kt`. The existing `OnBoardingViewModel.kt` evaluator projection was retained.
+- UI tests: `shared/src/jvmTest/kotlin/io/github/vietdsk6/porta/presentation/OnboardingUiTest.kt` covers the slider transition, fictional language, both final actions, and reachability at explicit 320dp/200% test density.
+- Roborazzi light/dark fixtures under `shared/src/androidHostTest/snapshots/` include `OnBoardingScreenVariation1Kt_ScenarioStepLightPreview.png`, `ResultStepLightPreview.png`, `NextMoveStepLightPreview.png`, and their dark counterparts. These fixtures were inspected; the preview scanner renders at its own fixed viewport, so the 320dp/200% claim comes from the explicit Compose UI tests, not these images.
+
+### Validation and remaining work
+
+- `./gradlew spotlessCheck`, `./gradlew :shared:jvmTest :shared:testAndroidHostTest`, and `./gradlew :androidApp:assembleDebug` — PASS on the final T15 code. Roborazzi record — PASS; light/dark scenario, result and final-choice fixtures inspected. `git diff --check` — PASS.
+- Live Android/Desktop interaction remains a W5 runtime check. T18 source data, T19 local startup/persistence, and T17 release QA are next.
+
+## 2026-11-02 — T18 Selective real-source pack refresh
+
+### Changed behavior
+
+- Rechecked five deeper current/announced-cycle records against their providers: Erasmus Mundus, DAAD EPOS, Schwarzman Scholars, OECD Internships and UNICEF Internships. The official JJ/WBGSP 2027 country list and Chevening 2027–28 timeline also exposed two material corrections.
+- Schwarzman now has an IELTS ≥ 7 **alternative** branch, with other tests/exemptions and report validity left for manual review. A student who has not finished a degree can still verify planned completion before August 2028; Porta no longer treats present-day degree completion as the only route. A 7.0 score does not make the programme automatically open.
+- The 2027–28 Chevening record is archived because applications closed in October 2026. JJ/WBGSP's manual country check links the official 2027 list and names Viet Nam's absence; no automatic nationality pass/fail is inferred from Porta's single-code profile.
+- Bundled pack version 3 replaces an older active bundled pack on app launch. A user-imported catalog remains active. Opportunity IDs stay stable, so saved-door references survive the refresh.
+- The first-degree scenario changes three deadline-feasible current-cycle **checks** for Erasmus, DAAD and Schwarzman in the tested profile; it opens no complete doors. Its duration/effort/cost are still labelled Porta planning assumptions.
+
+### Files and evidence
+
+- Pack and upgrade decision: `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/PortaContestPackData.kt`, `BundledOpportunityPackProvider.kt`, and `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/root/AppInitializer.kt`.
+- Source register: `OPPORTUNITY_PACK_SOURCES.md`, with provider URLs, sections, per-record review dates, cycle timing, alternative-route and citizenship limits. Pack metadata retains the last complete 21 October source-pass date; seven selectively refreshed records carry 2 November dates.
+- Tests: `shared/src/commonTest/kotlin/io/github/vietdsk6/porta/data/source/local/pack/BundledOpportunityPackProviderTest.kt` and `shared/src/jvmTest/kotlin/io/github/vietdsk6/porta/presentation/PersistedProfileViewModelTest.kt` cover validity, version refresh decision, Schwarzman alternatives, Chevening archive, JJ warning, real cross-door check changes and updated archived-filter count.
+
+### Validation and remaining work
+
+- `./gradlew spotlessCheck`, `./gradlew :shared:jvmTest :shared:testAndroidHostTest`, and `./gradlew :androidApp:assembleDebug` — PASS on the final T18 code. `git diff --check` — PASS. Browser source inspection is documented in `OPPORTUNITY_PACK_SOURCES.md`; no admission or provider approval is inferred.
+- T19 offline startup/restart persistence and T17 live Android/Desktop, accessibility and release QA remain open.

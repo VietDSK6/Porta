@@ -13,7 +13,14 @@ import io.github.vietdsk6.porta.domain.model.PackDiagnostic
 import io.github.vietdsk6.porta.domain.model.PackValidationResult
 import kotlinx.datetime.LocalDate
 
+/**
+ * Validates a complete opportunity pack before it can cross the persistence boundary.
+ *
+ * Unsupported schemas, unsafe action targets, broken references, invalid sources, and ambiguous IDs accumulate as
+ * actionable diagnostics. A document is returned only when the entire pack is valid, preventing partial imports.
+ */
 class OpportunityPackValidator {
+    /** Converts [pack] to a domain document only when no validation diagnostic is produced. */
     fun validate(
         pack: OpportunityPackDto,
         rawJson: String,

@@ -2,7 +2,7 @@
 
 **Prepared:** 28 Oct 2026 from `PORTA_COMPLETE_UX_REDESIGN_PLAN_2026-10-28.md` and current-source W0 verification. See `PORTA_CURRENT_STATE_VERIFY.md` for evidence. This file plans work; it does not claim the UI changes below are complete. Preserve the existing editorial palette, Newsreader/Manrope typography, serialized routes and evaluator semantics. Android and JVM Desktop share state contracts but may use different layouts.
 
-**Progress, 29 Oct:** W0, the early T09/T10 trust correction, W1A (T02/T03/T06 Doors → Details), T07/T08 What-if, T04/T14 Next moves/Active Plan count clarity, and T05/T11/T16 Profile → Edit → Data & privacy are complete in the working tree. All passed the scoped gates; live platform interaction remains a W5 check. Next is T12/T13 visual primitives and Action Ripple, followed by the remaining reliability, source-data and release checks. See `PORTA_UI_CHANGELOG.md` for exact evidence.
+**Progress, 2 Nov:** W0, the early T09/T10 trust correction, W1A (T02/T03/T06 Doors → Details), T07/T08 What-if, T04/T14 Next moves/Active Plan count clarity, T05/T11/T16 Profile → Edit → Data & privacy, T12/T13 semantic visual primitives → Action Ripple, T15 fictional onboarding clarity, and T18 selective source-pack refresh are complete in the working tree. Live platform interaction remains a W5 check. Next are local startup/persistence (T19) and cross-platform release QA (T17). See `PORTA_UI_CHANGELOG.md` for exact evidence and gate results.
 
 ## Execution order and gates
 
@@ -101,7 +101,7 @@ Every slice updates `PORTA_UI_CHANGELOG.md`, records exact changed files, captur
 - **Change / projection:** show candidate check changes and in-plan deadline-feasible IDs as separately named sets when both matter; make material deadline warning visible, with rest of risk note expandable.
 - **Test / accept:** fixture where 5 checks change but 1 misses a known deadline reports 5 candidate / 4 feasible, no invented opportunity impact.
 
-### T15 — Fictional onboarding clarity — after T12, later polish
+### T15 — Fictional onboarding clarity — done in working tree
 
 - **Files:** `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/onboarding/OnBoardingScreenVariation1.kt`, `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/onboarding/OnBoardingViewModel.kt`, `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/onboarding/OnBoardingUiState.kt`.
 - **Change / projection:** preserve the existing fictional IELTS computation and 4 sample requirements; add a small threshold visual and short sample-rule summary, separate sample exploration from real profile creation.
@@ -119,7 +119,7 @@ Every slice updates `PORTA_UI_CHANGELOG.md`, records exact changed files, captur
 - **Change / projection:** verify each wave at 320/360dp, 1.3×/1.5×/200% text, Desktop 600/900px, keyboard/focus, light/dark, reduced motion, offline restart; snapshots must match the actual state model.
 - **Test / accept:** scoped Gradle gates, Desktop compile/package check and manual interaction pass, fresh screenshots, no clipped controls/focus traps or lost caveats. Record any unavailable manual device checks rather than claiming PASS.
 
-### T18 — Real source pack and recommendation utility — separate data track
+### T18 — Real source pack and recommendation utility — done in working tree
 
 - **Files:** `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/PortaContestPackData.kt`, `shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/OpportunityPackValidator.kt`, `OPPORTUNITY_PACK_SOURCES.md`, `shared/src/commonTest/kotlin/io/github/vietdsk6/porta/data/source/local/pack/BundledOpportunityPackProviderTest.kt`, `shared/src/commonTest/kotlin/io/github/vietdsk6/porta/domain/usecase/ActionFrontierEngineTest.kt`.
 - **Change / projection:** curate 3–5 genuinely deeper current-cycle opportunities and at least one truthful cross-door action only when official sources support the exact encoded rule/threshold. Do not fabricate OPEN cases, deadlines or effort estimates.

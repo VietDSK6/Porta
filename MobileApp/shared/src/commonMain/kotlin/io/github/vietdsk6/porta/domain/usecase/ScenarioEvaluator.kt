@@ -15,9 +15,16 @@ import io.github.vietdsk6.porta.domain.model.ScenarioRuleDelta
 import io.github.vietdsk6.porta.domain.model.findAtomicRule
 import kotlinx.datetime.LocalDate
 
+/**
+ * Compares an actual profile with a temporary counterfactual overlay.
+ *
+ * Evaluation is pure: overrides are applied to an in-memory snapshot and never written to profile storage. The result
+ * retains both baseline and simulated receipts so every visible delta remains traceable to the same encoded rules.
+ */
 class ScenarioEvaluator(
     private val eligibilityEvaluator: EligibilityEvaluator,
 ) {
+    /** Evaluates global fact overrides without mutating [profile]. */
     fun evaluate(
         profile: ProfileSnapshot,
         overrides: Map<FactKey, FactValue>,
@@ -30,6 +37,7 @@ class ScenarioEvaluator(
         today = today,
     )
 
+    /** Evaluates global and programme-scoped overrides without mutating [profile]. */
     fun evaluate(
         profile: ProfileSnapshot,
         overrides: ScenarioOverrides,

@@ -48,6 +48,9 @@ import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.PlanStatus
+import io.github.vietdsk6.porta.presentation.components.porta.ActionImpactNodeUiState
+import io.github.vietdsk6.porta.presentation.components.porta.ActionRipple
+import io.github.vietdsk6.porta.presentation.components.porta.ImpactOutcome
 
 @Composable
 fun FrontierScreen(
@@ -130,6 +133,9 @@ private fun CompactFrontierContent(
                     onSelect = {},
                     onPreview = { onPreviewScenario(action.id) },
                 )
+            }
+            if (action.doorComparisons.isNotEmpty()) {
+                item { RecommendedRippleDisclosure(action) }
             }
         }
         uiState.suggestedGrowthHorizonDays?.let { horizonDays ->
@@ -609,6 +615,14 @@ private fun FrontierCard(
                     style = AppTheme.typography.bodySmall,
                 )
             }
+            action.earliestDeadlineLabel?.let { deadlineLabel ->
+                Text(
+                    text = deadlineLabel,
+                    modifier = Modifier.testTag("frontier-earliest-deadline-${action.id}"),
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
+            }
             if (showExplanation && detailsVisible) {
                 Text(
                     text = action.explanation,
@@ -647,6 +661,28 @@ private fun FrontierCard(
             Button(modifier = Modifier.fillMaxWidth(), onClick = onPreview) {
                 Text("Preview changes")
             }
+        }
+    }
+}
+
+@Composable
+private fun RecommendedRippleDisclosure(action: FrontierActionUiState) {
+    var expanded by rememberSaveable(action.id) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton(
+            modifier = Modifier.testTag("frontier-ripple-toggle"),
+            onClick = { expanded = !expanded },
+        ) {
+            Text(if (expanded) "Hide action ripple" else "View action ripple")
+        }
+        if (expanded) {
+            ActionRipple(
+                actionLabel = action.title,
+                actualLabel = action.currentLabel,
+                simulatedLabel = action.targetLabel,
+                nodes = action.rippleNodes(),
+                overflowDestination = "What-if preview",
+            )
         }
     }
 }
@@ -758,6 +794,16 @@ private fun FrontierComparisonPanel(
                     text = action.explanation,
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.text.secondary,
+                )
+            }
+
+            if (action.doorComparisons.isNotEmpty()) {
+                ActionRipple(
+                    actionLabel = action.title,
+                    actualLabel = action.currentLabel,
+                    simulatedLabel = action.targetLabel,
+                    nodes = action.rippleNodes(),
+                    overflowDestination = "comparison",
                 )
             }
 
@@ -980,6 +1026,26 @@ private fun FrontierActionUiState.impactSummary(): String = buildString {
     append(changedCheckCount)
     append(if (changedCheckCount == 1) " assessed check" else " assessed checks")
     append(" could change")
+}
+
+private fun FrontierActionUiState.rippleNodes(): List<ActionImpactNodeUiState> = doorComparisons.map { door ->
+    val outcome = when {
+        door.isNewlyOpen -> ImpactOutcome.CURRENT_CHECKS_PASSED
+        door.needsVerification -> ImpactOutcome.NEEDS_VERIFICATION
+        else -> ImpactOutcome.CHECKED_PROGRESS
+    }
+    ActionImpactNodeUiState(
+        id = door.id,
+        title = door.title,
+        statusLabel = when (outcome) {
+            ImpactOutcome.CURRENT_CHECKS_PASSED -> "Would pass current checks"
+            ImpactOutcome.CHECKED_PROGRESS -> "Would address a checked requirement"
+            ImpactOutcome.NEEDS_VERIFICATION -> "Still needs information or source review"
+        },
+        transitionLabel = "${door.actualStateLabel} → ${door.previewStateLabel}",
+        outcome = outcome,
+        timingWarning = if (door.requiresDeadlineCheck) "Deadline needs confirmation" else null,
+    )
 }
 
 private fun FrontierMoveKind.label(): String = when (this) {

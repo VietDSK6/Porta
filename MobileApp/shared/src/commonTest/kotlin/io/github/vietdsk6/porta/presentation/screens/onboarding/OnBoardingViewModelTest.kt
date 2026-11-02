@@ -64,6 +64,16 @@ class OnBoardingViewModelTest {
     }
 
     @Test
+    fun `preference read failure never leaves onboarding on the splash`() = runTest(mainDispatcher) {
+        val viewModel = createViewModel(FailingReadUserPreferences())
+
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertNull(viewModel.uiState.value.completion)
+    }
+
+    @Test
     fun `selecting a goal persists the local focus`() = runTest(mainDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -183,8 +193,14 @@ class OnBoardingViewModelTest {
         assertNull(viewModel.uiState.value.completion)
     }
 
-    private fun createViewModel(): OnBoardingViewModel = OnBoardingViewModel(
-        userPreferences = userPreferences,
+    private fun createViewModel(
+        preferences: UserPreferences = userPreferences,
+    ): OnBoardingViewModel = OnBoardingViewModel(
+        userPreferences = preferences,
         eligibilityEvaluator = EligibilityEvaluator(),
     )
+
+    private class FailingReadUserPreferences : UserPreferences by FakeUserPreferences() {
+        override suspend fun getString(key: String, defaultValue: String?): String? = error("Read failed")
+    }
 }

@@ -1,141 +1,174 @@
-# Koko — KMPStarterKit
+# Porta
 
-**Koko** is the KMP contest starter kit — a Kotlin Multiplatform + Compose Multiplatform boilerplate for building Android and iOS apps with a shared codebase.
+> See which realistic next milestone creates the most assessed progress—without pretending to predict who wins.
 
-## Getting Started
+Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a curated opportunity pack
+against a student's actual profile, explains every assessed published rule, and builds an **Action Frontier** of
+controllable milestones ranked under explicit time, effort, cost, and saved-opportunity constraints.
 
-We have built the KMP Contest Starter Kit (nicknamed Koko) as the fastest way to transform your idea from a production-grade app on Google Play and the App Store. If you are looking to get started with KMP, we recommend that you run through the "KMP Quickstart" at https://kotlinlang.org/docs/multiplatform/quickstart.html and the "Create Your First Compose Multiplatform app" at https://kotlinlang.org/docs/multiplatform/compose-multiplatform-create-first-app.html - and then come back once you have completed both of those. 
+Porta does not predict admission, funding, or selection. It keeps missing information, manual checks, soft
+selection factors, and deterministic eligibility rules visibly separate.
 
-To get started with Koko, open this project in Android Studio and type `Proceed with koko-getting-started skill` into the agent's chat panel.
+## Contest targets
 
-Documentation: https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/ 
+The submission declares two runnable targets:
 
-> **Cloning on Windows?** This repo uses git symlinks (`CLAUDE.md`/`GEMINI.md` → `AGENTS.md`,
-> `.claude/skills` → `skills/`). On Windows, clone with symlinks enabled or they become plain text
-> files and AI-agent skill discovery silently breaks: enable **Developer Mode** (Settings → For
-> developers), then `git clone -c core.symlinks=true <repo-url>`. Also note `Documentation/` is a
-> submodule — use `git clone --recurse-submodules` if you want the docs site locally (optional).
+- **Android** — compact profile updates, opportunity review, What-if previews, and milestone tracking.
+- **JVM Desktop** — wide comparison, source inspection, pack diagnostics, and keyboard-oriented planning.
 
-## Project Structure
+iOS and Web wrappers remain inherited compatibility scaffolding from the starter kit. They are not declared as
+runnable contest targets.
 
+## What Porta does
+
+- Stores an academic profile locally, with explicit units and evidence metadata.
+- Evaluates a bundled 15-opportunity catalog using typed, deterministic rules.
+- Separates passed checks, actionable gaps, missing information, manual review, soft criteria, archived cycles,
+  and closed deadlines.
+- Links every bundled hard rule to its official source and last manual review date.
+- Generates only curated, controllable milestones; immutable or sensitive attributes never become advice.
+- Computes a Pareto Action Frontier and explains impact, duration, effort, cost, deadline feasibility, and
+  exclusions without showing a misleading universal score.
+- Previews a milestone as a temporary scenario without modifying the saved profile.
+- Tracks milestone progress and requires a separate explicit confirmation before changing an actual fact.
+- Imports and exports versioned opportunity packs with validation and an approval diff before activation.
+- Provides focused profile clearing, full local reset, and profile metadata export.
+
+The contest build needs no account, cloud service, Firebase project, analytics SDK, API key, subscription, or
+network connection for its core flows. Opening an official source intentionally uses the network.
+
+## Try the core journey
+
+1. Start with the fictional sample student or create a minimal profile.
+2. Open **Doors** and inspect the current source-linked conclusions.
+3. Open **Next moves** and adjust time, effort, cost, or saved-door priority.
+4. Select a milestone to compare the Actual profile with its What-if result.
+5. Inspect the exact rule and source behind a changed door.
+6. Add the milestone to the local plan.
+7. Complete the plan and explicitly confirm an actual profile update; completion alone never changes eligibility.
+8. On Desktop, inspect the wide comparison workspace and opportunity-pack diagnostics.
+
+## Repository layout
+
+```text
+MobileApp/       Porta Android/Desktop app, shared Kotlin, tests, and contest documentation
+Documentation/   Inherited starter-kit documentation submodule
+Web/             Inherited starter-kit web/backend scaffolding; not part of the Porta contest target claim
 ```
-├── MobileApp/         # Compose Multiplatform mobile app (Android, iOS, Web, Desktop)
-├── Web/               # Firebase Hosting landing page + Cloud Functions backend
-├── Documentation/     # Docusaurus documentation site (git submodule) — kotlinfoundation.org/kmp-contest-starter-kit-documentation
-├── AiGuidelines/      # AI-assisted development guidelines & agent prompts
-├── skills/            # Agent-agnostic skills (SKILL.md format) for coding agents
-├── .github/           # GitHub Actions workflows + composite actions (PR checks, publish, web build)
-└── AGENTS.md          # Primary AI-agent context file (CLAUDE.md symlinks here)
+
+The implementation and all commands below live in `MobileApp/`.
+
+## Prerequisites
+
+- JDK 17 or newer; JDK 21 is recommended for the complete local test path.
+- Android Studio and an Android SDK for the Android target.
+- `MobileApp/local.properties` containing the local SDK path:
+
+```properties
+sdk.dir=/absolute/path/to/Android/sdk
 ```
 
-## Features
+No Firebase files or provider credentials are required.
 
-### Core
-- **[Authentication](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/auth)** — Google & Apple sign-in via Firebase Authentication
-- **[In-App Purchases & Subscriptions](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/inapp-purchases-subscription)** — Adapty (default) and RevenueCat integration (switchable via the `SUBSCRIPTION_PROVIDER` gradle property)
-- **[Push Notifications](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/notifications)** — Firebase Cloud Messaging for Android & iOS
-- **[In-App Review](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/inapp-review)** — Native app rating prompts
-- **[Feature Flags / Remote Config](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/feature-flag)** — Runtime feature toggling via Firebase Remote Config
-- **[Firebase Integration](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/firebase-integration)** — Analytics, Crashlytics, Messaging, Remote Config
+## Run Android
 
-### Data & Networking
-- **[Network](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/network)** — Ktor HTTP client with centralized config, JSON serialization, logging
-- **[Local Storage](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/local-storage)** — Room database for offline persistence
-- **[User Preferences](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/user-preferences)** — Jetpack DataStore Preferences on all targets (file-based on Android/iOS/JVM, `WebLocalStorage` on web)
-- **Runtime Permissions** — [Calf](https://github.com/MohamedRejeb/Calf)-backed `AppPermissionState` API with ready-made helpers for notification, camera, gallery, location, and microphone permissions
-- **Splash Screen** — native launch screen on both platforms (no library): Android `core-splashscreen` theme + iOS declarative `UILaunchScreen`. Rebrand by editing the color/icon (see the *Splash Screen* section in `AGENTS.md`/`CLAUDE.md`)
-
-### UI & Development
-- **[UI Components](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/ui-components)** — Pre-built design system with reusable Compose components
-- **[Screen Generator](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/screen-generator)** — Bash script to scaffold new screens with boilerplate
-- **[Logging](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/logging)** — Structured logging via Napier
-
-### Quality & Testing
-- **Spotless + ktlint** — Run `./gradlew spotlessApply` to auto-format Kotlin source and Gradle KTS. Enforced on every PR.
-- **Unit & Compose UI tests** — `kotlinx-coroutines-test` for `Flow` / ViewModel tests; `runComposeUiTest` for headless UI tests on JVM. Run via `./gradlew :shared:jvmTest :shared:testAndroidHostTest`.
-- **Screenshot tests (optional, local)** — Roborazzi + ComposablePreviewScanner can snapshot every `@Preview` under `io.github.vietdsk6.porta.*`. Record baselines with `./gradlew :shared:recordRoborazziAndroidHostTest`, then compare with `./gradlew :shared:verifyRoborazziAndroidHostTest`. Goldens are not committed and verification is not part of PR checks.
-- **Storefront screenshot generator** — `./scripts/generate_store_screenshots.sh` renders every `@Preview @StoreScreenshot` composable at App Store / Play Store pixel sizes, ready to upload. The capture is the screen as it renders — no marketing chrome, device frames, or headlines added. No Fastlane / ImageMagick required.
-
-### Monetization & Growth
-- **[Google AdMob Ads](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/admob-ads)** — Banner, interstitial, and rewarded ads
-- **[Flexible Credit System](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/credits-system)** — Local credit system with renewable credits
-- **No-premium mode** — the default (`AppConfiguration.PREMIUM_FEATURES_ENABLED = false`): no paywall, no subscriptions, credits off, all features free. Flip it to `true` when you add premium features (the app can still be free to download)
-
-### AI & Backend
-- **[AI Integration](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/ai-integration)** — OpenAI, Replicate, and DALL-E via Firebase Cloud Functions (secure API key handling)
-- **[App Landing Page](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/app-landing-page)** — Pre-built landing page template deployable to Firebase Hosting
-
-### DevOps
-- **[GitHub CI/CD Actions](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/github-ci-cd)** — `pr_checks.yml` runs format/test/screenshot/build gates on every PR; release workflows publish to Play Store and App Store from tag pushes. Workflows live at the repo root in `.github/workflows/`.
-- **[Fastlane](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/production/fastlane)** — Pre-configured lanes for Play Store & App Store publishing
-- **[Scripts](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/features/scripts)** — Helper scripts for package/app-ID refactor, version bumps, keystore generation, module creation, ASO metadata, store-screenshot rendering
-
-## Contributing
-
-We welcome contributions from the community! If you'd like to help improve the Koko template, please review our [Contributing Guidelines](CONTRIBUTING.md) for information on our workflow, code style, and how to submit a Pull Request.
-
-### Production
-- **[Pre-Publishing Checklist](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/production/pre-publishing-checklist)** — Step-by-step checklist for app icons, API keys, signing, and store setup
-- **[Android Production](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/production/android)** — Android keystore and Play Store publishing
-- **[iOS Production](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation/production/iOS)** — App Store publishing and certificate setup
-
-For more details, visit the [full documentation](https://kotlinfoundation.org/kmp-contest-starter-kit-documentation).
-
-## Tech Stack
-
-- **Language**: Kotlin 2.3.20
-- **UI**: Compose Multiplatform 1.10.0
-- **Platforms**: Android, iOS, Web (WASM), JVM Desktop
-- **DI**: Koin 4.2.0-beta2
-- **Networking**: Ktor 3.3.1
-- **Database**: Room 3.0.0-alpha01 (KMP — Android, iOS, JVM, wasmJs via OPFS)
-- **Preferences**: DataStore 1.3.0-alpha09 (all targets, incl. js/wasmJs)
-- **Permissions**: Calf 0.12.0
-- **Auth**: Firebase Authentication
-- **Subscriptions**: Adapty (default) / RevenueCat (switchable)
-- **Quality**: Spotless 8.4.0 + ktlint 1.7.1, Roborazzi 1.60.0 + ComposablePreviewScanner 0.9.0 (screenshot tests)
-
-
-| Project | Details |
-|---------|---------|
-| **MobileApp** | See [MobileApp/README.md](MobileApp/README.md) for setup, build commands, and architecture |
-| **Web** | Firebase Hosting static site + Node.js Cloud Functions |
-
-> **New here? Follow the developer journey.** The [`skills/`](skills/README.md) folder is a phase-by-phase path from a cloned template to a shipped, earning app: **getting-started** (run it locally) → **integrations** → **publishing** → **monetization** → **growth**. Each guide is a checklist you can follow with an AI agent *or* by hand — real commands, paths, and console steps, no external docs needed.
-
-### Prerequisites
-
-- JDK 17+
-- Android SDK (for mobile app)
-- Xcode (for iOS builds)
-- Optional: [KDoctor](https://github.com/Kotlin/kdoctor) to verify environment
-
-> **iOS note:** the shared framework links some native SDKs (e.g. Firebase, via KMPNotifier) through Swift Package Manager. The required Kotlin↔SwiftPM linkage package (`MobileApp/iosApp/KotlinMultiplatformLinkedPackage/`) ships committed, so iOS builds — and apps generated from KMPStarterKit — work out of the box. You only regenerate it when you add or change a SwiftPM-backed dependency. See [iOS production docs › SwiftPM Dependencies & the Linkage Package](Documentation/docs/production/iOS.md).
-
-### Cloning with Documentation Submodule
-
-The `Documentation/` directory is a git submodule. To initialize it when cloning:
+From `MobileApp/`:
 
 ```bash
-git clone --recurse-submodules <repo-url>
-# Or if already cloned:
-git submodule update --init
+./scripts/check_env.sh --phase getting-started
+./gradlew :androidApp:assembleDebug
 ```
 
-## AI-Assisted Development
+The APK is written to `androidApp/build/outputs/apk/debug/androidApp-debug.apk`. Open `MobileApp/` in Android
+Studio and run the `androidApp` configuration on an emulator or device to interact with the app.
 
-This project is set up to be AI-ready out of the box — coding agents (Claude Code, Codex, Cursor, Aider, etc.) get the same context the team uses:
+## Run JVM Desktop
 
-- **`AGENTS.md`** — Primary context file following the vendor-neutral [agents.md](https://agents.md) convention, auto-read by Codex, Gemini CLI, Cursor, and others (`CLAUDE.md` is a symlink to it, so Claude Code reads the same file)
-- **`AiGuidelines/tech/`** — Architecture patterns & coding conventions
-- **`AiGuidelines/agents/`** — Specialized role prompts (product designer, UI/UX, paywall, onboarding, etc.)
-- **`AiGuidelines/creative/`** — Animation patterns & easter egg inspiration
-- **`AiGuidelines/project/`** — Product requirements & user flow documentation
-- **`skills/`** — A phase-by-phase **developer journey** as agent-agnostic skills (open `SKILL.md` format): five guides — getting-started → integrations → publishing → monetization → growth — plus the one-job task skills they compose (run the app, new screen/model, Firebase, auth, signing, subscriptions, ads, notifications, …). Each is followable by an AI agent or by hand. Index: [`skills/README.md`](skills/README.md). Claude Code discovers them via the `.claude/skills` symlink; other agents via the Skills section in `AGENTS.md` (Gemini/Cursor/Copilot pointer files included)
-- **Build & test workflows** — All quality gates an agent needs are documented in `AGENTS.md` (Spotless, JVM/Android tests, debug build) and enforced in `.github/workflows/pr_checks.yml`
-- **Scaffolding scripts** — `MobileApp/scripts/generate_screen.sh` and `MobileApp/scripts/make_local.sh` keep agent-generated code consistent with project conventions
-- **Environment config** — copy `MobileApp/local.properties.example` → `local.properties`; `MobileApp/scripts/check_env.sh --phase <phase>` reports which required service keys are still placeholders so the agent can ask for them (the build otherwise defaults them and stays green)
+From `MobileApp/`:
+
+```bash
+./gradlew :desktopApp:run
+```
+
+This task stays attached while the window is open. Build a native package for the current operating system with:
+
+```bash
+./gradlew :desktopApp:packageDistributionForCurrentOS
+```
+
+Packages are written under `desktopApp/build/compose/binaries/main/`.
+
+## Architecture and shared Kotlin
+
+```text
+Android launcher ─┐
+                  ├─ shared Compose UI + Navigation 3
+Desktop launcher ─┘              │
+                                 ├─ profile / plan / pack repositories
+                                 ├─ typed rule + scenario evaluators
+                                 ├─ constrained Pareto Action Frontier
+                                 └─ Room + bundled local opportunity pack
+```
+
+Shared Kotlin owns the domain models, rule graph, deterministic evaluation receipts, scenario overlay, Action
+Frontier, pack validation, repositories, Room persistence, ViewModels, UI state, and most Compose UI. Platform
+code is kept narrow around launchers, drivers, storage paths, and packaging.
+
+The measurement methodology and explicit exclusions are documented in
+[`MobileApp/KMP_EVIDENCE.md`](MobileApp/KMP_EVIDENCE.md). It is an internal provenance check, not an official
+contest scoring formula.
+
+## Quality gates
+
+Run only the scoped repository gates from `MobileApp/`:
+
+```bash
+./gradlew spotlessCheck
+./gradlew :shared:jvmTest :shared:testAndroidHostTest
+./gradlew :androidApp:assembleDebug
+```
+
+For shared-code compatibility checks:
+
+```bash
+./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs
+```
+
+Do not use aggregate `check`, `build`, or `clean build` tasks for routine validation because they pull in
+unrelated targets, including iOS.
+
+## Trust boundaries and limitations
+
+- Results apply only to the rules encoded in the installed pack and its stated review date.
+- “Assessed rules passed” never means selected, funded, admitted, or guaranteed eligible.
+- Missing data remains unknown; manual checks never become automatic passes.
+- Soft selection criteria never change deterministic eligibility.
+- Scenarios never write to the actual profile.
+- Action duration, effort, and cost are Porta planning estimates, not provider claims.
+- TBA and rolling deadlines are not inferred from an older cycle.
+- There is no automatic crawling, source refresh, cloud sync, AI eligibility decision, or application submission.
+
+Always confirm the linked official provider source before acting on an opportunity.
+
+## Evidence and product documents
+
+- [`MobileApp/PORTA_PRD.md`](MobileApp/PORTA_PRD.md) — product scope, trust model, and acceptance criteria.
+- [`MobileApp/OPPORTUNITY_PACK_SOURCES.md`](MobileApp/OPPORTUNITY_PACK_SOURCES.md) — source register and encoding boundaries.
+- [`MobileApp/KMP_EVIDENCE.md`](MobileApp/KMP_EVIDENCE.md) — reproducible shared-Kotlin evidence.
+- [`MobileApp/CONTEST_SCORECARD.md`](MobileApp/CONTEST_SCORECARD.md) — evidence-backed readiness status.
+- [`MobileApp/SUBMISSION/`](MobileApp/SUBMISSION/) — final-submission checklist, essay draft, and demo plan.
+
+## Provenance
+
+This repository started from the MIT-licensed **KMP Contest Starter Kit (Koko)**. Inherited target configuration,
+platform launchers, CI/release helpers, and generic design-system infrastructure are not presented as Porta-owned
+contest work.
+
+Porta-specific contest-period work includes the opportunity and rule models, deterministic evaluators, constrained
+Action Frontier, pack schema and validation, profile and plan persistence, adaptive Porta screens, curated source
+register, tests, and product documentation. Git history and the evidence documents preserve this boundary.
 
 ## License
 
-Released under the [MIT License](LICENSE) — Copyright (c) 2026 KotlinFoundation.
+Released under the [MIT License](LICENSE). Existing copyright and attribution notices are preserved in the license
+file and repository history.

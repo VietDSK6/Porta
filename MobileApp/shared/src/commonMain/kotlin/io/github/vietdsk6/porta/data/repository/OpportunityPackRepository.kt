@@ -17,8 +17,15 @@ import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.logging.AppLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+/**
+ * Owns the validated, transactional lifecycle of local opportunity packs.
+ *
+ * A pack ID identifies one publisher across every stored version. Preview and import therefore reject publisher
+ * changes before any active catalog is replaced; a different publisher must choose a different pack ID.
+ */
 class OpportunityPackRepository(
     private val opportunityPackDao: OpportunityPackDao,
     private val parser: OpportunityPackParser,
@@ -51,7 +58,12 @@ class OpportunityPackRepository(
         val document = validation.document
             ?: return@execute Result.failure(InvalidOpportunityPackException(validation.diagnostics))
         val metadata = document.metadata
-        val existingResult = findCompatibleExisting(metadata.id, metadata.version, rawJson)
+        val existingResult = findCompatibleExisting(
+            packId = metadata.id,
+            version = metadata.version,
+            publisher = metadata.publisher,
+            rawJson = rawJson,
+        )
         if (existingResult.isFailure) {
             return@execute Result.failure(requireNotNull(existingResult.exceptionOrNull()))
         }
@@ -85,9 +97,10 @@ class OpportunityPackRepository(
         val candidate = validation.document
             ?: return@execute Result.failure(InvalidOpportunityPackException(validation.diagnostics))
         val existingResult = findCompatibleExisting(
-            candidate.metadata.id,
-            candidate.metadata.version,
-            rawJson,
+            packId = candidate.metadata.id,
+            version = candidate.metadata.version,
+            publisher = candidate.metadata.publisher,
+            rawJson = rawJson,
         )
         if (existingResult.isFailure) {
             return@execute Result.failure(requireNotNull(existingResult.exceptionOrNull()))
@@ -117,9 +130,23 @@ class OpportunityPackRepository(
     private suspend fun findCompatibleExisting(
         packId: String,
         version: Int,
+        publisher: String,
         rawJson: String,
     ): Result<OpportunityPackEntity?> {
-        val existing = opportunityPackDao.getByPackIdAndVersion(packId, version)
+        val storedVersions = opportunityPackDao.observeAll()
+            .first()
+            .filter { entity -> entity.packId == packId }
+        val conflictingPublisher = storedVersions.firstOrNull { entity -> entity.publisher != publisher }
+        if (conflictingPublisher != null) {
+            return Result.failure(
+                IllegalStateException(
+                    "Pack '$packId' is already associated with publisher " +
+                        "'${conflictingPublisher.publisher}', not '$publisher'. " +
+                        "Keep the original publisher or import this catalog under a new pack ID.",
+                ),
+            )
+        }
+        val existing = storedVersions.firstOrNull { entity -> entity.version == version }
         if (existing != null && existing.rawJson != rawJson) {
             return Result.failure(OpportunityPackVersionConflictException(packId, version))
         }

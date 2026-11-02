@@ -6,6 +6,8 @@ data class ScenarioPreviewUiState(
     val beforeLabel: String = "",
     val afterLabel: String = "",
     val scopeNotice: String? = null,
+    val baselineCounts: ScenarioConclusionCountsUiState = ScenarioConclusionCountsUiState(),
+    val simulatedCounts: ScenarioConclusionCountsUiState = ScenarioConclusionCountsUiState(),
     val affectedDoors: List<ScenarioDoorUiState> = emptyList(),
     val unchangedDoors: List<ScenarioDoorUiState> = emptyList(),
     val isSampleProfile: Boolean = true,
@@ -19,6 +21,20 @@ data class ScenarioPreviewUiState(
 
     val progressedDoors: List<ScenarioDoorUiState>
         get() = affectedDoors.filter { it.outcome != ScenarioDoorOutcome.CURRENT_CHECKS_PASSED }
+
+    val hasCatalogCounts: Boolean
+        get() = baselineCounts.total > 0
+}
+
+data class ScenarioConclusionCountsUiState(
+    val currentChecksPassed: Int = 0,
+    val needsAction: Int = 0,
+    val needsInformation: Int = 0,
+    val notAvailable: Int = 0,
+    val closed: Int = 0,
+) {
+    val total: Int
+        get() = currentChecksPassed + needsAction + needsInformation + notAvailable + closed
 }
 
 enum class ScenarioDoorOutcome {

@@ -80,7 +80,8 @@ SHARED_PRODUCTION_EXACT_PATHS=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ScenarioEvaluator.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/EligibilityTrustCopy.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/SourceFreshnessCopy.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/ActionImpactDiagram.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/ActionRipple.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/EditorialVisualPrimitives.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/navigation/AdaptiveAppScaffold.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/util/time/CurrentLocalDateProvider.kt"
 )
@@ -144,6 +145,10 @@ count_ncloc() {
     while IFS= read -r source_path; do
         local source_file="$REPOSITORY_ROOT/$source_path"
         local source_lines
+        if [[ ! -f "$source_file" ]]; then
+            echo "Evidence allowlist resolved a missing file: $source_path" >&2
+            return 1
+        fi
         source_lines="$(
             awk '
                 {

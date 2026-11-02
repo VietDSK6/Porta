@@ -9,6 +9,8 @@ import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.util.logging.AppLogger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -117,36 +119,44 @@ class OnBoardingViewModel(
     }
 
     private fun restoreOnboardingState() = viewModelScope.launch {
-        val selectedGoal = OnboardingGoal.fromStorageValue(
-            userPreferences.getString(UserPreferences.KEY_OPPORTUNITY_GOAL),
-        )?.takeIf(OnboardingGoal.selectableEntries::contains)
-        if (userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN)) {
-            _uiState.update {
-                it.copy(
-                    selectedGoal = selectedGoal,
-                    demoDoors = buildOnboardingDemoDoors(
-                        eligibilityEvaluator = eligibilityEvaluator,
-                        sampleIelts = it.sampleIelts,
+        try {
+            val selectedGoal = OnboardingGoal.fromStorageValue(
+                userPreferences.getString(UserPreferences.KEY_OPPORTUNITY_GOAL),
+            )?.takeIf(OnboardingGoal.selectableEntries::contains)
+            if (userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN)) {
+                _uiState.update {
+                    it.copy(
                         selectedGoal = selectedGoal,
-                    ),
-                    completion = OnboardingCompletion(
-                        destination = OnboardingDestination.SAMPLE_MAP,
-                        isNewUser = false,
-                    ),
-                )
-            }
-        } else {
-            _uiState.update {
-                it.copy(
-                    selectedGoal = selectedGoal,
-                    demoDoors = buildOnboardingDemoDoors(
-                        eligibilityEvaluator = eligibilityEvaluator,
-                        sampleIelts = it.sampleIelts,
+                        demoDoors = buildOnboardingDemoDoors(
+                            eligibilityEvaluator = eligibilityEvaluator,
+                            sampleIelts = it.sampleIelts,
+                            selectedGoal = selectedGoal,
+                        ),
+                        completion = OnboardingCompletion(
+                            destination = OnboardingDestination.SAMPLE_MAP,
+                            isNewUser = false,
+                        ),
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
                         selectedGoal = selectedGoal,
-                    ),
-                    isLoading = false,
-                )
+                        demoDoors = buildOnboardingDemoDoors(
+                            eligibilityEvaluator = eligibilityEvaluator,
+                            sampleIelts = it.sampleIelts,
+                            selectedGoal = selectedGoal,
+                        ),
+                        isLoading = false,
+                    )
+                }
             }
+        } catch (throwable: Throwable) {
+            if (throwable is CancellationException) throw throwable
+            // Logging must not become a second startup failure (for example, in an isolated test
+            // where the global Koin-backed logger has not been initialized yet).
+            runCatching { AppLogger.e("Could not restore onboarding state", throwable) }
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 

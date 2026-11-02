@@ -6,12 +6,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -47,6 +50,51 @@ class OnboardingUiTest {
 
         onNodeWithTag("onboarding-continue").assertIsDisplayed().performClick()
         assertEquals(OnBoardingUiEvent.Next, events.last())
+    }
+
+    @Test
+    fun `sample threshold and continue remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+        val events = mutableListOf<OnBoardingUiEvent>()
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    AppTheme {
+                        OnBoardingScreen(
+                            style = OnBoardingScreenStyle.STYLE1,
+                            uiState = onboardingState(currentStep = 1, sampleIelts = 7.0),
+                            onUiEvent = { events += it },
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithTag("onboarding-ielts-threshold").performScrollTo().assertIsDisplayed()
+        onNodeWithTag("onboarding-continue").assertIsDisplayed().performClick()
+        assertEquals(OnBoardingUiEvent.Next, events.last())
+    }
+
+    @Test
+    fun `real and sample choices remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+        val events = mutableListOf<OnBoardingUiEvent>()
+        setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    AppTheme {
+                        OnBoardingScreen(
+                            style = OnBoardingScreenStyle.STYLE1,
+                            uiState = onboardingState(currentStep = 3, sampleIelts = 7.0),
+                            onUiEvent = { events += it },
+                        )
+                    }
+                }
+            }
+        }
+
+        onNodeWithTag("onboarding-build-profile").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
+        onNodeWithTag("onboarding-explore-sample").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals(OnBoardingUiEvent.ExploreSample, events.last())
     }
 
     @Test
@@ -89,8 +137,36 @@ class OnboardingUiTest {
         onNodeWithTag("onboarding-threshold-forge").assertExists()
         onNodeWithTag("onboarding-threshold-horizon").assertExists()
         onNodeWithTag("onboarding-threshold-spark").assertExists()
+        onNodeWithTag("onboarding-ielts-threshold").assertExists()
+        onNodeWithContentDescription("Sample IELTS check needs 7.0").assertExists()
+        onNodeWithText("Fictional examples: one IELTS ≥ 7.0 check each. Other conditions are not assessed.")
+            .assertExists()
         onNodeWithText("Try IELTS 7.0").assertDoesNotExist()
         onNodeWithText("Move the score to 7.0 to test 4 sample requirements").assertExists()
+    }
+
+    @Test
+    fun `changing the sample slider updates four fictional checks without promising applications`() = runComposeUiTest {
+        val screenState = mutableStateOf(onboardingState(currentStep = 1, sampleIelts = 6.5))
+        setContent {
+            AppTheme {
+                OnBoardingScreen(
+                    style = OnBoardingScreenStyle.STYLE1,
+                    uiState = screenState.value,
+                    onUiEvent = { event ->
+                        if (event is OnBoardingUiEvent.SampleIeltsChanged) {
+                            screenState.value = onboardingState(currentStep = 1, sampleIelts = event.value)
+                        }
+                    },
+                )
+            }
+        }
+
+        onNodeWithText("Move the score to 7.0 to test 4 sample requirements").assertExists()
+        onNodeWithTag("onboarding-ielts-slider").performSemanticsAction(SemanticsActions.SetProgress) { it(7.0f) }
+        onNodeWithText("4 of 4 sample IELTS checks changed").assertExists()
+        onNodeWithContentDescription("Sample IELTS check met at 7.0").assertExists()
+        onNodeWithText("4 applications unlocked").assertDoesNotExist()
     }
 
     @Test
@@ -111,7 +187,7 @@ class OnboardingUiTest {
 
         onNodeWithTag("onboarding-header").assertIsDisplayed()
         onNodeWithTag("onboarding-progress").assertIsDisplayed()
-        onNodeWithText("4 sample IELTS requirements met").assertExists()
+        onNodeWithText("4 sample IELTS checks changed").assertExists()
         onNodeWithTag("onboarding-door-aurora").assertExists()
         onNodeWithText(
             "The IELTS requirement is met. Other conditions remain outside this fictional demonstration.",
@@ -172,10 +248,12 @@ class OnboardingUiTest {
             }
         }
 
-        onNodeWithText("Example data is separate from your profile. Your profile stays on this device.")
+        onNodeWithText("Your profile facts stay on this device. The demo did not save any of them.")
             .assertExists()
         onNodeWithTag("onboarding-build-profile").performScrollTo().performClick()
         assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
+        onNodeWithTag("onboarding-explore-sample").performScrollTo().performClick()
+        assertEquals(OnBoardingUiEvent.ExploreSample, events.last())
     }
 
     private fun onboardingState(

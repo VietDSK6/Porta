@@ -21,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,6 +46,7 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.components.porta.PortaArch
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import kotlinx.coroutines.delay
 
 @Composable
@@ -97,6 +99,16 @@ fun DoorsScreen(
                 }
             }
             item {
+                DoorCatalogControls(
+                    searchQuery = uiState.searchQuery,
+                    selectedCategory = uiState.selectedCategory,
+                    selectedDeadlineFilter = uiState.selectedDeadlineFilter,
+                    onSearchChanged = { onUiEvent(DoorsUiEvent.SearchChanged(it)) },
+                    onCategoryChanged = { onUiEvent(DoorsUiEvent.CategoryChanged(it)) },
+                    onDeadlineChanged = { onUiEvent(DoorsUiEvent.DeadlineFilterChanged(it)) },
+                )
+            }
+            item {
                 DoorFilterRow(
                     selected = uiState.selectedFilter,
                     onSelected = { onUiEvent(DoorsUiEvent.FilterChanged(it)) },
@@ -106,7 +118,15 @@ fun DoorsScreen(
                 item {
                     DoorsEmptyState(
                         selectedFilter = uiState.selectedFilter,
-                        onShowAll = { onUiEvent(DoorsUiEvent.FilterChanged(DoorFilter.ALL)) },
+                        hasCatalogCriteria = uiState.searchQuery.isNotBlank() ||
+                            uiState.selectedCategory != null ||
+                            uiState.selectedDeadlineFilter != DoorDeadlineFilter.ALL,
+                        onShowAll = {
+                            onUiEvent(DoorsUiEvent.SearchChanged(""))
+                            onUiEvent(DoorsUiEvent.CategoryChanged(null))
+                            onUiEvent(DoorsUiEvent.DeadlineFilterChanged(DoorDeadlineFilter.ALL))
+                            onUiEvent(DoorsUiEvent.FilterChanged(DoorFilter.ALL))
+                        },
                     )
                 }
             }
@@ -177,16 +197,19 @@ private fun ProfileAndPackContext(
 @Composable
 private fun DoorsEmptyState(
     selectedFilter: DoorFilter,
+    hasCatalogCriteria: Boolean,
     onShowAll: () -> Unit,
 ) {
-    val title = when (selectedFilter) {
-        DoorFilter.SAVED -> "No saved opportunities yet"
-        DoorFilter.ALL -> "No opportunities in this pack"
+    val title = when {
+        hasCatalogCriteria -> "No opportunities match your search"
+        selectedFilter == DoorFilter.SAVED -> "No saved opportunities yet"
+        selectedFilter == DoorFilter.ALL -> "No opportunities in this pack"
         else -> "No matches for this filter"
     }
-    val body = when (selectedFilter) {
-        DoorFilter.SAVED -> "Save opportunities to compare and revisit them here."
-        DoorFilter.ALL -> "Import or activate an opportunity pack to start comparing published checks."
+    val body = when {
+        hasCatalogCriteria -> "Try a different keyword, category, deadline, or assessment state."
+        selectedFilter == DoorFilter.SAVED -> "Save opportunities to compare and revisit them here."
+        selectedFilter == DoorFilter.ALL -> "Import or activate an opportunity pack to start comparing published checks."
         else -> "Your opportunities are still here. Clear the filter to see every current result."
     }
     Column(
@@ -215,7 +238,7 @@ private fun DoorsEmptyState(
             style = AppTheme.typography.bodyMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
-        if (selectedFilter != DoorFilter.ALL) {
+        if (selectedFilter != DoorFilter.ALL || hasCatalogCriteria) {
             TextButton(
                 modifier = Modifier
                     .defaultMinSize(minHeight = 48.dp)
@@ -226,6 +249,102 @@ private fun DoorsEmptyState(
             }
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DoorCatalogControls(
+    searchQuery: String,
+    selectedCategory: OpportunityCategory?,
+    selectedDeadlineFilter: DoorDeadlineFilter,
+    onSearchChanged: (String) -> Unit,
+    onCategoryChanged: (OpportunityCategory?) -> Unit,
+    onDeadlineChanged: (DoorDeadlineFilter) -> Unit,
+) {
+    var showMore by rememberSaveable {
+        mutableStateOf(selectedCategory != null || selectedDeadlineFilter != DoorDeadlineFilter.ALL)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("doors-search"),
+            value = searchQuery,
+            onValueChange = onSearchChanged,
+            singleLine = true,
+            label = { Text("Search opportunities") },
+            supportingText = { Text("Search by programme, provider, or category") },
+        )
+        TextButton(
+            modifier = Modifier
+                .defaultMinSize(minHeight = 48.dp)
+                .testTag("doors-catalog-filters-toggle"),
+            onClick = { showMore = !showMore },
+        ) {
+            Text(if (showMore) "Hide category and deadline" else "Filter category and deadline")
+        }
+        if (showMore) {
+            Text(
+                text = "Category",
+                color = AppTheme.colors.text.secondary,
+                fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.bodySmall,
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                CategoryFilterChip(
+                    category = null,
+                    selectedCategory = selectedCategory,
+                    onSelected = onCategoryChanged,
+                )
+                OpportunityCategory.entries.forEach { category ->
+                    CategoryFilterChip(category, selectedCategory, onCategoryChanged)
+                }
+            }
+            Text(
+                text = "Deadline",
+                color = AppTheme.colors.text.secondary,
+                fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.bodySmall,
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                DoorDeadlineFilter.entries.forEach { filter ->
+                    FilterChip(
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .testTag("door-deadline-filter-${filter.name}"),
+                        selected = filter == selectedDeadlineFilter,
+                        onClick = { onDeadlineChanged(filter) },
+                        label = { Text(filter.label, style = AppTheme.typography.bodySmall) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryFilterChip(
+    category: OpportunityCategory?,
+    selectedCategory: OpportunityCategory?,
+    onSelected: (OpportunityCategory?) -> Unit,
+) {
+    val label = category?.displayLabel() ?: "All categories"
+    FilterChip(
+        modifier = Modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .testTag("door-category-filter-${category?.name ?: "ALL"}"),
+        selected = category == selectedCategory,
+        onClick = { onSelected(category) },
+        label = { Text(label, style = AppTheme.typography.bodySmall) },
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -399,6 +518,14 @@ private fun EligibilityState.color(): Color = when (this) {
     EligibilityState.NOT_ACTIONABLE,
     EligibilityState.CLOSED,
     -> AppTheme.colors.status.error
+}
+
+private fun OpportunityCategory.displayLabel(): String = when (this) {
+    OpportunityCategory.SCHOLARSHIP -> "Scholarship"
+    OpportunityCategory.INTERNSHIP -> "Internship"
+    OpportunityCategory.ACADEMIC_PROGRAM -> "Academic programme"
+    OpportunityCategory.STUDENT_CONTEST -> "Student contest"
+    OpportunityCategory.FELLOWSHIP -> "Fellowship"
 }
 
 private const val DOOR_HIGHLIGHT_DURATION_MILLIS = 2_600L

@@ -37,7 +37,7 @@ class ScenarioPreviewProgressiveDisclosureUiTest {
         }
 
         onNodeWithText("1 opportunity affected").assertExists()
-        onNodeWithTag("action-impact-diagram").assertDoesNotExist()
+        onNodeWithTag("action-ripple").assertDoesNotExist()
         onNodeWithTag("scenario-scope-notice").assertExists()
         onNodeWithTag("scenario-preview-content").performScrollToIndex(5)
         onNodeWithTag("scenario-details-aurora").performClick()

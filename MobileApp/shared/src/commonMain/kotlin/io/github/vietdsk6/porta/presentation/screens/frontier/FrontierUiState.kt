@@ -76,6 +76,7 @@ data class FrontierActionUiState(
     val scopeLabel: String = "Profile-wide",
     val estimateSourceLabel: String = "Time estimate · basis not stated",
     val impactBasisLabel: String = "Impact based on encoded rule simulation",
+    val earliestDeadlineLabel: String? = null,
     val changedCheckCount: Int = improvedCount,
     val programmeTitle: String? = null,
 )
@@ -105,6 +106,7 @@ data class FrontierDoorComparisonUiState(
     val actualStateLabel: String,
     val previewStateLabel: String,
     val isNewlyOpen: Boolean,
+    val needsVerification: Boolean = false,
     val isSaved: Boolean,
     val requiresDeadlineCheck: Boolean,
 )

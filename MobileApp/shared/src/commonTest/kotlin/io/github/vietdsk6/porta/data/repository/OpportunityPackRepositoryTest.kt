@@ -104,6 +104,38 @@ class OpportunityPackRepositoryTest {
     }
 
     @Test
+    fun `new version cannot reuse a pack id under a different publisher`() = runTest {
+        val dao = FakeOpportunityPackDao()
+        val repository = repository(dao)
+        val originalJson = codec.encode(validPack())
+        val otherJson = codec.encode(validPack().copy(id = "other-pack"))
+        val conflictingJson = codec.encode(
+            validPack().copy(
+                publisher = "Different publisher",
+                version = 2,
+            ),
+        )
+        repository.importPack(originalJson, importedAtEpochMillis = 10L).getOrThrow()
+        repository.importPack(otherJson, importedAtEpochMillis = 15L).getOrThrow()
+
+        val previewConflict = repository.previewImport(conflictingJson, importedAtEpochMillis = 20L)
+        val importConflict = repository.importPack(conflictingJson, importedAtEpochMillis = 20L)
+
+        assertTrue(previewConflict.isFailure)
+        assertTrue(importConflict.isFailure)
+        assertTrue(
+            previewConflict.exceptionOrNull()?.message.orEmpty().contains(
+                "import this catalog under a new pack ID",
+            ),
+        )
+        assertTrue(
+            importConflict.exceptionOrNull()?.message.orEmpty().contains("Porta tests"),
+        )
+        assertEquals(2, dao.upsertCount)
+        assertEquals(otherJson, dao.getActive()?.rawJson)
+    }
+
+    @Test
     fun `importing a previously stored inactive pack reactivates it`() = runTest {
         val dao = FakeOpportunityPackDao()
         val repository = repository(dao)

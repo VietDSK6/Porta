@@ -23,6 +23,13 @@ import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import kotlinx.datetime.LocalDate
 
+/**
+ * Builds Porta's deterministic Action Frontier from curated, ethically actionable templates.
+ *
+ * Each candidate is evaluated as a temporary scenario, filtered by the user's horizon/effort/cost constraints and
+ * relevant deadlines, reduced to a Pareto frontier, then ordered with explicit stable tie-breakers. Raw scores are not
+ * exposed because the ranking is meaningful only under the selected constraints.
+ */
 class ActionFrontierEngine(
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val scenarioEvaluator: ScenarioEvaluator,
@@ -56,6 +63,7 @@ class ActionFrontierEngine(
             ?.template
     }
 
+    /** Returns only the ranked non-dominated actions for the supplied constraints. */
     fun build(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,
@@ -70,6 +78,7 @@ class ActionFrontierEngine(
         today = today,
     ).actions
 
+    /** Returns ranked frontier actions together with explainable exclusions for every rejected candidate. */
     fun evaluate(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,

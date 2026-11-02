@@ -7,6 +7,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
@@ -15,6 +16,7 @@ import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.presentation.screens.frontier.ActivePlanSummaryUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierActionUiState
+import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierDoorComparisonUiState
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiState
 import kotlin.test.Test
@@ -81,8 +83,46 @@ class FrontierPriorityUiTest {
         onNodeWithText("Time · Planner assumes 14 days").assertExists()
         onNodeWithText("Effort · Medium").assertExists()
         onNodeWithText("Cost · Unknown").assertExists()
+        onNodeWithText("Earliest affected deadline · 2026-12-07").assertExists()
         onNodeWithText("Why this move?").performClick()
         onNodeWithText("Time estimate · basis not stated").assertExists()
+    }
+
+    @Test
+    fun `recommended ripple uses comparison ids and carries deadline review per door`() = runComposeUiTest {
+        val compared = action.copy(
+            doorComparisons = listOf(
+                FrontierDoorComparisonUiState(
+                    id = "aurora",
+                    title = "Aurora Scholars",
+                    actualStateLabel = "Needs action",
+                    previewStateLabel = "Needs information",
+                    isNewlyOpen = false,
+                    needsVerification = true,
+                    isSaved = false,
+                    requiresDeadlineCheck = true,
+                ),
+            ),
+        )
+        setContent {
+            AppTheme {
+                Box(Modifier.size(390.dp, 900.dp)) {
+                    FrontierScreen(
+                        state.copy(actions = listOf(compared)),
+                        onUiEvent = {},
+                        onPreviewScenario = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("action-ripple").assertDoesNotExist()
+        onNodeWithTag("frontier-ripple-toggle").performScrollTo().performClick()
+        onNodeWithTag("action-ripple").assertExists()
+        onNodeWithTag("action-impact-node-aurora").assertExists()
+        onNodeWithText("Deadline needs confirmation").assertExists()
+        onNodeWithText("ACTION RIPPLE · 1 OPPORTUNITY").assertExists()
     }
 
     private val action = FrontierActionUiState(
@@ -100,6 +140,7 @@ class FrontierPriorityUiTest {
         costLabel = "Unknown",
         explanation = "One encoded requirement could improve; other checks remain.",
         doorTitles = listOf("Aurora Scholars"),
+        earliestDeadlineLabel = "Earliest affected deadline · 2026-12-07",
         changedCheckCount = 2,
     )
 

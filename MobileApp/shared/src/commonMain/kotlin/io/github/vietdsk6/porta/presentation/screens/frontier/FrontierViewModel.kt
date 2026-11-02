@@ -14,6 +14,7 @@ import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
@@ -184,7 +185,7 @@ class FrontierViewModel(
             constraints = constraints,
             today = activeDate,
         )
-        val actions = evaluation.actions.map { action ->
+        val actions = evaluation.actions.take(MAX_FRONTIER_ACTIONS).map { action ->
             val moveKind = action.template.moveKind()
             val programmeTitle = (action.template.target as? ActionTarget.OpportunityRuleTarget)
                 ?.let { opportunitiesById[it.opportunityId]?.title }
@@ -266,6 +267,7 @@ class FrontierViewModel(
                         actualStateLabel = before.trustLabel(),
                         previewStateLabel = after.trustLabel(),
                         isNewlyOpen = opportunityId in action.newlyOpenOpportunityIds,
+                        needsVerification = after == EligibilityState.NEEDS_INFO,
                         isSaved = opportunityId in action.improvedSavedOpportunityIds,
                         requiresDeadlineCheck = opportunityId in action.timingUnverifiedOpportunityIds,
                     )
@@ -283,6 +285,9 @@ class FrontierViewModel(
                     if (action.timingUnverifiedOpportunityIds.isNotEmpty()) {
                         append(" · deadline not confirmed")
                     }
+                },
+                earliestDeadlineLabel = action.earliestAffectedDeadline?.let { deadline ->
+                    "Earliest affected deadline · $deadline"
                 },
                 changedCheckCount = changedCheckCount,
                 programmeTitle = programmeTitle,
@@ -400,6 +405,7 @@ class FrontierViewModel(
     )
 
     private companion object {
+        const val MAX_FRONTIER_ACTIONS = 5
         val ALLOWED_HORIZONS = setOf(30, 90, 180, 365)
         val DEFAULT_CONSTRAINTS = PlanningConstraints(
             horizonDays = 90,

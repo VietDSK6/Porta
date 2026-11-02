@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -65,6 +64,8 @@ import io.github.vietdsk6.porta.designsystem.components.ButtonSize
 import io.github.vietdsk6.porta.designsystem.components.porta.PortaArch
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.presentation.components.porta.PortaThresholdGlyph
+import io.github.vietdsk6.porta.presentation.components.porta.PortaThresholdRelation
 
 private const val TOTAL_STEPS = 4
 private const val MOTION_DURATION_MILLIS = 220
@@ -104,7 +105,7 @@ fun OnBoardingScreenVariation1(
                 0 -> GoalStep(uiState = uiState, onUiEvent = onUiEvent)
                 1 -> ScenarioStep(uiState = uiState, onUiEvent = onUiEvent)
                 2 -> ResultStep(uiState = uiState, onUiEvent = onUiEvent)
-                else -> NextMoveStep(uiState = uiState, onUiEvent = onUiEvent)
+                else -> NextMoveStep(onUiEvent = onUiEvent)
             }
         }
 
@@ -145,7 +146,7 @@ private fun OnboardingTopBar(
             )
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onSkip) {
-                Text("Skip demo", color = AppTheme.colors.text.secondary)
+                Text("Skip to sample", color = AppTheme.colors.text.secondary)
             }
         }
         Row(
@@ -330,7 +331,7 @@ private fun IeltsControl(
                     shape = RoundedCornerShape(100),
                 ) {
                     Text(
-                        text = if (uiState.isDemoComplete) "7.0 REACHED" else "TARGET 7.0",
+                        text = if (uiState.isDemoComplete) "SAMPLE CHECK MET" else "SAMPLE TARGET 7.0",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                         color = if (uiState.isDemoComplete) {
                             AppTheme.colors.status.success
@@ -358,6 +359,32 @@ private fun IeltsControl(
                 Text("6.5 · Before", color = AppTheme.colors.text.secondary)
                 Spacer(modifier = Modifier.weight(1f))
                 Text("7.0 · Target", color = AppTheme.colors.text.secondary)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().testTag("onboarding-ielts-threshold"),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val thresholdMet = uiState.isDemoComplete
+                val thresholdLabel = if (thresholdMet) {
+                    "Sample IELTS check met at 7.0"
+                } else {
+                    "Sample IELTS check needs 7.0"
+                }
+                PortaThresholdGlyph(
+                    semanticLabel = thresholdLabel,
+                    relation = if (thresholdMet) {
+                        PortaThresholdRelation.CHECK_PASSED
+                    } else {
+                        PortaThresholdRelation.CHECK_NOT_PASSED
+                    },
+                    color = if (thresholdMet) AppTheme.colors.status.success else AppTheme.colors.primary,
+                )
+                Text(
+                    text = thresholdLabel,
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodySmall,
+                )
             }
             if (uiState.isDemoComplete) {
                 TextButton(
@@ -392,7 +419,7 @@ private fun DemoImpactSummary(uiState: OnBoardingUiState) {
         ) {
             Text(
                 text = if (success) {
-                    "$count of $total sample IELTS requirements met"
+                    "$count of $total sample IELTS checks changed"
                 } else {
                     "Move the score to 7.0 to test $total sample requirements"
                 },
@@ -447,21 +474,10 @@ private fun DemoImpactSummary(uiState: OnBoardingUiState) {
                 }
             }
             Text(
-                text = uiState.demoDoors.joinToString(" · ", transform = OnboardingDemoDoorUiState::title),
+                text = uiState.sampleRuleSummary(),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.text.secondary,
             )
-            AnimatedVisibility(
-                visible = success,
-                enter = fadeIn(tween(MOTION_DURATION_MILLIS)),
-                exit = fadeOut(tween(MOTION_DURATION_MILLIS / 2)),
-            ) {
-                Text(
-                    text = "Other eligibility conditions are not assessed in this demo.",
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.text.secondary,
-                )
-            }
         }
     }
 }
@@ -473,8 +489,8 @@ private fun ResultStep(
 ) {
     StepHeading(
         eyebrow = "STEP 3 · WHAT CHANGED",
-        title = "Look what one improvement can do.",
-        body = "The same IELTS change affected several fictional opportunities at once.",
+        title = "One score. Several checks.",
+        body = "IELTS 6.5 → 7.0 changed one check in each fictional example. Other rules are outside this demo.",
     )
     BeforeAfterSummary(uiState = uiState)
     DoorPreviewGrid(doors = uiState.demoDoors)
@@ -513,7 +529,7 @@ private fun BeforeAfterSummary(uiState: OnBoardingUiState) {
                 )
             }
             Text(
-                text = "${uiState.satisfiedIeltsRequirementCount} sample IELTS requirements met",
+                text = "${uiState.satisfiedIeltsRequirementCount} sample IELTS checks changed",
                 style = AppTheme.typography.h6,
                 color = AppTheme.colors.status.success,
                 fontWeight = FontWeight.Bold,
@@ -587,47 +603,39 @@ private fun RequirementExplanation(
 
 @Composable
 private fun NextMoveStep(
-    uiState: OnBoardingUiState,
     onUiEvent: (OnBoardingUiEvent) -> Unit,
 ) {
     StepHeading(
         eyebrow = "STEP 4 · MAKE IT YOURS",
-        title = "Now, let's find yours.",
-        body = "You've seen how one change can affect multiple opportunities. Discover what your own next step could be.",
+        title = "Continue with your own facts.",
+        body = "The four examples were fictional. Check the catalog with your own profile, or keep exploring with a sample profile.",
     )
     ChoiceCard(
         title = "Create your profile",
-        description = "Add a few academic details to see relevant opportunities and what they require.",
-        action = "Get started →",
-        primary = true,
+        description = "Add your actual academic details to inspect the catalog's encoded checks.",
+        action = "Create profile →",
         testTag = "onboarding-build-profile",
         onClick = { onUiEvent(OnBoardingUiEvent.BuildMyMap) },
     )
-    ChoiceCard(
-        title = "Keep exploring",
-        description = "Browse example opportunities without creating a profile.",
-        action = "Browse examples →",
-        primary = false,
-        testTag = "onboarding-explore-sample",
+    TextButton(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).testTag("onboarding-explore-sample"),
         onClick = { onUiEvent(OnBoardingUiEvent.ExploreSample) },
+    ) {
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text("Explore with sample profile →", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
+            Text(
+                "Browse using fictional facts without creating your own profile.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+    }
+    Text(
+        text = "Your profile facts stay on this device. The demo did not save any of them.",
+        modifier = Modifier.fillMaxWidth(),
+        color = AppTheme.colors.text.secondary,
+        style = AppTheme.typography.bodySmall,
     )
-    Surface(color = AppTheme.colors.alternative, shape = RoundedCornerShape(14.dp)) {
-        Text(
-            text = "Example data is separate from your profile. Your profile stays on this device.",
-            modifier = Modifier.fillMaxWidth().padding(14.dp),
-            color = AppTheme.colors.text.secondary,
-            style = AppTheme.typography.bodySmall,
-        )
-    }
-    uiState.selectedGoal?.let { goal ->
-        Text(
-            text = "Your demo focus: ${goal.label}",
-            modifier = Modifier.fillMaxWidth(),
-            color = AppTheme.colors.text.secondary,
-            style = AppTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-        )
-    }
 }
 
 @Composable
@@ -635,7 +643,6 @@ private fun ChoiceCard(
     title: String,
     description: String,
     action: String,
-    primary: Boolean,
     testTag: String,
     onClick: () -> Unit,
 ) {
@@ -644,11 +651,8 @@ private fun ChoiceCard(
             .fillMaxWidth()
             .testTag(testTag)
             .clickable(role = Role.Button, onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (primary) AppTheme.colors.primary else AppTheme.colors.surfaceContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.primary),
         shape = RoundedCornerShape(18.dp),
-        border = if (primary) null else BorderStroke(1.dp, AppTheme.colors.outline),
     ) {
         Column(
             modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
@@ -657,17 +661,17 @@ private fun ChoiceCard(
             Text(
                 title,
                 style = AppTheme.typography.h5,
-                color = if (primary) AppTheme.colors.onPrimary else AppTheme.colors.text.primary,
+                color = AppTheme.colors.onPrimary,
             )
             Text(
                 description,
                 style = AppTheme.typography.bodyMedium,
-                color = if (primary) AppTheme.colors.onPrimary else AppTheme.colors.text.secondary,
+                color = AppTheme.colors.onPrimary,
             )
             Text(
                 action,
                 fontWeight = FontWeight.Bold,
-                color = if (primary) AppTheme.colors.onPrimary else AppTheme.colors.primary,
+                color = AppTheme.colors.onPrimary,
             )
         }
     }
@@ -677,7 +681,7 @@ private fun ChoiceCard(
 private fun DoorPreviewGrid(doors: List<OnboardingDemoDoorUiState>) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.groupedVerticalElementSpacing)) {
         Text(
-            text = "Affected opportunities",
+            text = "Sample check changes",
             style = AppTheme.typography.h5,
             color = AppTheme.colors.text.primary,
         )
@@ -943,6 +947,17 @@ private fun ScenarioStepPreview() {
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
+private fun ScenarioStepLightPreview() {
+    AppTheme(isDarkMode = false) {
+        OnBoardingScreenVariation1(
+            uiState = previewOnboardingState(currentStep = 1, sampleIelts = SAMPLE_IELTS_TARGET),
+            onUiEvent = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
 private fun ResultStepPreview() {
     AppTheme(isDarkMode = true) {
         OnBoardingScreenVariation1(
@@ -954,8 +969,30 @@ private fun ResultStepPreview() {
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
+private fun ResultStepLightPreview() {
+    AppTheme(isDarkMode = false) {
+        OnBoardingScreenVariation1(
+            uiState = previewOnboardingState(currentStep = 2, sampleIelts = SAMPLE_IELTS_TARGET),
+            onUiEvent = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
 private fun NextMoveStepPreview() {
     AppTheme(isDarkMode = true) {
+        OnBoardingScreenVariation1(
+            uiState = previewOnboardingState(currentStep = 3, sampleIelts = SAMPLE_IELTS_TARGET),
+            onUiEvent = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+private fun NextMoveStepLightPreview() {
+    AppTheme(isDarkMode = false) {
         OnBoardingScreenVariation1(
             uiState = previewOnboardingState(currentStep = 3, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},

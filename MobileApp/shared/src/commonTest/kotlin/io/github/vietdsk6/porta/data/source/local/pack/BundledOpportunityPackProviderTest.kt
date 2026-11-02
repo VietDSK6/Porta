@@ -37,6 +37,8 @@ class BundledOpportunityPackProviderTest {
         val document = assertNotNull(result.document)
         val opportunities = document.opportunities
         assertEquals(BundledOpportunityPackProvider.PACK_ID, document.metadata.id)
+        assertEquals(3, document.metadata.version)
+        assertEquals(PortaContestPackData.REVIEWED_ON, document.metadata.lastCheckedOn.toString())
         assertEquals(15, opportunities.size)
         assertTrue(opportunities.all { it.eligibilityRule.id.isNotBlank() })
         assertTrue(opportunities.all { it.sourceUrl.startsWith("https://") })
@@ -44,19 +46,22 @@ class BundledOpportunityPackProviderTest {
             opportunities.all {
                 it.lastCheckedOn.toString() in setOf(
                     PortaContestPackData.REVIEWED_ON,
-                    PortaContestPackData.VERTICAL_SLICE_REVIEWED_ON,
+                    PortaContestPackData.SOURCE_REFRESH_REVIEWED_ON,
                 )
             },
         )
         assertEquals(
             setOf(
                 "erasmus-mundus-joint-masters",
+                "chevening-scholarship-2027",
+                "schwarzman-scholars-2028-2029",
                 "daad-epos-2027-2028",
                 "jj-wbgsp-2027-window-1",
                 "oecd-internship-rolling",
+                "unicef-internship-rolling",
             ),
             opportunities
-                .filter { it.lastCheckedOn.toString() == PortaContestPackData.VERTICAL_SLICE_REVIEWED_ON }
+                .filter { it.lastCheckedOn.toString() == PortaContestPackData.SOURCE_REFRESH_REVIEWED_ON }
                 .mapTo(mutableSetOf()) { it.id },
         )
         assertFalse(opportunities.any { "example.invalid" in it.sourceUrl })
@@ -93,6 +98,17 @@ class BundledOpportunityPackProviderTest {
     }
 
     @Test
+    fun `new bundled version refreshes only older bundled catalogs`() {
+        val provider = BundledOpportunityPackProvider(OpportunityPackCodec())
+
+        assertTrue(provider.shouldInstallOver(activePackId = null, activeVersion = null))
+        assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID, 1))
+        assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 2))
+        assertFalse(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 3))
+        assertFalse(provider.shouldInstallOver("student-imported-catalog", 1))
+    }
+
+    @Test
     fun `schwarzman age checks use date of birth at the published reference date`() {
         val opportunity = bundledOpportunities().first { it.id == "schwarzman-scholars-2028-2029" }
         val evaluator = EligibilityEvaluator()
@@ -120,6 +136,74 @@ class BundledOpportunityPackProviderTest {
             RuleResult.PASS,
             result(LocalDate(1999, 8, 2), "schwarzman-age-max"),
         )
+    }
+
+    @Test
+    fun `schwarzman IELTS is one accepted route and cannot make the whole programme open`() {
+        val opportunity = bundledOpportunities().first { it.id == "schwarzman-scholars-2028-2029" }
+        val evaluator = EligibilityEvaluator()
+        val commonFacts = arrayOf(
+            FactKey.DATE_OF_BIRTH to FactValue.DateValue(LocalDate(2006, 4, 12)),
+            FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(true),
+        )
+        val below = evaluator.evaluate(
+            profile = profile(*commonFacts, FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band")),
+            opportunity = opportunity,
+            today = LocalDate(2026, 11, 2),
+        )
+        val atThreshold = evaluator.evaluate(
+            profile = profile(*commonFacts, FactKey.IELTS_SCORE to FactValue.NumberValue(7.0, "band")),
+            opportunity = opportunity,
+            today = LocalDate(2026, 11, 2),
+        )
+
+        assertEquals(RuleResult.FAIL, below.rules.single { it.ruleId == "schwarzman-ielts-seven" }.result)
+        assertTrue(below.rules.any { it.ruleId == "schwarzman-other-english-route" && it.result == RuleResult.REVIEW })
+        assertEquals(RuleResult.PASS, atThreshold.rules.single { it.ruleId == "schwarzman-ielts-seven" }.result)
+        assertEquals(RuleResult.REVIEW, atThreshold.rootResult)
+        assertEquals(EligibilityState.NEEDS_INFO, below.state)
+        assertEquals(EligibilityState.NEEDS_INFO, atThreshold.state)
+        assertTrue(atThreshold.rules.any { it.ruleId == "schwarzman-english-evidence" && it.result == RuleResult.REVIEW })
+        assertTrue(atThreshold.rules.any { it.ruleId == "schwarzman-passport-route" && it.result == RuleResult.REVIEW })
+
+        val futureGraduate = evaluator.evaluate(
+            profile = profile(*commonFacts, FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(false)),
+            opportunity = opportunity,
+            today = LocalDate(2026, 11, 2),
+        )
+        assertEquals(RuleResult.FAIL, futureGraduate.rules.single { it.ruleId == "schwarzman-degree" }.result)
+        assertTrue(futureGraduate.rules.any { it.ruleId == "schwarzman-degree-before-start" && it.result == RuleResult.REVIEW })
+        assertEquals(EligibilityState.NEEDS_INFO, futureGraduate.state)
+    }
+
+    @Test
+    fun `closed Chevening cycle and 2027 World Bank country caution remain visible`() {
+        val opportunities = bundledOpportunities()
+        val evaluator = EligibilityEvaluator()
+        val chevening = opportunities.first { it.id == "chevening-scholarship-2027" }
+        assertTrue(chevening.archived)
+        assertEquals(
+            EligibilityState.CLOSED,
+            evaluator.evaluate(profile(), chevening, LocalDate(2026, 11, 2)).state,
+        )
+
+        val worldBank = opportunities.first { it.id == "jj-wbgsp-2027-window-1" }
+        val countryCheck = worldBank.eligibilityRule.flatten()
+            .filterIsInstance<RuleNode.ManualCheck>()
+            .single { it.id == "jj-country-admission" }
+        assertTrue("Viet Nam is absent" in countryCheck.explanation)
+        assertTrue("countries-eligible-for-jjwbgsp-scholarship" in countryCheck.sourceNote.orEmpty())
+        val receipt = evaluator.evaluate(
+            profile = profile(
+                FactKey.NATIONALITY to FactValue.EnumValue("VN"),
+                FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(true),
+                FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(36.0, "months"),
+            ),
+            opportunity = worldBank,
+            today = LocalDate(2026, 11, 2),
+        )
+        assertEquals(EligibilityState.NEEDS_INFO, receipt.state)
+        assertTrue(receipt.rules.any { it.ruleId == "jj-country-admission" && it.result == RuleResult.REVIEW })
     }
 
     @Test
@@ -212,6 +296,47 @@ class BundledOpportunityPackProviderTest {
     }
 
     @Test
+    fun `first degree is a sourced three-door current-cycle action without a false open claim`() {
+        val eligibilityEvaluator = EligibilityEvaluator()
+        val frontier = ActionFrontierEngine(
+            eligibilityEvaluator = eligibilityEvaluator,
+            scenarioEvaluator = ScenarioEvaluator(eligibilityEvaluator),
+        ).build(
+            profile = profile(
+                FactKey.AGE to FactValue.NumberValue(23.0, "years"),
+                FactKey.DATE_OF_BIRTH to FactValue.DateValue(LocalDate(2003, 5, 12)),
+                FactKey.ENROLLED to FactValue.BooleanValue(true),
+                FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(false),
+                FactKey.EXPERIENCE_MONTHS to FactValue.NumberValue(6.0, "months"),
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+                FactKey.NATIONALITY to FactValue.EnumValue("VN"),
+            ),
+            opportunities = bundledOpportunities(),
+            savedOpportunityIds = emptySet(),
+            constraints = PlanningConstraints(
+                horizonDays = 365,
+                maxEffort = EffortLevel.VERY_HIGH,
+                maxCost = CostBand.UNKNOWN,
+                prioritizeSaved = false,
+            ),
+            today = LocalDate(2026, 11, 2),
+        )
+
+        val degreeMove = assertNotNull(frontier.singleOrNull { it.template.targetFactKey == FactKey.DEGREE_COMPLETED })
+        assertEquals(
+            listOf(
+                "daad-epos-2027-2028",
+                "erasmus-mundus-joint-masters",
+                "schwarzman-scholars-2028-2029",
+            ),
+            degreeMove.improvedOpportunityIds,
+        )
+        assertTrue(degreeMove.newlyOpenOpportunityIds.isEmpty())
+        assertFalse("chevening-scholarship-2027" in degreeMove.improvedOpportunityIds)
+        assertFalse("jj-wbgsp-2027-window-1" in degreeMove.improvedOpportunityIds)
+    }
+
+    @Test
     fun `real vertical slice exposes exact sourced progress and remaining blockers`() {
         val opportunities = bundledOpportunities()
         val evaluator = ScenarioEvaluator(EligibilityEvaluator())
@@ -238,12 +363,13 @@ class BundledOpportunityPackProviderTest {
             "erasmus-mundus-joint-masters" to "erasmus-degree-complete",
             "daad-epos-2027-2028" to "daad-degree",
             "jj-wbgsp-2027-window-1" to "jj-degree",
+            "schwarzman-scholars-2028-2029" to "schwarzman-degree",
         ).forEach { (opportunityId, ruleId) ->
             val impact = assertNotNull(degreeImpacts[opportunityId])
             val delta = assertNotNull(impact.changedRules.singleOrNull { it.ruleId == ruleId })
             assertEquals(RuleResult.FAIL, delta.beforeResult)
             assertEquals(RuleResult.PASS, delta.afterResult)
-            assertTrue(delta.sourceNote?.contains(PortaContestPackData.VERTICAL_SLICE_REVIEWED_ON) == true)
+            assertTrue(delta.sourceNote?.contains(PortaContestPackData.SOURCE_REFRESH_REVIEWED_ON) == true)
             assertTrue(impact.afterState != EligibilityState.OPEN)
         }
         assertTrue(

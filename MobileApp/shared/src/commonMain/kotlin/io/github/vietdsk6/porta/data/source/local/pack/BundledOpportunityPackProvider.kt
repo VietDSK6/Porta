@@ -9,9 +9,14 @@ class BundledOpportunityPackProvider(
 ) {
     fun rawJson(): String = codec.encode(PortaContestPackData.create())
 
+    /** Refresh only an older bundled pack; a user-imported catalog stays active. */
+    fun shouldInstallOver(activePackId: String?, activeVersion: Int?): Boolean = activePackId == null ||
+        activePackId == LEGACY_SYNTHETIC_PACK_ID ||
+        (activePackId == PACK_ID && (activeVersion ?: 0) < PACK_VERSION)
+
     companion object {
         const val PACK_ID = "porta-curated-opportunities-2026-10-21"
-        const val PACK_VERSION = 2
+        const val PACK_VERSION = 3
         const val LEGACY_SYNTHETIC_PACK_ID = "porta-synthetic-demo"
     }
 }

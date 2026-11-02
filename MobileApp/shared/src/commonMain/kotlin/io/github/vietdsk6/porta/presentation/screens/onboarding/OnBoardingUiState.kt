@@ -11,12 +11,26 @@ data class OnBoardingUiState(
     val completion: OnboardingCompletion? = null,
     val isLoading: Boolean = true,
 ) {
+    /** Demo doors are filtered to checks that fail at 6.5 and pass at 7.0. */
     val satisfiedIeltsRequirementCount: Int
         get() = demoDoors.count(OnboardingDemoDoorUiState::isRequirementMet)
 
     val isDemoComplete: Boolean
         get() = demoDoors.isNotEmpty() && satisfiedIeltsRequirementCount == demoDoors.size
 }
+
+internal fun OnBoardingUiState.sampleRuleSummary(): String {
+    if (demoDoors.isEmpty()) return "No fictional IELTS checks are available."
+    val thresholds = demoDoors.map(OnboardingDemoDoorUiState::requiredIelts).distinct()
+    val rule = if (thresholds.size == 1) {
+        "one IELTS ≥ ${thresholds.single().asBand()} check each"
+    } else {
+        "one IELTS check each"
+    }
+    return "Fictional examples: $rule. Other conditions are not assessed."
+}
+
+private fun Double.asBand(): String = "${toInt()}.${((this * 10).toInt() % 10)}"
 
 data class OnboardingDemoDoorUiState(
     val opportunityId: String,

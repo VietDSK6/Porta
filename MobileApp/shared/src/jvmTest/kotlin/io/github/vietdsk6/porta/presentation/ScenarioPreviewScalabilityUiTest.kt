@@ -15,6 +15,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioConclusionCountsUiState
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorOutcome
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioDoorUiState
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
@@ -41,6 +42,76 @@ class ScenarioPreviewScalabilityUiTest {
     }
 
     @Test
+    fun `summary exposes actual to simulated catalog counts`() = runComposeUiTest {
+        val state = emptyState.copy(
+            baselineCounts = ScenarioConclusionCountsUiState(
+                currentChecksPassed = 2,
+                needsAction = 5,
+                needsInformation = 4,
+                notAvailable = 1,
+                closed = 3,
+            ),
+            simulatedCounts = ScenarioConclusionCountsUiState(
+                currentChecksPassed = 3,
+                needsAction = 4,
+                needsInformation = 4,
+                notAvailable = 1,
+                closed = 3,
+            ),
+        )
+        setContent {
+            AppTheme {
+                Box(Modifier.size(360.dp, 760.dp)) {
+                    ScenarioPreviewScreen(state, onUiEvent = {}, onNavigateBack = {}, onBuildProfile = {})
+                }
+            }
+        }
+
+        onNodeWithTag("scenario-aggregate-transition").assertExists()
+        onNodeWithText(
+            "Checks passed 2 → 3 · Needs action 5 → 4 · Needs information 4 → 4 · " +
+                "Not available 1 → 1 · Closed 3 → 3",
+        ).assertExists()
+    }
+
+    @Test
+    fun `one changed result has one ripple node and its own timing concern`() = runComposeUiTest {
+        val state = emptyState.copy(affectedDoors = listOf(door(0, warning = true)))
+        setContent {
+            AppTheme {
+                Box(Modifier.size(360.dp, 760.dp)) {
+                    ScenarioPreviewScreen(state, onUiEvent = {}, onNavigateBack = {}, onBuildProfile = {})
+                }
+            }
+        }
+
+        onNodeWithText("1 opportunity affected").assertExists()
+        onNodeWithTag("scenario-ripple-toggle").performScrollTo().performClick()
+        onNodeWithTag("action-ripple").assertExists()
+        onNodeWithTag("action-impact-node-door-0").assertExists()
+        onNodeWithText("The Porta estimate may exceed the published deadline.").assertExists()
+        onNodeWithTag("action-ripple-overflow").assertDoesNotExist()
+    }
+
+    @Test
+    fun `five changed results fit the ripple without a phantom sixth node`() = runComposeUiTest {
+        val state = emptyState.copy(affectedDoors = (0 until 5).map { door(it) })
+        setContent {
+            AppTheme {
+                Box(Modifier.size(360.dp, 760.dp)) {
+                    ScenarioPreviewScreen(state, onUiEvent = {}, onNavigateBack = {}, onBuildProfile = {})
+                }
+            }
+        }
+
+        onNodeWithTag("scenario-ripple-toggle").performScrollTo().performClick()
+        onNodeWithTag("scenario-preview-content").performScrollToIndex(4)
+        onNodeWithTag("action-impact-node-door-0").assertExists()
+        onNodeWithTag("action-impact-node-door-4").assertExists()
+        onNodeWithTag("action-ripple-overflow").assertDoesNotExist()
+    }
+
+    @Test
     fun `five results show exact counts and only one expanded detail`() = runComposeUiTest {
         val state = emptyState.copy(affectedDoors = (0 until 5).map { door(it, warning = it < 2) })
         setContent {
@@ -53,7 +124,7 @@ class ScenarioPreviewScalabilityUiTest {
 
         onNodeWithText("5 opportunities affected").assertExists()
         onNodeWithText("5 checks could change · 2 timing concerns").assertExists()
-        onNodeWithTag("action-impact-diagram").assertDoesNotExist()
+        onNodeWithTag("action-ripple").assertDoesNotExist()
         onNodeWithTag("scenario-preview-content").performScrollToIndex(5)
         onNodeWithTag("scenario-details-door-0").performClick()
         onNodeWithTag("scenario-selected-door-0").assertExists()
@@ -79,7 +150,10 @@ class ScenarioPreviewScalabilityUiTest {
         onNodeWithText("12 opportunities affected").assertExists()
         onNodeWithTag("scenario-ripple-toggle").performScrollTo().performClick()
         onNodeWithTag("scenario-preview-content").performScrollToIndex(4)
-        onNodeWithTag("action-impact-diagram").assertExists()
+        onNodeWithTag("action-ripple").assertExists()
+        onNodeWithTag("action-impact-node-door-0").assertExists()
+        onNodeWithTag("action-impact-node-door-4").assertExists()
+        onNodeWithTag("action-impact-node-door-5").assertDoesNotExist()
         onNodeWithText("+7 more in Results").assertExists()
         onNodeWithTag("scenario-ripple-toggle").performScrollTo().performClick()
         onNodeWithTag("scenario-preview-content").performScrollToIndex(16)

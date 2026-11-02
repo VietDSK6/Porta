@@ -48,7 +48,7 @@ class DoorsViewModel(
     private var lastObservedProfile: ProfileSnapshot? = null
     private var lastObservedDate: LocalDate? = null
     private var highlightedDoorIds: Set<String> = emptySet()
-    private val _uiState = MutableStateFlow(buildState(DoorFilter.ALL))
+    private val _uiState = MutableStateFlow(buildState())
     val uiState: StateFlow<DoorsUiState> = _uiState.asStateFlow()
 
     init {
@@ -92,20 +92,34 @@ class DoorsViewModel(
                 }
                 lastObservedProfile = profile
                 lastObservedDate = observed.today
-                _uiState.update { current -> buildState(current.selectedFilter) }
+                _uiState.update(::buildState)
             }
         }
     }
 
     fun onUiEvent(event: DoorsUiEvent) {
         when (event) {
-            is DoorsUiEvent.FilterChanged -> _uiState.value = buildState(event.filter)
+            is DoorsUiEvent.FilterChanged -> _uiState.update { current ->
+                buildState(current.copy(selectedFilter = event.filter))
+            }
+
+            is DoorsUiEvent.SearchChanged -> _uiState.update { current ->
+                buildState(current.copy(searchQuery = event.query))
+            }
+
+            is DoorsUiEvent.CategoryChanged -> _uiState.update { current ->
+                buildState(current.copy(selectedCategory = event.category))
+            }
+
+            is DoorsUiEvent.DeadlineFilterChanged -> _uiState.update { current ->
+                buildState(current.copy(selectedDeadlineFilter = event.filter))
+            }
 
             is DoorsUiEvent.SavedChanged -> persistSavedChange(event.opportunityId)
 
             DoorsUiEvent.DismissHighlights -> {
                 highlightedDoorIds = emptySet()
-                _uiState.update { current -> buildState(current.selectedFilter) }
+                _uiState.update(::buildState)
             }
         }
     }
@@ -113,7 +127,7 @@ class DoorsViewModel(
     private fun persistSavedChange(opportunityId: String) {
         val shouldSave = opportunityId !in effectiveSavedIds()
         pendingSavedStates[opportunityId] = shouldSave
-        _uiState.update { current -> buildState(current.selectedFilter) }
+        _uiState.update(::buildState)
 
         viewModelScope.launch {
             val result = savedMutationMutex.withLock {
@@ -121,7 +135,7 @@ class DoorsViewModel(
             }
             if (result.isFailure && pendingSavedStates[opportunityId] == shouldSave) {
                 pendingSavedStates.remove(opportunityId)
-                _uiState.update { current -> buildState(current.selectedFilter) }
+                _uiState.update(::buildState)
             }
         }
     }
@@ -138,6 +152,7 @@ class DoorsViewModel(
             id = opportunity.id,
             title = opportunity.title,
             provider = opportunity.provider,
+            category = opportunity.category,
             categoryLabel = opportunity.category.label(),
             state = receipt.state,
             stateLabel = copy.statusLabel.uppercase(),
@@ -147,14 +162,19 @@ class DoorsViewModel(
             sourceReviewNeedsAttention = opportunity.sourceReviewNeedsAttention(activeDate),
             isSaved = opportunity.id in effectiveSavedIds(),
             primaryReason = copy.shortReason,
+            deadlineBucket = when {
+                isArchived || receipt.state == EligibilityState.CLOSED -> DoorDeadlineBucket.CLOSED
+                opportunity.deadline is Deadline.Known -> DoorDeadlineBucket.UPCOMING
+                else -> DoorDeadlineBucket.TBA_OR_MISSING
+            },
         )
     }
 
-    private fun buildState(filter: DoorFilter): DoorsUiState {
+    private fun buildState(current: DoorsUiState = DoorsUiState()): DoorsUiState {
         val savedIds = effectiveSavedIds()
         val refreshed = allDoors.map { it.copy(isSaved = it.id in savedIds) }
         val filtered = refreshed.filter { door ->
-            when (filter) {
+            val matchesState = when (current.selectedFilter) {
                 DoorFilter.ALL -> true
                 DoorFilter.OPEN -> door.state == EligibilityState.OPEN
                 DoorFilter.GAPS -> door.state == EligibilityState.HAS_GAPS
@@ -164,12 +184,28 @@ class DoorsViewModel(
                 DoorFilter.ARCHIVED -> door.isArchived
                 DoorFilter.SAVED -> door.isSaved
             }
+            val matchesSearch = current.searchQuery.isBlank() || listOf(
+                door.title,
+                door.provider,
+                door.categoryLabel,
+            ).any { searchable -> searchable.contains(current.searchQuery.trim(), ignoreCase = true) }
+            val matchesCategory = current.selectedCategory == null || door.category == current.selectedCategory
+            val matchesDeadline = when (current.selectedDeadlineFilter) {
+                DoorDeadlineFilter.ALL -> true
+                DoorDeadlineFilter.UPCOMING -> door.deadlineBucket == DoorDeadlineBucket.UPCOMING
+                DoorDeadlineFilter.TBA_OR_MISSING -> door.deadlineBucket == DoorDeadlineBucket.TBA_OR_MISSING
+                DoorDeadlineFilter.CLOSED -> door.deadlineBucket == DoorDeadlineBucket.CLOSED
+            }
+            matchesState && matchesSearch && matchesCategory && matchesDeadline
         }
         return DoorsUiState(
             isSampleMode = isSampleProfile,
             isSampleCatalog = isSampleCatalog,
             catalogDoorCount = refreshed.size,
-            selectedFilter = filter,
+            selectedFilter = current.selectedFilter,
+            searchQuery = current.searchQuery,
+            selectedCategory = current.selectedCategory,
+            selectedDeadlineFilter = current.selectedDeadlineFilter,
             doors = filtered,
             openCount = refreshed.count { it.state == EligibilityState.OPEN },
             gapCount = refreshed.count { it.state == EligibilityState.HAS_GAPS },

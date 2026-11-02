@@ -18,7 +18,15 @@ import io.github.vietdsk6.porta.domain.model.cycleStatus
 import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 
+/**
+ * Deterministically evaluates only the rules encoded in an [Opportunity].
+ *
+ * Missing or incompatible values remain unknown, manual checks never pass automatically, and soft/readiness
+ * information is excluded from the eligibility root. A passing receipt means only that Porta's encoded checks pass;
+ * it is not a prediction of admission, selection, or funding.
+ */
 class EligibilityEvaluator {
+    /** Returns a source-linked receipt for [profile], [opportunity], and the supplied local [today]. */
     fun evaluate(
         profile: ProfileSnapshot,
         opportunity: Opportunity,
