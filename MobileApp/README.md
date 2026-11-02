@@ -123,11 +123,11 @@ The core product documents are:
 
 ### Shared Kotlin evidence
 
-The conservative contest-period measurement currently finds 14,122 NCLOC across 74 newly added, explicitly
-allowlisted shared Porta production files, plus 42 NCLOC across two JVM storage files. Static opportunity/sample data,
+The conservative contest-period measurement currently finds 14,933 NCLOC across 75 newly added, explicitly
+allowlisted shared Porta production files, plus 96 NCLOC across four narrowly scoped platform files. Static opportunity/sample data,
 tests, integration files with mixed starter provenance, generated/build/vendor code, package-only renames, and
 unchanged scaffold are excluded or reported separately. This is an internal provenance check—not an official contest
-formula or a claim that the whole repository is 99.7% shared. Reproduce it with:
+formula or a claim that the whole repository is 99.4% shared. Reproduce it with:
 
 ```bash
 ./scripts/measure_porta_kmp_evidence.sh

@@ -207,3 +207,27 @@
 
 - `./gradlew spotlessCheck`, `./gradlew :shared:jvmTest :shared:testAndroidHostTest`, and `./gradlew :androidApp:assembleDebug` — PASS on the final T18 code. `git diff --check` — PASS. Browser source inspection is documented in `OPPORTUNITY_PACK_SOURCES.md`; no admission or provider approval is inferred.
 - T19 offline startup/restart persistence and T17 live Android/Desktop, accessibility and release QA remain open.
+
+## 2026-11-02 — T17/T19 contest-path hardening
+
+### Changed behavior
+
+- Doors can now search title, provider and category, then combine category and deadline filters with the existing
+  eligibility, saved and archived controls. The empty state clears the complete filter set.
+- Next moves is judge-readable at scale: it renders at most five ranked actions and names each action's earliest
+  affected deadline. What-if now summarizes every conclusion state as Actual → simulated counts before the detailed
+  changed-door receipt.
+- Opportunity-pack identity is immutable across stored versions. Reusing a pack ID with a different publisher is
+  rejected before persistence, including when the conflicting original version is inactive.
+- The packaged Desktop runtime now includes `jdk.unsupported`, required by DataStore's protobuf implementation.
+  Preference-restore failure also clears onboarding loading instead of leaving an infinite splash.
+
+### Validation and evidence
+
+- Commit `d3d34dc` passed `spotlessCheck`, 236 JVM tests, 94 Android-host tests, Android debug assembly, Desktop DMG
+  packaging and shared JS/Wasm compilation from a local no-hardlink fresh clone.
+- The first packaged launch exposed `NoClassDefFoundError: sun/misc/Unsafe`; a thread dump and console launch isolated
+  the missing runtime module. The rebuilt package contains both `jdk.unsupported` and `sun/misc/Unsafe`, and the entrant
+  observed it launch past the splash.
+- Final keyboard-only, screen-reader, Android-device and public-GitHub-clone checks remain in
+  `SUBMISSION/FRESH_SETUP_QA.md`; none is claimed complete here.

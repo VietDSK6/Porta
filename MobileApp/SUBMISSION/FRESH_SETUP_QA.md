@@ -6,27 +6,35 @@ only troubleshooting that was actually encountered. Do not repeatedly rerun a fa
 ## Environment record
 
 ```text
-Commit SHA:
-Clone URL:
-Host OS/version:
-JDK distribution/version:
-Android Studio/version:
-Android SDK/API:
-Android device/emulator:
-Desktop package type:
-Verification date/time:
-Verifier:
+Commit SHA: d3d34dc
+Clone URL: local no-hardlink clone of the repository (public URL still blocked)
+Host OS/version: macOS 27.2 (26B123), Apple Silicon
+JDK distribution/version: JetBrains Runtime 21.0.11+10-b1163.116
+Android Studio/version: not used for automated verification
+Android SDK/API: existing local SDK configuration; manual device/API verification pending
+Android device/emulator: not used; manual launch pending
+Desktop package type: macOS DMG
+Verification date/time: 2026-11-02 15:42 +07
+Verifier: Codex automated gates; entrant observed packaged Desktop launch past splash
 ```
 
 ## Automated paths
 
 | Check | Command | Result | Evidence / note |
 |---|---|---|---|
-| Formatting | `./gradlew spotlessCheck` |  |  |
-| Shared/JVM/UI tests | `./gradlew :shared:jvmTest :shared:testAndroidHostTest` |  |  |
-| Android debug build | `./gradlew :androidApp:assembleDebug` |  |  |
-| Desktop package | `./gradlew :desktopApp:packageDistributionForCurrentOS` |  |  |
-| JS/Wasm compatibility | `./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs` |  |  |
+| Formatting | `./gradlew spotlessCheck` | PASS | Fresh clone; 11 s. |
+| Shared/JVM/UI tests | `./gradlew :shared:jvmTest :shared:testAndroidHostTest` | PASS | Fresh clone; 236 JVM + 94 Android-host tests in the source-workspace run, same test tasks green in clone. |
+| Android debug build | `./gradlew :androidApp:assembleDebug` | PASS | Fresh clone; APK assembled in 10 s. Manual device launch remains below. |
+| Desktop package | `./gradlew :desktopApp:packageDistributionForCurrentOS` | PASS | Fresh clone; DMG assembled in 34 s. Runtime image explicitly contains `jdk.unsupported` and `sun.misc.Unsafe`. |
+| JS/Wasm compatibility | `./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs` | PASS | Fresh clone; both shared targets compiled in 10 s. |
+
+### Startup regression note
+
+The first packaged Desktop check exposed `NoClassDefFoundError: sun/misc/Unsafe` while DataStore restored onboarding,
+which left `isLoading` on the splash. The package now includes `jdk.unsupported`, the fresh runtime image was
+inspected with `jimage`, and onboarding has a tested failure path that clears loading even if preference restore
+fails. The entrant then observed the rebuilt package launch beyond the splash. Full keyboard and screen-reader
+exercise is still intentionally unchecked below.
 
 ## Android manual path
 

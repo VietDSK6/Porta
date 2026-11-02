@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 27 October 2026
+> Last updated: 2 November 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
@@ -23,12 +23,12 @@
 | Created specifically during the contest period | RISK | Preserve Git history showing Porta-specific work began during the period; document that Koko is a licensed starter kit and distinguish new product code from template code. |
 | Substantial application, not template/Hello World/library | PASS | Porta-owned engine, Room repositories, Compose flows, pack validation/import and 15-record catalog are implemented; keep separating these changes from Koko template code in README evidence. |
 | Original work or sufficient rights | IN PROGRESS | `OPPORTUNITY_PACK_SOURCES.md` records independent interpretations and official URLs; retain starter-kit/dependency notices and still audit icons, media and generated assets before publication. |
-| Cross-platform Kotlin project | IN PROGRESS | Product logic, persistence and most UI are shared Kotlin and compile for Android/JVM/JS/Wasm; Android + JVM Desktop remain the contest promise until both exact launch paths are manually confirmed. |
+| Cross-platform Kotlin project | PASS | Product logic, persistence and most UI are shared Kotlin; Android debug builds, the JVM Desktop package builds and launches past startup, and JS/Wasm shared compilation remains a compatibility check. Android + JVM Desktop are the declared contest targets. |
 | GitHub repository submitted | TODO | Create/publish the final repository and verify judge access. |
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
 | Comprehensive README | IN PROGRESS | `README.md` now covers the product story, demo path, architecture, data provenance, limitations, quality gates and starter-kit boundary; add final media and fresh-setup troubleshooting evidence before submission. |
 | Launch instructions for every declared target | IN PROGRESS | Android and JVM Desktop are explicitly declared with exact build/run commands; verify both from a fresh setup before freezing the README. |
-| 300-word essay | TODO | Draft late enough to reflect the real product; verify exact word count before submission. |
+| 300-word essay | IN PROGRESS | `SUBMISSION/ESSAY.md` has an exactly 300-word body and four explicit entrant-fact placeholders. Replace them truthfully and recount before submission. |
 | Submission form before deadline | TODO | Save the final form link and submission receipt outside the repository. |
 | Truthful and rights-safe submission/media | IN PROGRESS | Source every factual claim and opportunity rule; obtain permission for any identifiable third party in media. |
 
@@ -78,6 +78,12 @@ Current evidence:
 - [x] Local-data controls distinguish clearing the current academic profile from resetting all Porta data. Confirmation
   copy names the exact removed and retained state; integration tests cover facts, scoped confirmations, plans, saved
   doors, imported catalogs, preferences, multiple profile IDs and restoration of the bundled catalog.
+- [x] Doors now supports title/provider/category search plus category, deadline, eligibility, saved and archived filters;
+  empty results can reset the full filter state without altering persisted data.
+- [x] The judge-facing decision path is bounded and legible: Frontier renders at most five ranked actions and names the
+  earliest affected deadline, while What-if adds an Actual-to-simulated aggregate across all conclusion states.
+- [x] Pack identity is immutable across every stored version: a publisher change for an existing pack ID is rejected
+  before persistence, including when the original version is inactive.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
 - [ ] Final competitor check and dated novelty statement.
 
@@ -106,8 +112,8 @@ Required evidence:
   a polite What-if live region and zero-duration motion without losing the textual outcome. Final packaged-app
   screen-reader and full keyboard exercise remains a disclosed manual submission check.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
-- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement: 14,122 NCLOC across 74 explicitly
-  allowlisted shared Porta production files plus 42 NCLOC across two JVM storage files; tests and Kotlin data are
+- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `d3d34dc`: 14,933 NCLOC across 75
+  explicitly allowlisted shared Porta production files plus 96 NCLOC across four platform integration files; tests and Kotlin data are
   reported separately, while generated/vendor/unchanged starter code, package-only renames and mixed-provenance
   integration files are excluded.
 
@@ -124,7 +130,8 @@ Required evidence:
 - [x] Every manual finding is fixed or justified; the large contest-pack file is intentionally one cohesive,
   versioned data manifest rather than mixed application logic.
 - [x] README documents formatting/test commands.
-- [ ] Final audit checks the then-current official convention page.
+- [x] Final audit on 2 November 2026 checked the then-current official convention page, formatter gate, naming,
+  organization, idioms and KDoc on the changed core contracts.
 
 A green formatter alone must never be recorded as `20/20`.
 
@@ -132,11 +139,11 @@ A green formatter alone must never be recorded as `20/20`.
 
 | Asset | Status | Definition of done |
 |---|---|---|
-| Product name and visual identity | IN PROGRESS | Porta now uses the Editorial Atlas palette, Newsreader/Manrope typography and trust-first core journey; capture final light/dark Android and Desktop media, then audit marks/assets. |
+| Product name and visual identity | READY LOCALLY | Porta uses the Editorial Atlas palette, Newsreader/Manrope typography and trust-first core journey; final light/dark Android and Desktop captures plus rights audit remain. |
 | Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register, visible freshness policy, lifecycle handling and user-approved update diffs; complete an independent second reading before submission. |
-| README | IN PROGRESS | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and fresh-setup verification. |
-| Essay | TODO | Exactly 300 words and consistent with the actual submission. |
-| Screencast | TODO | 3–5 minutes; problem, magic moment, KMP proof, trust boundary, close. |
+| README | READY LOCALLY | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and the public fresh-clone record. |
+| Essay | NEEDS ENTRANT FACTS | Body is exactly 300 words; replace the four factual placeholders without changing truth or count. |
+| Screencast | SCRIPT READY | `SUBMISSION/DEMO_SCRIPT.md` defines a 4:20 path through problem, magic moment, KMP proof, trust boundary and close. |
 | Screenshots/GIFs | TODO | Current UI only; rights-safe and readable. |
 | Submission form | TODO | Final URLs tested without private access. |
 
@@ -150,8 +157,9 @@ A green formatter alone must never be recorded as `20/20`.
 
 ## Next three contest actions
 
-1. Have a second person re-read all 15 official sources and refresh every TBA deadline before the submission freeze.
-2. Exercise the packaged Desktop build keyboard-only and capture the rail, comparison matrix and pack inspector for
-   the contest screencast.
-3. Verify the documented Android and Desktop judge path from a fresh setup, then add only the troubleshooting notes
-   actually encountered.
+1. Replace the four essay placeholders with verified entrant facts, preserve the exact 300-word count, and confirm the
+   personal eligibility/solo-entry gates.
+2. Have a second person re-read all 15 official sources, refresh every TBA deadline, and capture rights-safe Android
+   and Desktop media from the frozen build.
+3. Publish the frozen snapshot to an entrant-owned public GitHub repository, run the documented judge path from that
+   public clone, record the video URL, and submit before the deadline.

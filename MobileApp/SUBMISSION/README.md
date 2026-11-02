@@ -12,8 +12,8 @@ should claim a fact that cannot be demonstrated by the tagged submission commit 
 | GitHub repository | BLOCKED | Create the entrant-owned public repository, push the frozen commit, and verify it while signed out. |
 | Root README | READY LOCALLY | Root README presents Porta, both declared targets, provenance, trust boundaries, and reproducible commands. |
 | License | PASS LOCALLY | Root `LICENSE` is MIT; preserve existing notices and verify it is visible in the public repository. |
-| Android build | PASS LOCALLY | `:androidApp:assembleDebug` succeeds; fresh-clone launch remains manual. |
-| JVM Desktop package | PASS LOCALLY | `:desktopApp:packageDistributionForCurrentOS` succeeds; packaged keyboard/screen-reader QA remains manual. |
+| Android build | PASS IN LOCAL FRESH CLONE | `:androidApp:assembleDebug` succeeds from a no-hardlink clone; device launch remains manual. |
+| JVM Desktop package | PASS IN LOCAL FRESH CLONE | The DMG builds from a no-hardlink clone and the rebuilt app launches past startup. The missing `jdk.unsupported` module that trapped DataStore on splash was diagnosed and fixed; keyboard/screen-reader QA remains manual. |
 | Essay | NEEDS ENTRANT FACTS | `ESSAY.md` is a 300-word structural draft with four factual placeholders. Replace them truthfully and re-run the word-count command. |
 | Screencast | SCRIPT READY | Record and review a 3–5 minute video using `DEMO_SCRIPT.md`. |
 | Final media | CAPTURE REQUIRED | Capture real Android and Desktop output using `MEDIA_CHECKLIST.md`; do not substitute design mockups. |

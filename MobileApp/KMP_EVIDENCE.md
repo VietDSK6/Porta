@@ -1,8 +1,8 @@
 # Porta shared Kotlin evidence
 
-> Snapshot date: 27 October 2026
+> Snapshot date: 2 November 2026
 > Baseline: `bd5fd5d` — the last repository commit before Porta work began in `6be9ec1`
-> Measured Kotlin head: `2ed0c6d`
+> Measured Kotlin head: `d3d34dc`
 
 This document records an internal, reproducible view of where **new Porta-owned Kotlin** lives. It is not an
 official contest formula or a judging score. The Kotlin Student Coding Competition rules do not prescribe a shared
@@ -26,17 +26,17 @@ Snapshot output:
 
 | Category | Files | NCLOC |
 |---|---:|---:|
-| Shared production | 74 | 14,122 |
-| Platform production | 2 | 42 |
-| Kotlin data/fixtures | 2 | 1,028 |
-| Shared tests | 15 | 2,340 |
-| Platform-run tests | 21 | 3,448 |
-| Excluded added Kotlin files | 13 | — |
+| Shared production | 75 | 14,933 |
+| Platform production | 4 | 96 |
+| Kotlin data/fixtures | 2 | 1,075 |
+| Shared tests | 16 | 2,658 |
+| Platform-run tests | 26 | 4,572 |
+| Excluded added Kotlin files | 18 | — |
 
-Within this deliberately narrow production sample, the shared proportion is **14,122 / 14,164 = 99.7%**.
+Within this deliberately narrow production sample, the shared proportion is **14,933 / 15,029 = 99.4%**.
 
-That number means all but 42 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
-The two measured JVM files provide Desktop database/storage paths. It does **not** mean 99.7% of the whole repository
+That number means all but 96 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
+The four measured platform files provide narrowly scoped target integration. It does **not** mean 99.4% of the whole repository
 is shared, nor that platform code is unnecessary. Android and Desktop still use target launchers, drivers, packaging,
 and platform services inherited from the starter kit; those inherited lines are excluded rather than claimed as
 Porta work.
