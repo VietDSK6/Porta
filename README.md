@@ -19,6 +19,13 @@ The submission declares two runnable targets:
 iOS and Web wrappers remain inherited compatibility scaffolding from the starter kit. They are not declared as
 runnable contest targets.
 
+> **Contest provenance:** Porta uses the official MIT-licensed
+> [KMP Contest Starter Kit (Koko)](https://kotlinfoundation.org/news/introducing-the-kmp-contest-starter-kit/),
+> which the Kotlin Foundation created for participants to use as a submission starting point. Git history records Porta product work
+> beginning at [`6be9ec1`](https://github.com/VietDSK6/Porta/commit/6be9ec19687ee7fe209c05eacd69aa3eae5fb96e)
+> on 20 October 2026, within the contest period. See the
+> [Koko boundary](#provenance-and-koko-boundary) for the inherited-versus-created split.
+
 ## What Porta does
 
 - Stores an academic profile locally, with explicit units and evidence metadata.
@@ -164,15 +171,31 @@ Always confirm the linked official provider source before acting on an opportuni
 - [`MobileApp/CONTEST_SCORECARD.md`](MobileApp/CONTEST_SCORECARD.md) — evidence-backed readiness status.
 - [`MobileApp/SUBMISSION/`](MobileApp/SUBMISSION/) — final-submission checklist, essay draft, and demo plan.
 
-## Provenance
+## Provenance and Koko boundary
 
-This repository started from the MIT-licensed **KMP Contest Starter Kit (Koko)**. Inherited target configuration,
-platform launchers, CI/release helpers, and generic design-system infrastructure are not presented as Porta-owned
-contest work.
+The Kotlin Foundation describes Koko as an
+[official sample project](https://kotlinfoundation.org/news/kmp-contest-starter-kit-2026/)
+that contest participants may use as a starting point or borrow from as needed. Porta preserves Koko's MIT license
+and attribution and does not present unchanged
+starter code as entrant-authored work.
 
-Porta-specific contest-period work includes the opportunity and rule models, deterministic evaluators, constrained
-Action Frontier, pack schema and validation, profile and plan persistence, adaptive Porta screens, curated source
-register, tests, and product documentation. Git history and the evidence documents preserve this boundary.
+| Inherited from Koko | Developed for Porta during the contest |
+|---|---|
+| Gradle and target configuration | Opportunity, profile, rule, scenario, plan, and pack domain models |
+| Android, iOS, Web, and Desktop launch scaffolding | Deterministic eligibility receipts and counterfactual scenario engine |
+| Generic Compose design-system infrastructure | Constraint-aware Pareto Action Frontier and explanations |
+| CI, release helpers, and reusable agent skills | Room-backed profile, plan, saved-door, assertion, and pack repositories |
+| Optional commercial-service architecture that Porta does not use | Porta screen flows, adaptive Desktop workspace, and accessibility states |
+| Generic testing and publishing foundations | Curated source register, 15-record pack, Porta tests, and product documentation |
+
+The last repository commit before Porta product work was
+[`bd5fd5d`](https://github.com/VietDSK6/Porta/commit/bd5fd5dd1e268cac6ab11eb84f0d74d2d985f396).
+The first Porta product commit was
+[`6be9ec1`](https://github.com/VietDSK6/Porta/commit/6be9ec19687ee7fe209c05eacd69aa3eae5fb96e)
+on 20 October 2026. The conservative measurement in
+[`MobileApp/KMP_EVIDENCE.md`](MobileApp/KMP_EVIDENCE.md) explicitly excludes unchanged starter code,
+package-only renames, generated/vendor code, and mixed-provenance integration files from Porta's shared-Kotlin
+evidence. Git history and the archived development records preserve the wider implementation trail.
 
 ## License
 

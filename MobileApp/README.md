@@ -57,6 +57,11 @@ The Porta submission promises two runnable targets:
 The repository inherits iOS and Web wrappers from the starter kit. They remain useful compatibility scaffolding, but
 they are not declared Porta contest targets and are excluded from the submission's runnable-target claim.
 
+Git history records the first Porta product commit as
+[`6be9ec1`](https://github.com/VietDSK6/Porta/commit/6be9ec19687ee7fe209c05eacd69aa3eae5fb96e)
+on 20 October 2026. The inherited Koko baseline immediately before Porta work is
+[`bd5fd5d`](https://github.com/VietDSK6/Porta/commit/bd5fd5dd1e268cac6ab11eb84f0d74d2d985f396).
+
 ## Prerequisites
 
 - JDK 17 or newer; JDK 21 is recommended for the complete local test path.
@@ -190,14 +195,20 @@ product or judging claims.
 
 ## Provenance and starter-kit boundary
 
-This repository began from the MIT-licensed **KMP Contest Starter Kit (Koko)**. Inherited scaffold includes Gradle
-target configuration, platform launchers, CI/release helpers, and the generic design system. The unused starter auth,
-billing, AI/media-generation, ads, analytics, Remote Config, and push-notification infrastructure has been removed from
-the Porta app.
+This repository began from the official MIT-licensed
+[**KMP Contest Starter Kit (Koko)**](https://kotlinfoundation.org/news/introducing-the-kmp-contest-starter-kit/).
+The Kotlin Foundation created Koko for participants to use as a submission starting point and explicitly included
+agent context and skills as development infrastructure.
 
-Porta-specific contest work includes the typed opportunity/rule models, deterministic eligibility and scenario
-engines, constrained Pareto Action Frontier, pack schema/validation/import, profile and plan persistence, the Porta
-screen flows and adaptive Desktop workspace, curated source register, tests, and product documentation. Unchanged
-starter code is excluded from Porta's originality and shared-code claims.
+| Inherited Koko foundation | Porta-specific contest work |
+|---|---|
+| Gradle targets, launchers, CI/release helpers, generic design system, reusable agent skills | Typed opportunity and rule models, deterministic eligibility and scenario engines, Action Frontier |
+| Optional auth, billing, AI/media, ads, analytics, Remote Config, and notification architecture | Pack schema, validation and import; Room profile/plan persistence; saved doors and scoped assertions |
+| Generic test and publishing foundations | Porta screen flows, adaptive Desktop workspace, curated sources, tests, and documentation |
+
+Unused commercial-service infrastructure has been removed from the Porta app. Unchanged starter code,
+package-only renames, generated/vendor code, and mixed-provenance integration files are excluded from Porta's
+originality and shared-code evidence; see [KMP_EVIDENCE.md](KMP_EVIDENCE.md) for the reproducible allowlist and
+measurement method.
 
 The repository license is available at [../LICENSE](../LICENSE).
