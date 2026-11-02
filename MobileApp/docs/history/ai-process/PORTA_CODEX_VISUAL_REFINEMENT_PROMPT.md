@@ -1,5 +1,7 @@
 # CODEX MASTER PROMPT — PORTA Visual UX Refinement
 
+> Historical AI-assisted planning artifact. Retained for provenance; see the archive README and current scorecard.
+
 You are working in the PORTA Kotlin Multiplatform / Compose Multiplatform repository.
 
 Read `PORTA_VISUAL_UX_ART_DIRECTION.md` in full before planning or editing. It is the visual/UX direction, **not** an authoritative source of runtime truth. Also read the current PRD and relevant existing UI, design system, domain/viewmodel code.

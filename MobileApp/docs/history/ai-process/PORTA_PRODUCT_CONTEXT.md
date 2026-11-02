@@ -1,5 +1,7 @@
 # PORTA — Báo cáo bối cảnh sản phẩm và kỹ thuật
 
+> Historical AI-assisted source snapshot. Retained for provenance; use the current PRD and scorecard for status.
+
 > **Mục đích:** hồ sơ factual dành cho product/UX audit độc lập  
 > **Snapshot nghiên cứu:** working tree ngày 24/10/2026  
 > **Phạm vi:** `MobileApp/`, `../AiGuidelines/project/`, `../PROGRESS_FEATURES.md`, shared domain/data/presentation, design system, target launchers, build configuration và tests  

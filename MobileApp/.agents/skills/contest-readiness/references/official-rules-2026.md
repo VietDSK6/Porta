@@ -1,7 +1,7 @@
 # Kotlin Student Coding Competition — rules snapshot
 
 > Source: [Official Contest Rules](https://kotlinconf.com/contest-rules/)
-> Verified: 20 October 2026
+> Verified: 2 November 2026
 > Status: Working summary, not legal advice. Recheck the live page because the sponsor may amend the rules.
 
 ## Mandatory entrant gates

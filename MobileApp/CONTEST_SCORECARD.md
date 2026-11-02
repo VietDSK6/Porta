@@ -2,6 +2,7 @@
 
 > Last updated: 2 November 2026
 > Deadline: 7 December 2026, 23:59 CET
+> Live rules rechecked: 2 November 2026
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
 > Internal estimates in this file are not official judging results.

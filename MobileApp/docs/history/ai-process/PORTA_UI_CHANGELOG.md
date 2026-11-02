@@ -1,5 +1,7 @@
 # Porta UI changelog
 
+> Historical implementation log. Retained for provenance; use the current README and scorecard for submission status.
+
 ## 2026-10-28 — W0 baseline and decisions
 
 **Status:** verification and implementation planning only. No Compose screen, ViewModel, domain model, database, source pack or navigation code changed in this wave.

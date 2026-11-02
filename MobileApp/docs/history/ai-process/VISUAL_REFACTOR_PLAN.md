@@ -1,5 +1,7 @@
 # Porta visual refactor plan
 
+> Historical AI-assisted planning artifact. Retained for provenance; see the archive README and current scorecard.
+
 Status: selective Wave V2 implemented and validated
 Baseline commit: `b530354 feat: make core journey trust-first`
 Design inputs: `PORTA_VISUAL_UX_ART_DIRECTION.md` and `PORTA_CODEX_VISUAL_REFINEMENT_PROMPT.md`

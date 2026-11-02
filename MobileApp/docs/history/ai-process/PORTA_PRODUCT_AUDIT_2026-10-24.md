@@ -1,5 +1,7 @@
 # PORTA — Product, UX & Core Logic Audit
 
+> Historical AI-assisted audit. Retained for provenance; findings may have been superseded by later implementation.
+
 **Bản đánh giá độc lập phục vụ cải tiến MVP / Kotlin Multiplatform contest**  
 **Ngày:** 24/10/2026  
 **Nguồn:** `PORTA_PRODUCT_CONTEXT.md` (snapshot static source trace 24/10/2026, 1.129 dòng); ảnh chụp onboarding Android và desktop, các màn Doors, Next moves, Profile, Edit academic profile do chủ sản phẩm cung cấp trong cuộc trò chuyện.  

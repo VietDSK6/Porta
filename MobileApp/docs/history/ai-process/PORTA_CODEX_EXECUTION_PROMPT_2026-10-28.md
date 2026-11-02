@@ -1,5 +1,7 @@
 # CODEX — Execute PORTA Complete UX Redesign (wave-by-wave)
 
+> Historical AI-assisted planning artifact. Retained for provenance; see the archive README and current scorecard.
+
 You are working inside the PORTA Kotlin Multiplatform / Compose Multiplatform repository.
 
 ## Read first

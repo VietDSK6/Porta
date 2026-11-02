@@ -54,9 +54,15 @@ network connection for its core flows. Opening an official source intentionally 
 MobileApp/       Porta Android/Desktop app, shared Kotlin, tests, and contest documentation
 Documentation/   Inherited starter-kit documentation submodule
 Web/             Inherited starter-kit web/backend scaffolding; not part of the Porta contest target claim
+.agents/         Reusable Porta contest and repository-review skills
+skills/          Inherited and adapted development workflow skills
 ```
 
 The implementation and all commands below live in `MobileApp/`.
+
+One-off AI-assisted prompts, audits, plans, and verification snapshots are preserved under
+[`MobileApp/docs/history/ai-process/`](MobileApp/docs/history/ai-process/). They provide process provenance but are
+not current product or submission status.
 
 ## Prerequisites
 

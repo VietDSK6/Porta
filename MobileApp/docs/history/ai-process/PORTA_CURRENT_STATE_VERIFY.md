@@ -1,5 +1,7 @@
 # Porta current-state verification — W0
 
+> Historical AI-assisted verification snapshot. Retained for provenance; see the current contest scorecard.
+
 **Checked:** 28 Oct 2026. **Scope:** current `MobileApp/` working tree and generated Compose previews. This is a static source and preview audit plus scoped build gates; it is not a live Android or Desktop interaction test. The 24 Oct product context and screenshots in the redesign plan are leads, not proof of current behavior.
 
 ## Evidence and screenshot mapping

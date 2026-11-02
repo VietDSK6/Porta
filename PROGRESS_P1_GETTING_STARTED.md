@@ -1,6 +1,9 @@
 # Phase 1 Progress — First Run (LOCAL-ONLY)
 
 > [!NOTE]
+> This historical first-run tracker is retained because the reusable getting-started skill references it. It is
+> not the current Porta submission status; use `MobileApp/CONTEST_SCORECARD.md` for contest readiness.
+>
 > **Setup Instruction:** Copy this template file to the root of your repository and rename it to **`PROGRESS_P1_GETTING_STARTED.md`**.
 > Use this file to tick items as you go. Full instructions are in the `getting-started` skill.
 >

@@ -1,13 +1,16 @@
-# Koko — KMPStarterKit
+# Porta — contest app built on KMPStarterKit
 
-> **Koko** is the app name; the project is the KMP contest starter kit (KMPStarterKit).
+> **Porta** is the submitted product. This repository began from the MIT-licensed Koko KMP contest starter kit.
+> This file is retained as operational context for coding agents and inherited tooling; the root `README.md` and
+> `MobileApp/PORTA_PRD.md` are the current product and submission sources of truth.
 
 ## Project Overview
 
 Monorepo with three main parts:
-- **MobileApp/** — Kotlin Compose Multiplatform mobile app (Android, iOS, JVM Desktop, Web/WASM)
-- **Web/** — Firebase Hosting landing page + Cloud Functions backend (Node.js)
-- **Documentation/** — Docusaurus documentation site (git submodule, published at kotlinfoundation.org/kmp-contest-starter-kit-documentation)
+- **MobileApp/** — Porta's Kotlin Compose Multiplatform app. Android and JVM Desktop are the declared contest targets;
+  iOS and Web/WASM remain inherited compatibility scaffolding.
+- **Web/** — inherited Firebase Hosting and Cloud Functions scaffolding; not part of Porta's contest target claim.
+- **Documentation/** — inherited Docusaurus starter-kit documentation submodule.
 
 Tech stack: Kotlin 2.4.10, Compose Multiplatform 1.11.1, AGP 9.3.1, Gradle 9.7.1, Gradle Kotlin DSL
 Package: `io.github.vietdsk6.porta`

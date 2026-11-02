@@ -3,6 +3,9 @@
 Template release notes, written for **derived apps syncing updates** (see
 [`skills/sync-template/SKILL.md`](skills/sync-template/SKILL.md)). Newest first.
 
+> This is the inherited starter-kit sync log, not Porta's product release history. Porta's contest-period product
+> changes remain traceable in Git history and the evidence documents linked from the root README.
+
 Entry format — one bullet per merged PR, tagged by scope:
 
 - `[app]` touches shipped app code (`MobileApp/`, `Web/`) — a sync will merge it into your app.

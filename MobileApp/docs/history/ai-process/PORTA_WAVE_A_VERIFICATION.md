@@ -1,5 +1,7 @@
 # Porta Wave A verification matrix
 
+> Historical verification snapshot. Retained for provenance; use the current scorecard for submission status.
+
 Date: 2026-10-24  
 Scope: A1–A4 from `PORTA_CODEX_IMPLEMENTATION_BACKLOG.md`
 

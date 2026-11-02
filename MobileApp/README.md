@@ -175,6 +175,19 @@ platform work, including iOS.
 
 Always confirm the linked official source before acting on an opportunity.
 
+## Documentation map
+
+- [`PORTA_PRD.md`](PORTA_PRD.md) defines the current product scope and acceptance criteria.
+- [`CONTEST_SCORECARD.md`](CONTEST_SCORECARD.md) records current contest readiness and unresolved gates.
+- [`KMP_EVIDENCE.md`](KMP_EVIDENCE.md) documents shared-Kotlin evidence and explicit exclusions.
+- [`OPPORTUNITY_PACK_SOURCES.md`](OPPORTUNITY_PACK_SOURCES.md) records source provenance and encoding boundaries.
+- [`SUBMISSION/`](SUBMISSION/) contains the essay, demo, media, and fresh-setup materials.
+- [`docs/history/ai-process/`](docs/history/ai-process/) preserves one-off AI-assisted prompts, audits, plans, and
+  verification snapshots. Those files are historical provenance, not current submission status.
+
+Reusable agent instructions and skills remain in their operational locations; they are development tooling, not
+product or judging claims.
+
 ## Provenance and starter-kit boundary
 
 This repository began from the MIT-licensed **KMP Contest Starter Kit (Koko)**. Inherited scaffold includes Gradle

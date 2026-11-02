@@ -1,4 +1,7 @@
 # PORTA — Visual UX & Art Direction Blueprint
+
+> Historical design artifact. Retained for provenance; the shipped UI and current PRD remain authoritative.
+
 **Bản đặc tả cải thiện UI/UX và tính hấp dẫn thị giác, dùng cho Android + JVM Desktop**
 **Ngày biên soạn:** 26/10/2026
 **Cơ sở:** 9 screenshot mới nhất (Doors, Opportunity details, Next moves, Limits, What-if), ảnh onboarding và Profile các vòng trước, `PORTA_PRODUCT_CONTEXT.md` snapshot 24/10 và lịch sử review.

@@ -1,5 +1,7 @@
 # PORTA — Backlog kỹ thuật / UX để giao Codex
 
+> Historical AI-assisted planning artifact. Retained for provenance; see the archive README and current scorecard.
+
 **Bổ trợ cho:** `PORTA_PRODUCT_AUDIT_2026-10-24.md`  
 **Ngày:** 24/10/2026  
 **Phạm vi:** Android + JVM Desktop contest MVP; trust-first; không mở rộng tính năng ngoài nhu cầu sửa core loop.  

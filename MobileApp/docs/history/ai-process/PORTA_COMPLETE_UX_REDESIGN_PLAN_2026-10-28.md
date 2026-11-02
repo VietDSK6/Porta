@@ -1,5 +1,7 @@
 # PORTA — Kế hoạch cải thiện toàn diện UI/UX, Visual & Product Flow
 
+> Historical AI-assisted planning artifact. Retained for provenance; see the archive README and current scorecard.
+
 **Phiên bản:** 1.0 · **Ngày:** 28/10/2026
 **Phạm vi:** Onboarding; Level 1 (Doors, Next moves, Profile); Level 2 (Opportunity details, What-if, Edit academic profile, Active plan, các trang source/pack nếu trực tiếp mở từ Level 1); Level 3 (Update actual profile và các màn drill-down mở tiếp từ Level 2). Android là ảnh tham chiếu chính; yêu cầu áp dụng tương đương cho JVM Desktop qua Compose Multiplatform.
 

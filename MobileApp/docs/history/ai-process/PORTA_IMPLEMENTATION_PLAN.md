@@ -1,5 +1,7 @@
 # Porta UX redesign — implementation plan
 
+> Historical AI-assisted planning artifact. Retained for provenance; see the archive README and current scorecard.
+
 **Prepared:** 28 Oct 2026 from `PORTA_COMPLETE_UX_REDESIGN_PLAN_2026-10-28.md` and current-source W0 verification. See `PORTA_CURRENT_STATE_VERIFY.md` for evidence. This file plans work; it does not claim the UI changes below are complete. Preserve the existing editorial palette, Newsreader/Manrope typography, serialized routes and evaluator semantics. Android and JVM Desktop share state contracts but may use different layouts.
 
 **Progress, 2 Nov:** W0, the early T09/T10 trust correction, W1A (T02/T03/T06 Doors → Details), T07/T08 What-if, T04/T14 Next moves/Active Plan count clarity, T05/T11/T16 Profile → Edit → Data & privacy, T12/T13 semantic visual primitives → Action Ripple, T15 fictional onboarding clarity, and T18 selective source-pack refresh are complete in the working tree. Live platform interaction remains a W5 check. Next are local startup/persistence (T19) and cross-platform release QA (T17). See `PORTA_UI_CHANGELOG.md` for exact evidence and gate results.

@@ -1,5 +1,7 @@
 # Porta visual refactor changelog
 
+> Historical implementation log. Retained for provenance; the shipped UI and current scorecard are authoritative.
+
 Status: implemented and validated
 Baseline: `b530354 feat: make core journey trust-first`
 

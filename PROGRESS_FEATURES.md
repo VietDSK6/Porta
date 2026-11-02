@@ -3,6 +3,8 @@
 > [!NOTE]
 > This is the resumable build record for Porta. Continue from the first unchecked item and tick work
 > as it is completed. Do not infer completion from the PRD alone.
+> It is retained for agent-workflow continuity, not as the current contest-submission status; use
+> `MobileApp/CONTEST_SCORECARD.md` for readiness claims and unresolved gates.
 
 **Source of truth:** `AiGuidelines/project/prd.md` · `user_flow.md` · `ui_ux.md` ·
 `MobileApp/PORTA_PRD.md`
