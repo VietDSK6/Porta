@@ -86,5 +86,56 @@ The stronger evidence is behavioral rather than numerical:
 - the same profile and opportunity pack producing the same receipts on both declared targets;
 - common/JVM/Android-host tests covering engines, persistence, ViewModels, and adaptive UI.
 
+The Android-to-Desktop handoff is also shared Kotlin rather than a platform-specific duplicate: Android exports the
+versioned profile JSON through the shared `StudentProfileViewModel`, Desktop previews the same decoded domain model,
+and a shared Room DAO replaces facts plus programme-scoped assertions in one transaction. The imported profile ID is
+rebased to the active local profile; plans, saved doors, constraints and the current catalog remain local to the
+receiving device. Repository tests cover all seven `FactValue` variants and force a mid-import SQLite failure to
+verify rollback.
+
+Local evidence attachments use the same shared domain metadata, Room schema, validation policy, confirmation
+ViewModel, and Compose UI on Android and Desktop. Platform storage copies accepted images/PDF/TXT/DOC/DOCX files
+into FileKit's app-private files directory, while Room keeps only a relative storage key plus name, MIME type and
+byte size. Replacing or deleting evidence cleans up the old file after the database write succeeds; failed database
+writes remove the newly copied file. Profile JSON deliberately strips the private storage key and never embeds the
+binary. Tests cover type/size rejection, entity/export round-trips, migration v3→v4, confirmation persistence and
+cleanup behavior.
+
+## 100-opportunity performance characterization
+
+`ScenarioEnginePerformanceCharacterizationTest` provides a reproducible JVM workload with exactly 100 distinct
+opportunity IDs. The fixture includes `ALL` and `ANY` rule graphs, missing facts, manual checks, known/TBA/missing
+deadlines, saved opportunities, planning constraints, and a multi-fact in-memory scenario overlay. It asserts that
+eligibility receipts, scenario results, and the Action Frontier are identical across repeated evaluations and that
+the scenario never mutates the actual profile.
+
+Run from `MobileApp/` on the frozen verification host:
+
+```bash
+./gradlew :shared:jvmTest \
+  --tests 'io.github.vietdsk6.porta.domain.usecase.ScenarioEnginePerformanceCharacterizationTest' \
+  --info --rerun-tasks
+```
+
+The runner performs 10 untimed warm-up passes, then prints median and p95 for 30 measured passes of:
+
+- eligibility evaluation across 100 opportunities;
+- scenario re-evaluation across the same 100 opportunities;
+- the complete constraint-aware Action Frontier calculation.
+
+The output is prefixed with `PORTA_PERF` and includes the OS, architecture, and JDK version. Timing is intentionally
+not a strict CI assertion: hosted-runner scheduling would make that gate flaky. The working-tree verification below
+demonstrates the PRD's under-100-ms target on the development machine. Repeat the same command after the submission
+commit is frozen and replace the commit row before final delivery.
+
+| Frozen-run field | Recorded value |
+|---|---|
+| Commit | Working tree based on `b15f1fa` (final frozen-commit rerun pending) |
+| Machine / OS / architecture | macOS 27.2 / aarch64 / 10 logical processors |
+| JDK | 21.0.11 |
+| Eligibility — median / p95 | 0.127 ms / 0.204 ms |
+| Scenario — median / p95 | 0.434 ms / 0.574 ms |
+| Action Frontier — median / p95 | 1.656 ms / 2.226 ms |
+
 The ratio should therefore be used as a provenance cross-check beside the architecture and runnable demo, not as a
 substitute for them.

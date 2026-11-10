@@ -42,7 +42,7 @@ An action changing a **published check** must never be counted as full programme
 
 Completing a first degree is a real, shared **typed check** for [Erasmus Mundus](https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters), [DAAD EPOS](https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=50076777), and [Schwarzman Scholars](https://www.schwarzmanscholars.org/admissions/application-instructions/). A scenario `degreeCompleted=false → true` may therefore change several check receipts. It does **not** prove a student can apply now: Erasmus has a final-year alternative, DAAD requires relevant post-degree experience and course fit, and Schwarzman requires completion by **1 August 2028** rather than completion on the day the profile is edited. The app should name the changed check and keep timing/manual conditions visible.
 
-In bundled pack **version 3**, the 2 November scenario produces three deadline-feasible current-cycle check changes for this milestone: Erasmus, DAAD and Schwarzman. It produces **zero newly open doors**. Chevening is archived and the JJ/WBGSP Window 1 deadline is too soon for the pack's disclosed degree-planning estimate. The estimate is a Porta assumption, not a provider timeline.
+In bundled pack **version 4**, the 2 November scenario produces three deadline-feasible current-cycle check changes for this milestone: Erasmus, DAAD and Schwarzman. It produces **zero newly open doors**. Chevening is archived and the JJ/WBGSP Window 1 deadline is too soon for the pack's disclosed degree-planning estimate. The estimate is a Porta assumption, not a provider timeline.
 
 ### Time-sensitive exclusions and corrections
 

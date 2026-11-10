@@ -83,6 +83,10 @@ Current evidence:
   empty results can reset the full filter state without altering persisted data.
 - [x] The judge-facing decision path is bounded and legible: Frontier renders at most five ranked actions and names the
   earliest affected deadline, while What-if adds an Actual-to-simulated aggregate across all conclusion states.
+- [x] Onboarding can install a clearly labelled fictional demo profile into the normal local Room-backed workflow, so a
+  judge can edit facts, save plans and exercise actual-result/evidence updates without entering personal data; the
+  original non-persisted sample path remains available. The judge profile uses a 180-day horizon and three pre-saved
+  sourced goals to expose degree, English and programme-verification trade-offs without claiming a perfect applicant.
 - [x] Pack identity is immutable across every stored version: a publisher change for an existing pack ID is rejected
   before persistence, including when the original version is inactive.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
@@ -104,15 +108,32 @@ Required evidence:
 - [x] Android quick-update/tracking flow completes a local plan, requires explicit actual-fact confirmation,
   persists optional evidence metadata and refreshes Doors reactively; covered by ViewModel/UI tests and the
   Android debug build.
+- [x] Actual-result confirmation can attach one local image, PDF, TXT, DOC or DOCX file up to 10 MB. Android/Desktop
+  copy it into app-private storage, expose open/replace/remove controls, clean up replaced/deleted files, and state
+  clearly that Porta stores user-provided evidence without independently verifying it. Profile handoff exports only
+  the descriptor; binaries and private storage keys stay on the originating device.
+- [x] Actual-result confirmation supports and validates every encoded `FactValue`: Boolean, Number, Enum, EnumList,
+  Text, Date and Duration. Invalid input does not partially update facts or programme-scoped assertions, and the
+  existing rule-fingerprint guard remains active.
 - [x] Desktop comparison/inspection flow works: wide windows use a navigation rail, Frontier becomes a
-  selectable master-detail workspace with an Actual-versus-What-if door matrix, and Pack inspector keeps its
-  read-only master-detail diagnostics. Compact Android behavior remains one-column with bottom navigation;
-  adaptive UI tests, 1280×800 preview evidence, JVM tests and the JVM Desktop launch path cover the slice.
+  selectable master-detail workspace with a transient 2–3 scenario Compare Lab against one Actual baseline, and
+  Pack inspector keeps its read-only master-detail diagnostics. Compact Android behavior remains one-column with
+  bottom navigation; adaptive UI tests, preview evidence, JVM tests and the JVM Desktop package cover the slice.
+- [x] Android-to-Desktop profile handoff uses the existing versioned JSON export, a Desktop-only sensitive-data
+  preview and an explicit replace confirmation. One Room transaction replaces facts plus scoped assertions, rebases
+  the source profile ID to the active local profile, rolls back on write failure, and leaves plans, saved doors,
+  constraints and the catalog untouched.
 - [x] Responsive/accessibility regression evidence covers a 320×640 viewport, 200% text, keyboard traversal of the
   Desktop rail, 48dp primary chips, a wide two-pane opportunity receipt with a large-text single-column fallback,
   a polite What-if live region and zero-duration motion without losing the textual outcome. Final packaged-app
   screen-reader and full keyboard exercise remains a disclosed manual submission check.
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
+- [x] The 100-opportunity JVM performance characterization covers `ALL`/`ANY`, missing/manual checks, mixed deadline
+  certainty, scenario overlays and the Action Frontier with deterministic-output assertions, warm-up, and median/p95
+  reporting. The current working-tree run is recorded in `KMP_EVIDENCE.md`; all three p95 measurements are below the
+  PRD's 100-ms target.
+- [ ] Repeat the characterization on the frozen submission commit and replace the provisional commit row in
+  `KMP_EVIDENCE.md` before final delivery.
 - [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `d3d34dc`: 14,933 NCLOC across 75
   explicitly allowlisted shared Porta production files plus 96 NCLOC across four platform integration files; tests and Kotlin data are
   reported separately, while generated/vendor/unchanged starter code, package-only renames and mixed-provenance

@@ -243,7 +243,8 @@ An opportunity with a known source, cycle, deadline and eligibility rules.
 
 ### Actual profile
 
-Facts the user currently asserts as true. A fact may optionally have evidence metadata.
+Facts the user currently asserts as true. A fact may optionally have evidence metadata and one app-private local
+attachment. The attachment is user-provided supporting material, not proof independently verified by Porta.
 
 ### Scenario
 
@@ -391,7 +392,8 @@ Each opportunity must show:
 - Desktop Opportunity Studio for form-based rule authoring.
 - Side-by-side comparison of up to three scenarios.
 - Deadline reminders.
-- Local evidence file references.
+- Local evidence file references. **Implemented for actual-result confirmation:** one image/PDF/TXT/DOC/DOCX file,
+  up to 10 MB, copied into app-private storage; profile export carries only its descriptor.
 - Opportunity pack update preview.
 - CSV profile import/export.
 - Small QR or file handoff for pack metadata; do not encode a large catalog directly in QR.
@@ -475,10 +477,10 @@ Desktop is not a stretched phone screen. It prioritizes:
 
 ```text
 Welcome
-→ Try sample student
+→ Use ready-made fictional demo profile
 → Doors overview
 → Recommended next move
-→ Tap “IELTS 6.5 → 7.0”
+→ Compare degree, IELTS 6.5 → 7.0, and programme-verification moves
 → Preview only the doors whose checked conclusions change
 → Inspect exact official clauses
 → Adjust time/budget
@@ -1185,6 +1187,8 @@ For every opportunity:
 ## 21.1 Product success for contest
 
 - A first-time judge reaches the magic preview in under 30 seconds using sample mode.
+- A judge can install one clearly labelled fictional profile locally, then edit facts, save a plan and exercise the
+  actual-result/evidence flow without entering personal data.
 - The core concept is explainable in one sentence.
 - The 3–5 minute demo shows input, deterministic transformation, result and KMP value.
 - At least five curated milestones create legitimate state deltas in the bundled catalog.
@@ -1367,7 +1371,7 @@ The following are automatically cut if P0 slips:
 3. Reminders.
 4. Scenario comparison beyond one preview.
 5. Vietnamese localization.
-6. Evidence binary attachments.
+6. Cloud-synced or binary-embedded evidence export; local app-private attachments may ship only after P0 stays green.
 7. Any AI feature.
 
 ---

@@ -37,12 +37,19 @@ providers, submit applications, or use AI to decide eligibility.
 
 ## Demo path
 
-1. Finish onboarding with the sample profile or enter six local profile facts.
+1. Finish onboarding with **Use ready-made demo profile** for Linh, an editable fictional CS undergraduate with
+   deliberate strengths and gaps, a 180-day horizon, and Erasmus, Schwarzman, and Kotlin Contest already saved. Or
+   browse the temporary sample without saving or enter your own local facts. Demo facts remain explicitly labelled.
 2. Open **Doors** to see the current source-linked conclusions.
 3. Open **Next moves** and change the time, budget, and effort constraints.
-4. Select an action to compare the Actual profile with its What-if result across all affected doors.
-5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed.
-6. On Desktop, use the wide master-detail Frontier and Pack Inspector to inspect results and source diagnostics.
+4. On Desktop, select two or three actions in Compare Lab to compare independent What-if results against the same
+   Actual profile; scenarios are never combined or saved.
+5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed. Add
+   an optional image, PDF, text file, or Word document as local supporting evidence and reopen it from Porta.
+6. Export profile metadata on Android, then open **Data & privacy** on Desktop to preview and import the JSON copy.
+   The import replaces profile facts and scoped confirmations in one local transaction while keeping plans, saved
+   doors, planning limits, and the current opportunity catalog.
+7. Use the Desktop Pack Inspector to inspect source diagnostics.
 
 The bundled catalog currently contains 15 independently encoded records. Its official URLs, interpretation boundary,
 and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md).
@@ -52,7 +59,7 @@ and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md
 The Porta submission promises two runnable targets:
 
 - **Android** — compact, touch-first tracking and profile updates.
-- **JVM Desktop** — wide comparison, inspection, and planning workspace.
+- **JVM Desktop** — wide 2–3 scenario comparison, profile handoff, inspection, and planning workspace.
 
 The repository inherits iOS and Web wrappers from the starter kit. They remain useful compatibility scaffolding, but
 they are not declared Porta contest targets and are excluded from the submission's runnable-target claim.
@@ -167,6 +174,9 @@ platform work, including iOS.
   selected, funded, or accepted.
 - Programme-scoped assertions apply only when opportunity ID, rule ID, and rule fingerprint all still match.
 - Completing a plan changes plan status only. A separate evidence-aware confirmation updates the actual profile.
+- Evidence attachments are copied into app-private local storage on Android/Desktop, capped at 10 MB, and labelled as
+  user-provided rather than independently verified. Profile JSON handoff exports only the attachment descriptor—not
+  the binary file or its private storage key.
 - Provider-specific, constituency-specific, legal, soft, or ambiguous conditions remain explicit manual checks.
 - Action duration, cost, and effort are Porta planning estimates, not provider claims.
 - TBA and rolling deadlines are never inferred from an older cycle.
