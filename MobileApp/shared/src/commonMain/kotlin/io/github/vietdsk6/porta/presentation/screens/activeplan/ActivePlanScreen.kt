@@ -330,7 +330,7 @@ private fun EvidenceAndImpactCard(plan: ActivePlanCardUiState) {
             modifier = Modifier.fillMaxWidth().padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Completion evidence", style = AppTheme.typography.h6)
+            Text("Suggested evidence", style = AppTheme.typography.h6)
             Text(plan.evidenceLabel, color = AppTheme.colors.text.secondary)
             Text("Potential check changes", style = AppTheme.typography.h6)
             if (candidateCount == 0) {

@@ -232,6 +232,9 @@ private fun ProfileContent(
     saveNotice: Boolean,
     onSaveNoticeDismissed: () -> Unit,
 ) {
+    if (uiState.isDemoProfile) {
+        DemoProfileNotice()
+    }
     ProfileIdentity(uiState = uiState)
 
     if (saveNotice) {
@@ -364,7 +367,7 @@ private fun ProfileIdentity(uiState: StudentProfileUiState) {
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Text(
-                        text = "ACADEMIC PROFILE",
+                        text = if (uiState.isDemoProfile) "FICTIONAL DEMO PROFILE" else "ACADEMIC PROFILE",
                         color = AppTheme.colors.primary,
                         style = AppTheme.typography.bodySmall,
                         fontWeight = FontWeight.ExtraBold,
@@ -409,6 +412,33 @@ private fun ProfileIdentity(uiState: StudentProfileUiState) {
                 text = "Saved on this device · references are not independently verified",
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.text.secondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DemoProfileNotice() {
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("student-profile-demo-notice"),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.4f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "Ready-made demo profile",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "These fictional facts were saved locally for hands-on testing. You can edit them freely; clear the demo profile before entering personal data.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
             )
         }
     }
@@ -525,6 +555,9 @@ private fun FactSection(
                         expanded = fact.key == expandedFactKey,
                         onToggle = { onUiEvent(StudentProfileUiEvent.ToggleDependencies(fact.key)) },
                         onDelete = { onUiEvent(StudentProfileUiEvent.DeleteFactRequested(fact)) },
+                        onOpenEvidenceAttachment = {
+                            onUiEvent(StudentProfileUiEvent.OpenEvidenceAttachment(fact.key))
+                        },
                     )
                     if (index != section.facts.lastIndex) {
                         HorizontalDivider(
@@ -544,6 +577,7 @@ private fun FactRow(
     expanded: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
+    onOpenEvidenceAttachment: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -598,7 +632,11 @@ private fun FactRow(
         }
 
         if (expanded) {
-            DependencyDetails(fact = fact, onDelete = onDelete)
+            DependencyDetails(
+                fact = fact,
+                onDelete = onDelete,
+                onOpenEvidenceAttachment = onOpenEvidenceAttachment,
+            )
         }
     }
 }
@@ -626,6 +664,7 @@ private fun OpportunityCountBadge(count: Int) {
 private fun DependencyDetails(
     fact: ProfileFactUiState,
     onDelete: () -> Unit,
+    onOpenEvidenceAttachment: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -669,6 +708,56 @@ private fun DependencyDetails(
                     style = AppTheme.typography.bodySmall,
                     color = AppTheme.colors.text.secondary,
                 )
+            }
+            fact.evidenceAttachmentName?.let { attachmentName ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AppTheme.colors.surfaceContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.28f)),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = attachmentName,
+                            style = AppTheme.typography.bodyMedium,
+                            color = AppTheme.colors.text.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        fact.evidenceAttachmentDetail?.let { detail ->
+                            Text(
+                                text = detail,
+                                style = AppTheme.typography.bodySmall,
+                                color = AppTheme.colors.text.secondary,
+                            )
+                        }
+                        Text(
+                            text = "Stored locally · not independently verified",
+                            style = AppTheme.typography.bodySmall,
+                            color = AppTheme.colors.text.secondary,
+                        )
+                        if (fact.canOpenEvidenceAttachment) {
+                            TextButton(
+                                modifier = Modifier.testTag(
+                                    "student-profile-open-evidence-${fact.key.name.lowercase()}",
+                                ),
+                                onClick = onOpenEvidenceAttachment,
+                            ) {
+                                Text("Open attachment")
+                            }
+                        } else {
+                            Text(
+                                text = "File not included in this device's imported profile copy.",
+                                style = AppTheme.typography.bodySmall,
+                                color = AppTheme.colors.text.secondary,
+                            )
+                        }
+                    }
+                }
             }
             if (fact.isGrowthEvidence) {
                 Text(
@@ -813,6 +902,20 @@ private fun StudentProfileScreenPreview() {
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
+private fun StudentProfileDemoScreenPreview() {
+    AppTheme {
+        StudentProfileScreen(
+            uiState = previewState.copy(isDemoProfile = true),
+            onUiEvent = {},
+            onEditProfile = {},
+            onOpenPackInspector = {},
+            onOpenDataPrivacy = {},
+        )
+    }
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
 private fun StudentProfileExpandedScreenPreview() {
     AppTheme {
         StudentProfileScreen(
@@ -888,6 +991,9 @@ private val previewState = StudentProfileUiState(
                     actionabilityLabel = "Can change",
                     evidenceLabel = "Official score report",
                     dependentDoorTitles = emptyList(),
+                    evidenceAttachmentName = "ielts-score-report.pdf",
+                    evidenceAttachmentDetail = "application/pdf · 448 KB",
+                    canOpenEvidenceAttachment = true,
                 ),
                 ProfileFactUiState(
                     key = FactKey.ENROLLED,

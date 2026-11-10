@@ -2,6 +2,8 @@ package io.github.vietdsk6.porta.presentation.screens.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vietdsk6.porta.data.repository.ProfileRepository
+import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -9,6 +11,7 @@ import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.logging.AppLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +24,8 @@ import kotlin.math.roundToInt
 class OnBoardingViewModel(
     private val userPreferences: UserPreferences,
     private val eligibilityEvaluator: EligibilityEvaluator,
+    private val profileRepository: ProfileRepository? = null,
+    private val savedOpportunityRepository: SavedOpportunityRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         OnBoardingUiState(
@@ -103,6 +108,8 @@ class OnBoardingViewModel(
             OnBoardingUiEvent.SkipDemo,
             -> complete(OnboardingDestination.SAMPLE_MAP)
 
+            OnBoardingUiEvent.UseDemoProfile -> installDemoProfile()
+
             OnBoardingUiEvent.BuildMyMap -> complete(OnboardingDestination.PROFILE_SETUP)
         }
     }
@@ -114,6 +121,67 @@ class OnBoardingViewModel(
         _uiState.update {
             it.copy(
                 completion = OnboardingCompletion(destination = destination, isNewUser = true),
+                isInstallingDemoProfile = false,
+                demoProfileError = null,
+            )
+        }
+    }
+
+    private suspend fun installDemoProfile() {
+        _uiState.update { state ->
+            state.copy(isInstallingDemoProfile = true, demoProfileError = null)
+        }
+        val repository = profileRepository
+        if (repository == null) {
+            showDemoProfileError()
+            return
+        }
+        val currentProfile = repository.getProfile().getOrElse {
+            showDemoProfileError()
+            return
+        }
+        if (currentProfile.facts.isNotEmpty()) {
+            if (PortaSampleData.isPersistedDemoProfile(currentProfile)) {
+                configureJudgeDemo()
+                complete(OnboardingDestination.SAMPLE_MAP)
+            } else {
+                _uiState.update { state ->
+                    state.copy(
+                        isInstallingDemoProfile = false,
+                        demoProfileError = "A local profile already exists, so Porta left it unchanged.",
+                    )
+                }
+            }
+            return
+        }
+        repository.saveFacts(PortaSampleData.persistedDemoFacts(nowEpochMillis()))
+            .onSuccess {
+                configureJudgeDemo()
+                complete(OnboardingDestination.SAMPLE_MAP)
+            }
+            .onFailure { showDemoProfileError() }
+    }
+
+    private suspend fun configureJudgeDemo() {
+        runCatching {
+            userPreferences.putInt(
+                UserPreferences.KEY_FRONTIER_HORIZON_DAYS,
+                PortaSampleData.JUDGE_DEMO_HORIZON_DAYS,
+            )
+            userPreferences.putBoolean(UserPreferences.KEY_FRONTIER_PRIORITIZE_SAVED, true)
+            PortaSampleData.judgeDemoSavedOpportunityIds.forEach { opportunityId ->
+                savedOpportunityRepository?.setSaved(opportunityId, isSaved = true)?.getOrThrow()
+            }
+        }.onFailure { throwable ->
+            runCatching { AppLogger.e("Could not apply optional judge-demo planning preferences", throwable) }
+        }
+    }
+
+    private fun showDemoProfileError() {
+        _uiState.update { state ->
+            state.copy(
+                isInstallingDemoProfile = false,
+                demoProfileError = "Porta could not create the demo profile. Your local data was not replaced.",
             )
         }
     }

@@ -9,12 +9,13 @@ val databaseModule = module {
     single<AppDatabase> {
         get<DatabaseProvider>()
             .provideAppDatabaseBuilder()
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .setQueryCoroutineContext(defaultAsyncDispatcher)
             .build()
     }
     single { get<AppDatabase>().exampleDao() }
     single { get<AppDatabase>().profileFactDao() }
+    single { get<AppDatabase>().profileImportDao() }
     single { get<AppDatabase>().ruleAssertionDao() }
     single { get<AppDatabase>().opportunityPackDao() }
     single { get<AppDatabase>().savedOpportunityDao() }

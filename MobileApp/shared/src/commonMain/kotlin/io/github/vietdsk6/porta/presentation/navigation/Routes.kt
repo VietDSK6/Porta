@@ -62,6 +62,10 @@ data object DataPrivacyScreenRoute : ScreenRoute
 data object PackInspectorScreenRoute : ScreenRoute
 
 @Serializable
+@SerialName("OpportunityStudio")
+data object OpportunityStudioScreenRoute : ScreenRoute
+
+@Serializable
 @SerialName("ActualProfileUpdate")
 data object ActualProfileUpdateScreenRoute : ScreenRoute
 

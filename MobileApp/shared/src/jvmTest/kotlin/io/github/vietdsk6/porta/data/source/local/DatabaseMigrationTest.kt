@@ -61,6 +61,56 @@ class DatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun `migration 3 to 4 adds nullable evidence attachment columns and preserves metadata`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        try {
+            connection.execSQL(
+                """
+                CREATE TABLE profile_fact (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    evidence_label TEXT,
+                    evidence_reference TEXT
+                )
+                """.trimIndent(),
+            )
+            connection.execSQL(
+                """
+                CREATE TABLE rule_assertion (
+                    profile_id TEXT NOT NULL,
+                    opportunity_id TEXT NOT NULL,
+                    rule_id TEXT NOT NULL,
+                    evidence_label TEXT,
+                    PRIMARY KEY(profile_id, opportunity_id, rule_id)
+                )
+                """.trimIndent(),
+            )
+            connection.execSQL(
+                "INSERT INTO profile_fact VALUES ('default:gpa', 'Transcript', 'local-note')",
+            )
+            connection.execSQL(
+                "INSERT INTO rule_assertion VALUES ('default', 'door', 'rule', 'Confirmation')",
+            )
+
+            MIGRATION_3_4.migrate(connection)
+
+            assertEquals(
+                "Transcript",
+                connection.singleText("SELECT evidence_label FROM profile_fact WHERE id = 'default:gpa'"),
+            )
+            assertEquals(
+                "Confirmation",
+                connection.singleText(
+                    "SELECT evidence_label FROM rule_assertion WHERE opportunity_id = 'door'",
+                ),
+            )
+            assertTrue(connection.columnNames("profile_fact").containsAll(EXPECTED_EVIDENCE_ATTACHMENT_COLUMNS))
+            assertTrue(connection.columnNames("rule_assertion").containsAll(EXPECTED_EVIDENCE_ATTACHMENT_COLUMNS))
+        } finally {
+            connection.close()
+        }
+    }
+
     private fun androidx.sqlite.SQLiteConnection.singleText(sql: String): String = prepare(sql).use { statement ->
         check(statement.step()) { "Query returned no rows: $sql" }
         statement.getText(0)
@@ -87,6 +137,12 @@ class DatabaseMigrationTest {
             "opportunity_id",
             "rule_id",
             "rule_fingerprint",
+        )
+        val EXPECTED_EVIDENCE_ATTACHMENT_COLUMNS = setOf(
+            "evidence_attachment_name",
+            "evidence_attachment_mime_type",
+            "evidence_attachment_size",
+            "evidence_attachment_storage_key",
         )
     }
 }

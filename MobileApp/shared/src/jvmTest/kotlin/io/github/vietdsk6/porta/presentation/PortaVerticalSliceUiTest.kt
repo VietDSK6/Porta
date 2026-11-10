@@ -99,6 +99,27 @@ class PortaVerticalSliceUiTest {
     }
 
     @Test
+    fun `saved demo profile is labelled without disabling real workflows`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                DoorsScreen(
+                    uiState = doorsState.copy(
+                        isSampleMode = false,
+                        isDemoProfile = true,
+                        isSampleCatalog = false,
+                        catalogDoorCount = 15,
+                    ),
+                    onUiEvent = {},
+                    onOpenOpportunity = {},
+                )
+            }
+        }
+
+        onNodeWithText("DEMO PROFILE · SOURCED PACK").assertExists()
+        onNodeWithText("Fictional profile facts saved locally for hands-on testing.").assertExists()
+    }
+
+    @Test
     fun `door filters wrap without clipping on a 320 dp screen`() = runComposeUiTest {
         setContent {
             AppTheme {

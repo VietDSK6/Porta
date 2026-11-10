@@ -28,6 +28,7 @@ data class OpportunityDetailUiState(
     val informationTasks: List<InformationTaskUiState> = emptyList(),
     val canOpenSource: Boolean = false,
     val isSampleProfile: Boolean = true,
+    val isDemoProfile: Boolean = false,
     val isSampleCatalog: Boolean = true,
     val error: String? = null,
 )

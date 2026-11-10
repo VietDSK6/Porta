@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.data.source.local.entity
 
+import io.github.vietdsk6.porta.domain.model.EvidenceAttachmentMetadata
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
@@ -24,6 +25,12 @@ class RuleAssertionEntityTest {
                 label = "Semester calendar",
                 reference = "file://calendar.pdf",
                 checkedAtEpochMillis = 98L,
+                attachment = EvidenceAttachmentMetadata(
+                    displayName = "calendar.pdf",
+                    mimeType = "application/pdf",
+                    byteSize = 4_096L,
+                    storageKey = "student-1/calendar.pdf",
+                ),
             ),
             updatedAtEpochMillis = 123L,
         )

@@ -65,6 +65,25 @@ class StudentProfileUiTest {
     }
 
     @Test
+    fun `persisted demo profile remains clearly labelled as fictional`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState.copy(isDemoProfile = true),
+                    onUiEvent = {},
+                    onEditProfile = {},
+                    onOpenPackInspector = {},
+                    onOpenDataPrivacy = {},
+                )
+            }
+        }
+
+        onNodeWithTag("student-profile-demo-notice").assertExists()
+        onNodeWithText("FICTIONAL DEMO PROFILE").assertExists()
+        onNodeWithText("These fictional facts were saved locally", substring = true).assertExists()
+    }
+
+    @Test
     fun `empty profile can start setup and still opens data privacy`() = runComposeUiTest {
         var buildRequested = false
         var inspectorRequested = false

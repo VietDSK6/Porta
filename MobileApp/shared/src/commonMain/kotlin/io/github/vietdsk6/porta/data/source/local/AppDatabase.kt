@@ -8,6 +8,7 @@ import io.github.vietdsk6.porta.data.source.local.dao.ExampleDao
 import io.github.vietdsk6.porta.data.source.local.dao.OpportunityPackDao
 import io.github.vietdsk6.porta.data.source.local.dao.PlanItemDao
 import io.github.vietdsk6.porta.data.source.local.dao.ProfileFactDao
+import io.github.vietdsk6.porta.data.source.local.dao.ProfileImportDao
 import io.github.vietdsk6.porta.data.source.local.dao.RuleAssertionDao
 import io.github.vietdsk6.porta.data.source.local.dao.SavedOpportunityDao
 import io.github.vietdsk6.porta.data.source.local.entity.ExampleEntity
@@ -21,13 +22,14 @@ import io.github.vietdsk6.porta.data.source.local.entity.SavedOpportunityEntity
 // the shipped schema changes so existing local Porta data remains readable.
 @Database(
     entities = [PlanItemEntity::class, SavedOpportunityEntity::class, OpportunityPackEntity::class, ProfileFactEntity::class, RuleAssertionEntity::class, ExampleEntity::class],
-    version = 3,
+    version = 4,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun exampleDao(): ExampleDao
 
     abstract fun profileFactDao(): ProfileFactDao
+    abstract fun profileImportDao(): ProfileImportDao
     abstract fun ruleAssertionDao(): RuleAssertionDao
     abstract fun opportunityPackDao(): OpportunityPackDao
     abstract fun savedOpportunityDao(): SavedOpportunityDao

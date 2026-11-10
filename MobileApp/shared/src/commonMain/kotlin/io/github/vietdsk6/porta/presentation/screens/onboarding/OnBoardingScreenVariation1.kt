@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.vietdsk6.porta.designsystem.components.AppButton
 import io.github.vietdsk6.porta.designsystem.components.ButtonSize
+import io.github.vietdsk6.porta.designsystem.components.ButtonStyle
 import io.github.vietdsk6.porta.designsystem.components.porta.PortaArch
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
@@ -105,7 +106,7 @@ fun OnBoardingScreenVariation1(
                 0 -> GoalStep(uiState = uiState, onUiEvent = onUiEvent)
                 1 -> ScenarioStep(uiState = uiState, onUiEvent = onUiEvent)
                 2 -> ResultStep(uiState = uiState, onUiEvent = onUiEvent)
-                else -> NextMoveStep(onUiEvent = onUiEvent)
+                else -> NextMoveStep(uiState = uiState, onUiEvent = onUiEvent)
             }
         }
 
@@ -603,6 +604,7 @@ private fun RequirementExplanation(
 
 @Composable
 private fun NextMoveStep(
+    uiState: OnBoardingUiState,
     onUiEvent: (OnBoardingUiEvent) -> Unit,
 ) {
     StepHeading(
@@ -617,25 +619,82 @@ private fun NextMoveStep(
         testTag = "onboarding-build-profile",
         onClick = { onUiEvent(OnBoardingUiEvent.BuildMyMap) },
     )
+    DemoProfileChoice(
+        isLoading = uiState.isInstallingDemoProfile,
+        onClick = { onUiEvent(OnBoardingUiEvent.UseDemoProfile) },
+    )
+    uiState.demoProfileError?.let { error ->
+        Text(
+            text = error,
+            modifier = Modifier.fillMaxWidth().testTag("onboarding-demo-profile-error"),
+            color = AppTheme.colors.status.error,
+            style = AppTheme.typography.bodySmall,
+        )
+    }
     TextButton(
         modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).testTag("onboarding-explore-sample"),
+        enabled = !uiState.isInstallingDemoProfile,
         onClick = { onUiEvent(OnBoardingUiEvent.ExploreSample) },
     ) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("Explore with sample profile →", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
+            Text("Browse without saving →", color = AppTheme.colors.primary, fontWeight = FontWeight.Bold)
             Text(
-                "Browse using fictional facts without creating your own profile.",
+                "Explore fictional facts temporarily. Plans and profile edits remain unavailable.",
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
         }
     }
     Text(
-        text = "Your profile facts stay on this device. The demo did not save any of them.",
+        text = "Saved profile facts stay on this device. Demo facts are fictional and clearly labelled.",
         modifier = Modifier.fillMaxWidth(),
         color = AppTheme.colors.text.secondary,
         style = AppTheme.typography.bodySmall,
     )
+}
+
+@Composable
+private fun DemoProfileChoice(
+    isLoading: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppTheme.colors.surfaceContainer,
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.45f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "READY-MADE · FICTIONAL",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodySmall,
+                fontWeight = FontWeight.ExtraBold,
+            )
+            Text(
+                text = "Try a ready-made demo profile",
+                color = AppTheme.colors.text.primary,
+                style = AppTheme.typography.h5,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "Meet Linh, a fictional CS undergraduate with clear strengths, deliberate gaps, and three " +
+                    "saved goals. Explore degree, English, and programme-verification trade-offs over 180 days.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodyMedium,
+            )
+            AppButton(
+                text = if (isLoading) "Creating demo profile…" else "Use ready-made demo profile →",
+                modifier = Modifier.fillMaxWidth().testTag("onboarding-use-demo-profile"),
+                style = ButtonStyle.ALTERNATIVE,
+                enabled = !isLoading,
+                onClick = onClick,
+            )
+        }
+    }
 }
 
 @Composable

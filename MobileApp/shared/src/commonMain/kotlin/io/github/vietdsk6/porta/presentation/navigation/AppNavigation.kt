@@ -45,6 +45,8 @@ import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewMo
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailScreen
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
+import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioScreen
+import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioViewModel
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorScreen
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupScreen
@@ -292,6 +294,15 @@ private fun EntryProviderScope<ScreenRoute>.screens(
     entry<PackInspectorScreenRoute> {
         val viewModel = koinViewModel<PackInspectorViewModel>()
         PackInspectorScreen(
+            viewModel = viewModel,
+            onNavigateBack = { navigator.goBack() },
+            onOpenOpportunityStudio = { navigator.navigate(OpportunityStudioScreenRoute) },
+        )
+    }
+
+    entry<OpportunityStudioScreenRoute> {
+        val viewModel = koinViewModel<OpportunityStudioViewModel>()
+        OpportunityStudioScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
         )

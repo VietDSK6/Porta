@@ -8,8 +8,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.presentation.screens.dataprivacy.DataPrivacyScreen
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileDataAction
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileImportFactUiState
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileImportPreviewUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiEvent
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiState
 import kotlin.test.Test
@@ -38,6 +41,7 @@ class DataPrivacyUiTest {
         onNodeWithTag("student-profile-export").performScrollTo().performClick()
         assertEquals(StudentProfileUiEvent.ExportMetadata, events.last())
         onNodeWithText("Evidence files are not included.", substring = true).assertExists()
+        onNodeWithTag("student-profile-import").assertDoesNotExist()
 
         onNodeWithTag("student-profile-clear").performScrollTo().performClick()
         assertEquals(
@@ -120,4 +124,79 @@ class DataPrivacyUiTest {
         onNodeWithText("saved doors, imported opportunity catalogs", substring = true).assertExists()
         onNodeWithText("Porta restores the bundled catalog", substring = true).assertExists()
     }
+
+    @Test
+    fun `desktop exposes file import while keeping selection outside the pure screen`() = runComposeUiTest {
+        var importRequested = false
+        setContent {
+            AppTheme {
+                DataPrivacyScreen(
+                    uiState = StudentProfileUiState(
+                        isLoading = false,
+                        supportsProfileImport = true,
+                    ),
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                    onOpenPackInspector = {},
+                    onImportProfile = { importRequested = true },
+                )
+            }
+        }
+
+        onNodeWithTag("student-profile-import").performScrollTo().performClick()
+        assertTrue(importRequested)
+    }
+
+    @Test
+    fun `import preview discloses replacement sensitive metadata and fingerprint guard`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
+        setContent {
+            AppTheme {
+                DataPrivacyScreen(
+                    uiState = StudentProfileUiState(
+                        isLoading = false,
+                        supportsProfileImport = true,
+                        pendingProfileImport = importPreview,
+                    ),
+                    onUiEvent = { events += it },
+                    onNavigateBack = {},
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithTag("student-profile-import-preview").assertExists()
+        onNodeWithText("This replaces every profile fact", substring = true).assertExists()
+        onNodeWithTag("student-profile-import-sensitive-warning").performScrollTo().assertExists()
+        onNodeWithTag("student-profile-import-fingerprint-note").performScrollTo().assertExists()
+        onNodeWithTag("student-profile-import-cancel").performClick()
+        assertEquals(StudentProfileUiEvent.ImportProfileCancelled, events.last())
+        onNodeWithTag("student-profile-import-confirm").performClick()
+        assertEquals(StudentProfileUiEvent.ImportProfileConfirmed, events.last())
+    }
+
+    private val importPreview = ProfileImportPreviewUiState(
+        fileName = "porta-profile.json",
+        facts = listOf(
+            ProfileImportFactUiState(
+                key = FactKey.NATIONALITY,
+                label = "Nationality",
+                value = "Vietnam",
+                provenanceLabel = "Self-reported",
+                hasEvidenceMetadata = false,
+                isSensitive = true,
+            ),
+            ProfileImportFactUiState(
+                key = FactKey.IELTS_SCORE,
+                label = "IELTS score",
+                value = "7 band",
+                provenanceLabel = "Evidence-backed",
+                hasEvidenceMetadata = true,
+                isSensitive = false,
+            ),
+        ),
+        ruleAssertionCount = 2,
+        evidenceMetadataCount = 1,
+        sensitiveFactCount = 1,
+    )
 }

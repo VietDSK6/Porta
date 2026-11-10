@@ -8,6 +8,8 @@ import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.DurationUnit
+import io.github.vietdsk6.porta.domain.model.EvidenceAttachmentMetadata
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactProvenance
@@ -23,6 +25,9 @@ import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.findAtomicRule
 import io.github.vietdsk6.porta.domain.model.fingerprint
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
+import io.github.vietdsk6.porta.util.file.EvidenceAttachmentPolicy
+import io.github.vietdsk6.porta.util.file.FileManager
+import io.github.vietdsk6.porta.util.file.SelectedEvidenceFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,12 +36,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class ActualProfileUpdateViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
     private val ruleAssertionRepository: RuleAssertionRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
+    private val fileManager: FileManager,
 ) : ViewModel() {
     private val formState = MutableStateFlow(FormState())
 
@@ -55,11 +62,15 @@ class ActualProfileUpdateViewModel(
 
     init {
         viewModelScope.launch {
-            planRepository.observeCurrentPlan().collect { plan ->
-                if (plan != null && formState.value.planId != plan.id) {
-                    formState.value = FormState.from(plan)
+            combine(
+                planRepository.observeCurrentPlan(),
+                profileRepository.observeProfile(),
+            ) { plan, profile -> plan to profile }
+                .collect { (plan, profile) ->
+                    if (plan != null && formState.value.planId != plan.id) {
+                        formState.value = FormState.from(plan, profile.evidenceFor(plan.target))
+                    }
                 }
-            }
         }
     }
 
@@ -67,13 +78,20 @@ class ActualProfileUpdateViewModel(
         when (event) {
             is ActualProfileUpdateUiEvent.AchievedValueChanged -> formState.update {
                 it.copy(
-                    achievedValue = event.value.filterValue(it.inputKind),
+                    achievedValue = event.value,
                     error = null,
                 )
             }
 
-            is ActualProfileUpdateUiEvent.AchievedBooleanChanged -> formState.update {
-                it.copy(achievedBoolean = event.value, error = null)
+            is ActualProfileUpdateUiEvent.AchievedBooleanChanged -> {
+                val isProgrammeSpecific = uiState.value.isEvidenceRequired
+                formState.update {
+                    it.copy(
+                        achievedBoolean = event.value,
+                        includeEvidence = if (isProgrammeSpecific) event.value else it.includeEvidence,
+                        error = null,
+                    )
+                }
             }
 
             is ActualProfileUpdateUiEvent.IncludeEvidenceChanged -> formState.update {
@@ -91,6 +109,23 @@ class ActualProfileUpdateViewModel(
             is ActualProfileUpdateUiEvent.EvidenceReferenceChanged -> formState.update {
                 it.copy(evidenceReference = event.value, error = null)
             }
+
+            is ActualProfileUpdateUiEvent.EvidenceFileSelected -> selectEvidenceFile(event.file)
+
+            is ActualProfileUpdateUiEvent.EvidenceFileSelectionFailed -> formState.update {
+                it.copy(evidenceAttachmentError = event.message, error = null)
+            }
+
+            ActualProfileUpdateUiEvent.RemoveEvidenceAttachment -> formState.update {
+                it.copy(
+                    pendingAttachment = null,
+                    evidenceAttachment = null,
+                    evidenceAttachmentError = null,
+                    error = null,
+                )
+            }
+
+            ActualProfileUpdateUiEvent.OpenEvidenceAttachment -> openEvidenceAttachment()
 
             ActualProfileUpdateUiEvent.Confirm -> confirmActualValue()
 
@@ -134,7 +169,7 @@ class ActualProfileUpdateViewModel(
 
             val form = formState.value
             val value = form.toFactValue(plan.targetValue)
-            if (value == null) {
+            if (value == null || form.validationError(plan.targetFactKey, plan.targetValue) != null) {
                 formState.update {
                     it.copy(isSaving = false, error = "Enter a valid achieved value.")
                 }
@@ -151,18 +186,48 @@ class ActualProfileUpdateViewModel(
                 return@launch
             }
             val timestamp = nowEpochMillis()
-            val evidence = form.evidence(timestamp)
-            saveConfirmedTarget(
+            val oldAttachment = profile.evidenceFor(plan.target)?.attachment
+            val storedAttachment = if (form.includeEvidence) {
+                form.pendingAttachment?.let { selectedFile ->
+                    fileManager.storeEvidenceAttachment(profile.id, selectedFile).getOrElse {
+                        formState.update {
+                            it.copy(
+                                isSaving = false,
+                                evidenceAttachmentError = "Porta could not copy this file into local storage.",
+                            )
+                        }
+                        return@launch
+                    }
+                } ?: form.evidenceAttachment
+            } else {
+                null
+            }
+            val evidence = form.evidence(timestamp, storedAttachment)
+            val saveResult = saveConfirmedTarget(
                 plan = plan,
                 profile = profile,
                 value = value,
                 evidence = evidence,
                 timestamp = timestamp,
             )
+            saveResult
                 .onSuccess {
+                    if (
+                        oldAttachment?.storageKey != null &&
+                        oldAttachment.storageKey != storedAttachment?.storageKey
+                    ) {
+                        fileManager.deleteEvidenceAttachment(oldAttachment)
+                    }
                     formState.update { it.copy(isSaving = false, isSaved = true) }
                 }
                 .onFailure {
+                    if (
+                        form.pendingAttachment != null &&
+                        storedAttachment?.storageKey != null &&
+                        storedAttachment.storageKey != oldAttachment?.storageKey
+                    ) {
+                        fileManager.deleteEvidenceAttachment(storedAttachment)
+                    }
                     formState.update {
                         it.copy(
                             isSaving = false,
@@ -170,6 +235,51 @@ class ActualProfileUpdateViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    private fun selectEvidenceFile(file: SelectedEvidenceFile) {
+        val validationError = file.validationError()
+        formState.update { form ->
+            if (validationError != null) {
+                form.copy(evidenceAttachmentError = validationError, error = null)
+            } else {
+                form.copy(
+                    includeEvidence = true,
+                    evidenceLabel = form.evidenceLabel.ifBlank {
+                        EvidenceAttachmentPolicy.normalizedDisplayName(file.displayName).substringBeforeLast('.')
+                    },
+                    evidenceLabelTouched = true,
+                    evidenceAttachment = file.toMetadata(),
+                    pendingAttachment = file,
+                    evidenceAttachmentError = null,
+                    error = null,
+                )
+            }
+        }
+    }
+
+    private fun openEvidenceAttachment() {
+        val attachment = formState.value.evidenceAttachment
+        if (attachment?.storageKey == null) return
+        viewModelScope.launch {
+            fileManager.openEvidenceAttachment(attachment).fold(
+                onSuccess = { opened ->
+                    if (!opened) {
+                        formState.update {
+                            it.copy(
+                                evidenceAttachmentError =
+                                "That evidence file is no longer stored on this device.",
+                            )
+                        }
+                    }
+                },
+                onFailure = {
+                    formState.update {
+                        it.copy(evidenceAttachmentError = "Porta could not open this evidence file.")
+                    }
+                },
+            )
         }
     }
 
@@ -234,6 +344,11 @@ class ActualProfileUpdateViewModel(
         val scopedOpportunity = pack?.opportunities?.firstOrNull { it.id == scopedTarget?.opportunityId }
         val scopedRule = scopedTarget?.let { scopedOpportunity?.eligibilityRule?.findAtomicRule(it.ruleId) }
         val scopeIsCurrent = scopeIsCurrent(pack)
+        val isProgrammeSpecific = target is ActionTarget.OpportunityRuleTarget
+        val evidenceRequiredForValue = isProgrammeSpecific && when (targetValue) {
+            is FactValue.BooleanValue -> form.achievedBoolean == true
+            else -> true
+        }
         val currentValue = when (val actionTarget = target) {
             is ActionTarget.ProfileFactTarget -> profile.facts[actionTarget.factKey]?.value
 
@@ -264,13 +379,25 @@ class ActualProfileUpdateViewModel(
             inputKind = form.inputKind,
             achievedValue = form.achievedValue,
             achievedBoolean = form.achievedBoolean,
-            unitLabel = (targetValue as? FactValue.NumberValue)?.unit.orEmpty(),
+            unitLabel = targetValue.inputUnitLabel(),
             includeEvidence = form.includeEvidence,
-            isEvidenceRequired = target is ActionTarget.OpportunityRuleTarget,
+            isEvidenceRequired = isProgrammeSpecific,
             evidenceLabel = form.evidenceLabel,
             evidenceReference = form.evidenceReference,
+            evidenceAttachment = form.evidenceAttachment?.let { attachment ->
+                EvidenceAttachmentUiState(
+                    displayName = attachment.displayName,
+                    mimeType = attachment.mimeType,
+                    byteSize = attachment.byteSize,
+                    isStored = attachment.storageKey != null,
+                )
+            },
+            evidenceAttachmentError = form.evidenceAttachmentError,
             showEvidenceLabelError = (form.evidenceLabelTouched || form.submitted) &&
-                form.includeEvidence && form.evidenceLabel.isBlank(),
+                form.includeEvidence &&
+                (!isProgrammeSpecific || evidenceRequiredForValue) &&
+                form.evidenceLabel.isBlank() &&
+                form.evidenceAttachment == null,
             isSaving = form.isSaving,
             isSaved = form.isSaved,
             error = form.error,
@@ -290,31 +417,84 @@ class ActualProfileUpdateViewModel(
 
     private fun FormState.toFactValue(targetValue: FactValue): FactValue? = when (targetValue) {
         is FactValue.BooleanValue -> achievedBoolean?.let { FactValue.BooleanValue(it) }
-        is FactValue.NumberValue -> achievedValue.toDoubleOrNull()?.let { FactValue.NumberValue(it, targetValue.unit) }
+
+        is FactValue.NumberValue -> achievedValue.toFiniteDoubleOrNull()?.let {
+            FactValue.NumberValue(it, targetValue.unit)
+        }
+
         is FactValue.EnumValue -> achievedValue.trim().takeIf(String::isNotEmpty)?.let { FactValue.EnumValue(it) }
+
+        is FactValue.EnumListValue -> achievedValue.toEnumValuesOrNull()?.let { FactValue.EnumListValue(it) }
+
+        is FactValue.DateValue -> achievedValue.toLocalDateOrNull()?.let { FactValue.DateValue(it) }
+
+        is FactValue.DurationValue -> achievedValue.trim().toIntOrNull()?.takeIf { it >= 0 }?.let {
+            FactValue.DurationValue(it, targetValue.unit)
+        }
+
         is FactValue.TextValue -> achievedValue.trim().takeIf(String::isNotEmpty)?.let { FactValue.TextValue(it) }
-        else -> null
     }
 
-    private fun FormState.evidence(timestamp: Long): EvidenceMetadata? = if (includeEvidence) {
+    private fun FormState.evidence(
+        timestamp: Long,
+        attachment: EvidenceAttachmentMetadata?,
+    ): EvidenceMetadata? = if (includeEvidence) {
+        val resolvedLabel = evidenceLabel.trim().ifEmpty {
+            attachment?.displayName
+                ?.let(EvidenceAttachmentPolicy::normalizedDisplayName)
+                ?.substringBeforeLast('.')
+                .orEmpty()
+        }
         EvidenceMetadata(
-            label = evidenceLabel.trim(),
+            label = resolvedLabel,
             reference = evidenceReference.trim().ifEmpty { null },
             checkedAtEpochMillis = timestamp,
+            attachment = attachment,
         )
     } else {
         null
     }
 
     private fun FormState.validationError(key: FactKey, targetValue: FactValue): String? {
-        if (inputKind != ActualValueInputKind.NUMBER || achievedValue.isBlank()) return null
-        val number = achievedValue.toDoubleOrNull() ?: return "Enter a number"
+        if (targetValue is FactValue.BooleanValue || achievedValue.isBlank()) return null
+        return when (targetValue) {
+            is FactValue.NumberValue -> validateNumber(key, targetValue)
+
+            is FactValue.EnumValue,
+            is FactValue.TextValue,
+            -> null
+
+            is FactValue.EnumListValue -> if (achievedValue.toEnumValuesOrNull() == null) {
+                "Enter one or more values separated by commas or new lines"
+            } else {
+                null
+            }
+
+            is FactValue.DateValue -> if (achievedValue.toLocalDateOrNull() == null) {
+                "Use an ISO date in YYYY-MM-DD format"
+            } else {
+                null
+            }
+
+            is FactValue.DurationValue -> {
+                val amount = achievedValue.trim().toIntOrNull()
+                if (amount != null && amount >= 0) null else "Use a whole duration of zero or more"
+            }
+
+            is FactValue.BooleanValue -> null
+        }
+    }
+
+    private fun FormState.validateNumber(
+        key: FactKey,
+        targetValue: FactValue.NumberValue,
+    ): String? {
+        val number = achievedValue.toFiniteDoubleOrNull() ?: return "Enter a number"
         return when (key) {
             FactKey.GPA -> {
-                val scale = (targetValue as? FactValue.NumberValue)
-                    ?.unit
-                    ?.removeSuffix(" scale")
-                    ?.toDoubleOrNull()
+                val scale = targetValue.unit
+                    .removeSuffix(" scale")
+                    .toDoubleOrNull()
                     ?: 4.0
                 if (number in 0.0..scale) null else "Use the ${scale.toInputText()} GPA scale"
             }
@@ -329,18 +509,6 @@ class ActualProfileUpdateViewModel(
 
             else -> if (number >= 0.0) null else "Use zero or a positive number"
         }
-    }
-
-    private fun String.filterValue(inputKind: ActualValueInputKind): String = when (inputKind) {
-        ActualValueInputKind.NUMBER -> filter { it.isDigit() || it == '.' }
-            .let { value ->
-                val firstDot = value.indexOf('.')
-                if (firstDot == -1) value else value.take(firstDot + 1) + value.drop(firstDot + 1).replace(".", "")
-            }
-
-        ActualValueInputKind.BOOLEAN -> this
-
-        ActualValueInputKind.TEXT -> this
     }
 
     private fun FactKey.label(): String = when (this) {
@@ -394,6 +562,9 @@ class ActualProfileUpdateViewModel(
         val includeEvidence: Boolean = false,
         val evidenceLabel: String = "",
         val evidenceReference: String = "",
+        val evidenceAttachment: EvidenceAttachmentMetadata? = null,
+        val pendingAttachment: SelectedEvidenceFile? = null,
+        val evidenceAttachmentError: String? = null,
         val evidenceLabelTouched: Boolean = false,
         val submitted: Boolean = false,
         val isSaving: Boolean = false,
@@ -401,17 +572,72 @@ class ActualProfileUpdateViewModel(
         val error: String? = null,
     ) {
         companion object {
-            fun from(plan: PlanItem): FormState = FormState(
+            fun from(
+                plan: PlanItem,
+                existingEvidence: EvidenceMetadata?,
+            ): FormState = FormState(
                 planId = plan.id,
                 inputKind = when (plan.targetValue) {
                     is FactValue.BooleanValue -> ActualValueInputKind.BOOLEAN
                     is FactValue.NumberValue -> ActualValueInputKind.NUMBER
-                    else -> ActualValueInputKind.TEXT
+                    is FactValue.EnumValue -> ActualValueInputKind.ENUM
+                    is FactValue.EnumListValue -> ActualValueInputKind.ENUM_LIST
+                    is FactValue.TextValue -> ActualValueInputKind.TEXT
+                    is FactValue.DateValue -> ActualValueInputKind.DATE
+                    is FactValue.DurationValue -> ActualValueInputKind.DURATION
                 },
-                includeEvidence = plan.target is ActionTarget.OpportunityRuleTarget,
+                includeEvidence = plan.target is ActionTarget.OpportunityRuleTarget || existingEvidence != null,
+                evidenceLabel = existingEvidence?.label.orEmpty(),
+                evidenceReference = existingEvidence?.reference.orEmpty(),
+                evidenceAttachment = existingEvidence?.attachment,
             )
         }
     }
 }
 
+private fun ProfileSnapshot.evidenceFor(target: ActionTarget): EvidenceMetadata? = when (target) {
+    is ActionTarget.ProfileFactTarget -> facts[target.factKey]?.evidence
+
+    is ActionTarget.OpportunityRuleTarget -> ruleAssertions[
+        RuleRef(target.opportunityId, target.ruleId),
+    ]?.takeIf { it.ruleFingerprint == target.ruleFingerprint }?.evidence
+}
+
+private fun SelectedEvidenceFile.toMetadata() = EvidenceAttachmentMetadata(
+    displayName = EvidenceAttachmentPolicy.normalizedDisplayName(displayName),
+    mimeType = mimeType,
+    byteSize = bytes.size.toLong(),
+    storageKey = null,
+)
+
+private fun SelectedEvidenceFile.validationError(): String? = EvidenceAttachmentPolicy.validate(this).exceptionOrNull()?.message
+
 private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
+
+private fun String.toFiniteDoubleOrNull(): Double? = trim().toDoubleOrNull()?.takeIf { it.isFinite() }
+
+private fun String.toLocalDateOrNull(): LocalDate? {
+    val value = trim()
+    if (!ISO_LOCAL_DATE.matches(value)) return null
+    return runCatching { LocalDate.parse(value) }.getOrNull()
+}
+
+private fun String.toEnumValuesOrNull(): Set<String>? {
+    val commaSeparated = split(',')
+    if (commaSeparated.isEmpty() || commaSeparated.any(String::isBlank)) return null
+    return commaSeparated
+        .flatMap { value -> value.lines() }
+        .mapNotNull { value -> value.trim().takeIf(String::isNotEmpty) }
+        .toCollection(linkedSetOf())
+        .takeIf { it.isNotEmpty() }
+}
+
+private fun FactValue.inputUnitLabel(): String = when (this) {
+    is FactValue.NumberValue -> unit
+    is FactValue.DurationValue -> unit.toInputLabel()
+    else -> ""
+}
+
+private fun DurationUnit.toInputLabel(): String = name.lowercase()
+
+private val ISO_LOCAL_DATE = Regex("\\d{4}-\\d{2}-\\d{2}")

@@ -16,10 +16,14 @@ import io.github.vietdsk6.porta.domain.model.RuleNode
 import kotlinx.datetime.LocalDate
 
 /**
- * A deliberately synthetic, clearly labelled sample used to prove Porta's interaction before the
- * student enters personal data. It must never be presented as a verified real opportunity pack.
+ * Clearly labelled fictional profiles plus a small synthetic opportunity set for onboarding.
+ * The judge profile is evaluated against the separate, source-linked bundled catalog; none of the
+ * fictional data must be presented as a verified real student's profile.
  */
 object PortaSampleData {
+    private const val PERSISTED_DEMO_FACT_ID_PREFIX = "porta-demo:"
+    const val JUDGE_DEMO_HORIZON_DAYS = 180
+
     val referenceDate = LocalDate(2026, 10, 20)
 
     val profile = ProfileSnapshot(
@@ -38,6 +42,39 @@ object PortaSampleData {
         ).associateBy(ProfileFact::key),
     )
 
+    /**
+     * A richer fictional persona for the persisted judge flow. Unlike [profile], this is not tied
+     * to the four-door IELTS onboarding lesson. Its deliberate strengths and gaps produce distinct
+     * degree, English and programme-verification choices in the sourced catalog.
+     */
+    val judgeDemoProfile = ProfileSnapshot(
+        id = "porta-judge-demo-profile",
+        facts = listOf(
+            fact(FactKey.STUDY_LEVEL, FactValue.EnumValue("undergraduate"), Actionability.TIME_DEPENDENT),
+            fact(FactKey.FIELD_OF_STUDY, FactValue.TextValue("Computer Science"), Actionability.CONTEXT_ONLY),
+            fact(FactKey.GPA, FactValue.NumberValue(3.45, "4.0 scale"), Actionability.CONTROLLABLE),
+            fact(FactKey.IELTS_SCORE, FactValue.NumberValue(6.5, "band"), Actionability.CONTROLLABLE),
+            fact(FactKey.ENROLLED, FactValue.BooleanValue(true), Actionability.TIME_DEPENDENT),
+            fact(FactKey.NATIONALITY, FactValue.EnumValue("VN"), Actionability.CONTEXT_ONLY),
+            fact(FactKey.RESIDENCY, FactValue.EnumValue("VN"), Actionability.CONTEXT_ONLY),
+            fact(FactKey.AGE, FactValue.NumberValue(21.0, "years"), Actionability.IMMUTABLE),
+            fact(FactKey.DATE_OF_BIRTH, FactValue.DateValue(LocalDate(2005, 3, 18)), Actionability.IMMUTABLE),
+            fact(FactKey.DEGREE_COMPLETED, FactValue.BooleanValue(false), Actionability.TIME_DEPENDENT),
+            fact(FactKey.EXPERIENCE_MONTHS, FactValue.NumberValue(10.0, "months"), Actionability.TIME_DEPENDENT),
+            fact(
+                FactKey.COMMUNITY_PROJECT,
+                FactValue.TextValue("Kotlin mentoring for local high-school students"),
+                Actionability.UNKNOWN,
+            ),
+        ).associateBy(ProfileFact::key),
+    )
+
+    val judgeDemoSavedOpportunityIds: Set<String> = setOf(
+        "erasmus-mundus-joint-masters",
+        "schwarzman-scholars-2028-2029",
+        "kotlin-student-coding-competition-2026",
+    )
+
     val opportunities: List<Opportunity> = listOf(
         sampleDoor("aurora", "Aurora Scholars", "Northstar Foundation", OpportunityCategory.SCHOLARSHIP, 7.0),
         sampleDoor("forge", "Forge Student Lab", "Open Learning Lab", OpportunityCategory.INTERNSHIP, 7.0),
@@ -53,6 +90,23 @@ object PortaSampleData {
         "oecd-internship-rolling",
         "cern-openlab-summer-student-2027",
     )
+
+    /**
+     * Re-bases the synthetic sample onto the active local profile so every normal profile-backed
+     * workflow can be exercised without presenting the facts as a real student's data.
+     */
+    fun persistedDemoFacts(updatedAtEpochMillis: Long): List<ProfileFact> = judgeDemoProfile.facts.values
+        .sortedBy { fact -> fact.key.name }
+        .map { fact ->
+            fact.copy(
+                id = "$PERSISTED_DEMO_FACT_ID_PREFIX${fact.key.name.lowercase()}",
+                profileId = ProfileFact.DEFAULT_PROFILE_ID,
+                updatedAtEpochMillis = updatedAtEpochMillis,
+            )
+        }
+
+    fun isPersistedDemoProfile(profile: ProfileSnapshot): Boolean = profile.facts.values
+        .any { fact -> fact.id.startsWith(PERSISTED_DEMO_FACT_ID_PREFIX) }
 
     private fun sampleDoor(
         id: String,

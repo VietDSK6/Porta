@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -84,7 +85,8 @@ fun FrontierScreen(
         includeBottomInsets = false,
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val useWideLayout = maxWidth >= WIDE_FRONTIER_BREAKPOINT && LocalDensity.current.fontScale < 1.5f
+            val hasDesktopWidth = maxWidth >= WIDE_FRONTIER_BREAKPOINT
+            val useWideLayout = hasDesktopWidth && LocalDensity.current.fontScale < 1.5f
             if (useWideLayout) {
                 WideFrontierContent(
                     uiState = uiState,
@@ -98,6 +100,7 @@ fun FrontierScreen(
                     onUiEvent = onUiEvent,
                     onPreviewScenario = onPreviewScenario,
                     onOpenActivePlan = onOpenActivePlan,
+                    desktopCompareEnabled = hasDesktopWidth,
                 )
             }
         }
@@ -110,6 +113,7 @@ private fun CompactFrontierContent(
     onUiEvent: (FrontierUiEvent) -> Unit,
     onPreviewScenario: (String) -> Unit,
     onOpenActivePlan: () -> Unit,
+    desktopCompareEnabled: Boolean = false,
 ) {
     val recommendedAction = uiState.actions.firstOrNull()
     val alternativeFamilies = uiState.alternativeFamilies()
@@ -118,6 +122,19 @@ private fun CompactFrontierContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { FrontierIntroduction(uiState = uiState) }
+        if (desktopCompareEnabled && uiState.actions.size >= 2) {
+            item {
+                DesktopCompareSelector(
+                    actions = uiState.actions,
+                    comparedActionIds = uiState.comparedActionIds,
+                    onToggle = { onUiEvent(FrontierUiEvent.ComparisonToggled(it)) },
+                    onClear = { onUiEvent(FrontierUiEvent.ComparisonCleared) },
+                )
+            }
+            if (uiState.comparedActions.size >= 2) {
+                item { DesktopScenarioCompareLab(actions = uiState.comparedActions) }
+            }
+        }
         uiState.activePlan?.takeIf { it.needsPriorityPlacement }?.let { plan ->
             item { ActivePlanPinnedCard(plan = plan, onOpen = onOpenActivePlan) }
         }
@@ -281,13 +298,43 @@ private fun WideFrontierContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (selectedAction == null) {
-                    item { NoSelectionCard() }
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            DesktopCompareSelector(
+                                actions = uiState.actions,
+                                comparedActionIds = uiState.comparedActionIds,
+                                onToggle = { onUiEvent(FrontierUiEvent.ComparisonToggled(it)) },
+                                onClear = { onUiEvent(FrontierUiEvent.ComparisonCleared) },
+                            )
+                            NoSelectionCard()
+                        }
+                    }
+                } else if (uiState.comparedActions.size >= 2) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            DesktopCompareSelector(
+                                actions = uiState.actions,
+                                comparedActionIds = uiState.comparedActionIds,
+                                onToggle = { onUiEvent(FrontierUiEvent.ComparisonToggled(it)) },
+                                onClear = { onUiEvent(FrontierUiEvent.ComparisonCleared) },
+                            )
+                            DesktopScenarioCompareLab(actions = uiState.comparedActions)
+                        }
+                    }
                 } else {
                     item {
-                        FrontierComparisonPanel(
-                            action = selectedAction,
-                            onOpenFullPreview = { onPreviewScenario(selectedAction.id) },
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            DesktopCompareSelector(
+                                actions = uiState.actions,
+                                comparedActionIds = uiState.comparedActionIds,
+                                onToggle = { onUiEvent(FrontierUiEvent.ComparisonToggled(it)) },
+                                onClear = { onUiEvent(FrontierUiEvent.ComparisonCleared) },
+                            )
+                            FrontierComparisonPanel(
+                                action = selectedAction,
+                                onOpenFullPreview = { onPreviewScenario(selectedAction.id) },
+                            )
+                        }
                     }
                     if (uiState.hasMeaningfulTradeOffs) {
                         item {
@@ -313,6 +360,8 @@ private fun FrontierIntroduction(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = when {
+                uiState.isDemoProfile && uiState.isSampleCatalog -> "DEMO PROFILE · SYNTHETIC PACK"
+                uiState.isDemoProfile -> "DEMO PROFILE · ${uiState.catalogDoorCount} SOURCED DOORS"
                 uiState.isSampleMode && uiState.isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
                 uiState.isSampleMode -> "SAMPLE PROFILE · ${uiState.catalogDoorCount} SOURCED DOORS"
                 uiState.isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
@@ -747,6 +796,358 @@ private fun AdaptiveMetricPills(action: FrontierActionUiState) {
 }
 
 @Composable
+private fun DesktopCompareSelector(
+    actions: List<FrontierActionUiState>,
+    comparedActionIds: List<String>,
+    onToggle: (String) -> Unit,
+    onClear: () -> Unit,
+) {
+    if (actions.size < 2) return
+    val selectionIsFull = comparedActionIds.size >= MAX_COMPARED_ACTIONS
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-compare-selector"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.45f)),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("COMPARE LAB", color = AppTheme.colors.primary, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        text = "Select 2–3 independent what-if milestones.",
+                        color = AppTheme.colors.text.secondary,
+                        style = AppTheme.typography.bodySmall,
+                    )
+                }
+                if (comparedActionIds.isNotEmpty()) {
+                    TextButton(
+                        modifier = Modifier.testTag("frontier-compare-clear"),
+                        onClick = onClear,
+                    ) {
+                        Text("Clear")
+                    }
+                }
+            }
+            actions.forEach { action ->
+                val selected = action.id in comparedActionIds
+                FilterChip(
+                    selected = selected,
+                    onClick = { onToggle(action.id) },
+                    label = {
+                        Text(
+                            text = action.title,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("frontier-compare-toggle-${action.id}")
+                        .semantics {
+                            contentDescription = if (selected) {
+                                "Remove ${action.title} from scenario comparison"
+                            } else {
+                                "Add ${action.title} to scenario comparison"
+                            }
+                        },
+                    enabled = selected || !selectionIsFull,
+                )
+            }
+            Text(
+                text = when (comparedActionIds.size) {
+                    0 -> "Choose two milestones to build a side-by-side comparison."
+                    1 -> "Choose one more milestone to compare."
+                    MAX_COMPARED_ACTIONS -> "Maximum of three scenarios selected."
+                    else -> "${comparedActionIds.size} scenarios selected; you can add one more."
+                },
+                modifier = Modifier.testTag("frontier-compare-selection-status"),
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DesktopScenarioCompareLab(actions: List<FrontierActionUiState>) {
+    val comparisonActions = actions.take(MAX_COMPARED_ACTIONS)
+    if (comparisonActions.size < 2) return
+    val doorRows = comparisonDoorRows(comparisonActions)
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-scenario-compare-lab"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+        border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.55f)),
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("INDEPENDENT SCENARIO COMPARISON", color = AppTheme.colors.primary, fontWeight = FontWeight.ExtraBold)
+                Text("Actual profile vs ${comparisonActions.size} milestones", style = AppTheme.typography.h4)
+                Text(
+                    text = "Every column starts from the same actual profile. Scenarios are never combined or saved.",
+                    modifier = Modifier.testTag("frontier-compare-independence-note"),
+                    color = AppTheme.colors.text.secondary,
+                    style = AppTheme.typography.bodyMedium,
+                )
+            }
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val stackColumns = maxWidth < 600.dp || LocalDensity.current.fontScale >= 1.5f
+                if (stackColumns) {
+                    StackedScenarioComparison(actions = comparisonActions, doorRows = doorRows)
+                } else {
+                    ScenarioComparisonMatrix(actions = comparisonActions, doorRows = doorRows)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScenarioComparisonMatrix(
+    actions: List<FrontierActionUiState>,
+    doorRows: List<DesktopComparisonDoorUiState>,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-compare-matrix"),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActualScenarioSummary(modifier = Modifier.weight(1f))
+            actions.forEach { action ->
+                ActionScenarioSummary(action = action, modifier = Modifier.weight(1f))
+            }
+        }
+        if (doorRows.isNotEmpty()) {
+            HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.35f))
+            Text("Opportunity checks", style = AppTheme.typography.h6)
+            doorRows.forEach { door ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("frontier-compare-door-${door.id}"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    ScenarioDoorCell(
+                        label = door.actualStateLabel,
+                        supportingLabel = "Actual · ${door.title}",
+                        highlighted = false,
+                        modifier = Modifier.weight(1f),
+                    )
+                    actions.forEach { action ->
+                        val change = door.changesByActionId[action.id]
+                        ScenarioDoorCell(
+                            label = change?.previewStateLabel ?: door.actualStateLabel,
+                            supportingLabel = when {
+                                change == null -> "No encoded change"
+                                change.isNewlyOpen -> "Newly passed"
+                                change.needsVerification -> "Needs verification"
+                                else -> "Improved check"
+                            },
+                            warningLabel = if (change?.requiresDeadlineCheck == true) "Deadline uncertain" else null,
+                            highlighted = change?.isNewlyOpen == true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StackedScenarioComparison(
+    actions: List<FrontierActionUiState>,
+    doorRows: List<DesktopComparisonDoorUiState>,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().testTag("frontier-compare-stacked"),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        ActualScenarioSummary(modifier = Modifier.fillMaxWidth())
+        actions.forEach { action ->
+            ActionScenarioSummary(action = action, modifier = Modifier.fillMaxWidth())
+        }
+        if (doorRows.isNotEmpty()) {
+            HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.35f))
+            Text("Opportunity checks", style = AppTheme.typography.h6)
+            doorRows.forEach { door ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("frontier-compare-door-${door.id}"),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(door.title, fontWeight = FontWeight.Bold, style = AppTheme.typography.bodyMedium)
+                    ScenarioDoorCell(
+                        label = door.actualStateLabel,
+                        supportingLabel = "Actual profile",
+                        highlighted = false,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    actions.forEach { action ->
+                        val change = door.changesByActionId[action.id]
+                        ScenarioDoorCell(
+                            label = change?.previewStateLabel ?: door.actualStateLabel,
+                            supportingLabel = buildString {
+                                append(action.title)
+                                append(" · ")
+                                append(
+                                    when {
+                                        change == null -> "No encoded change"
+                                        change.isNewlyOpen -> "Newly passed"
+                                        change.needsVerification -> "Needs verification"
+                                        else -> "Improved check"
+                                    },
+                                )
+                            },
+                            warningLabel = if (change?.requiresDeadlineCheck == true) "Deadline uncertain" else null,
+                            highlighted = change?.isNewlyOpen == true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActualScenarioSummary(modifier: Modifier) {
+    Surface(
+        modifier = modifier,
+        color = AppTheme.colors.background,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.outline.copy(alpha = 0.35f)),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("ACTUAL", color = AppTheme.colors.primary, fontWeight = FontWeight.ExtraBold)
+            Text("Saved profile", style = AppTheme.typography.h6)
+            Text(
+                "Shared baseline for every scenario",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionScenarioSummary(action: FrontierActionUiState, modifier: Modifier) {
+    Surface(
+        modifier = modifier.testTag("frontier-compare-scenario-${action.id}"),
+        color = AppTheme.colors.alternative,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.45f)),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("WHAT IF", color = AppTheme.colors.primary, fontWeight = FontWeight.ExtraBold)
+            Text(action.title, style = AppTheme.typography.h6, maxLines = 4, overflow = TextOverflow.Ellipsis)
+            Text(
+                "${action.currentLabel} → ${action.targetLabel}",
+                color = AppTheme.colors.onAlternative,
+                style = AppTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "${action.improvedCount} improved doors · ${action.changedCheckCount} newly passed checks",
+                color = AppTheme.colors.status.success,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                "${action.newlyOpenCount} would pass all currently assessed checks",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                "${action.durationLabel} · ${action.effortLabel} effort · ${action.costLabel} cost",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                text = if (action.timingUnverifiedCount == 0) {
+                    "No deadline uncertainty flagged"
+                } else {
+                    "${action.timingUnverifiedCount} deadline ${if (action.timingUnverifiedCount == 1) "uncertainty" else "uncertainties"}"
+                },
+                color = if (action.timingUnverifiedCount == 0) {
+                    AppTheme.colors.text.secondary
+                } else {
+                    AppTheme.colors.status.warning
+                },
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScenarioDoorCell(
+    label: String,
+    supportingLabel: String,
+    highlighted: Boolean,
+    modifier: Modifier,
+    warningLabel: String? = null,
+) {
+    Surface(
+        modifier = modifier,
+        color = if (highlighted) AppTheme.colors.status.successContainer else AppTheme.colors.background,
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Column(modifier = Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = label,
+                color = if (highlighted) AppTheme.colors.status.success else AppTheme.colors.text.primary,
+                style = AppTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = supportingLabel,
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            warningLabel?.let {
+                Text(it, color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+private data class DesktopComparisonDoorUiState(
+    val id: String,
+    val title: String,
+    val actualStateLabel: String,
+    val changesByActionId: Map<String, FrontierDoorComparisonUiState>,
+)
+
+private fun comparisonDoorRows(actions: List<FrontierActionUiState>): List<DesktopComparisonDoorUiState> {
+    val comparisons = actions.flatMap { action -> action.doorComparisons.map { action.id to it } }
+    return comparisons
+        .distinctBy { (_, comparison) -> comparison.id }
+        .map { (_, comparison) ->
+            DesktopComparisonDoorUiState(
+                id = comparison.id,
+                title = comparison.title,
+                actualStateLabel = comparison.actualStateLabel,
+                changesByActionId = comparisons
+                    .filter { (_, candidate) -> candidate.id == comparison.id }
+                    .associate { (actionId, candidate) -> actionId to candidate },
+            )
+        }
+}
+
+@Composable
 private fun FrontierComparisonPanel(
     action: FrontierActionUiState,
     onOpenFullPreview: () -> Unit,
@@ -1147,6 +1548,22 @@ private fun FrontierDesktopPreview() {
     AppTheme {
         FrontierScreen(
             uiState = previewState.copy(selectedActionId = "raise-ielts"),
+            onUiEvent = {},
+            onPreviewScenario = {},
+            onOpenActivePlan = {},
+        )
+    }
+}
+
+@Preview(device = "spec:width=1280dp,height=1000dp,dpi=160")
+@Composable
+private fun FrontierDesktopComparePreview() {
+    AppTheme {
+        FrontierScreen(
+            uiState = previewState.copy(
+                selectedActionId = "raise-ielts",
+                comparedActionIds = listOf("raise-ielts", "verify-enrollment", "community-project"),
+            ),
             onUiEvent = {},
             onPreviewScenario = {},
             onOpenActivePlan = {},

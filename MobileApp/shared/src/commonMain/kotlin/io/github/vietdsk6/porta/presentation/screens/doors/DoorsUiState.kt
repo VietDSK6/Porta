@@ -5,6 +5,7 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 
 data class DoorsUiState(
     val isSampleMode: Boolean = true,
+    val isDemoProfile: Boolean = false,
     val isSampleCatalog: Boolean = true,
     val catalogDoorCount: Int = 0,
     val selectedFilter: DoorFilter = DoorFilter.ALL,

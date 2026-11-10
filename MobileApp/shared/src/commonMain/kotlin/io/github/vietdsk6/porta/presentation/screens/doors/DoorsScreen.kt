@@ -91,6 +91,7 @@ fun DoorsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProfileAndPackContext(
                         isSampleProfile = uiState.isSampleMode,
+                        isDemoProfile = uiState.isDemoProfile,
                         isSampleCatalog = uiState.isSampleCatalog,
                         doorCount = uiState.catalogDoorCount,
                         gapCount = uiState.gapCount,
@@ -146,13 +147,14 @@ fun DoorsScreen(
 @Composable
 private fun ProfileAndPackContext(
     isSampleProfile: Boolean,
+    isDemoProfile: Boolean,
     isSampleCatalog: Boolean,
     doorCount: Int,
     gapCount: Int,
     sourceReviewDueCount: Int,
 ) {
     val summary = "$doorCount ${if (doorCount == 1) "opportunity" else "opportunities"} · $gapCount need action"
-    if (!isSampleProfile && !isSampleCatalog) {
+    if (!isSampleProfile && !isDemoProfile && !isSampleCatalog) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = summary,
@@ -174,6 +176,8 @@ private fun ProfileAndPackContext(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             when {
+                isDemoProfile && isSampleCatalog -> "DEMO PROFILE · SYNTHETIC PACK"
+                isDemoProfile -> "DEMO PROFILE · SOURCED PACK"
                 isSampleProfile && isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
                 isSampleProfile -> "SAMPLE PROFILE"
                 isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
@@ -190,6 +194,9 @@ private fun ProfileAndPackContext(
         )
         if (isSampleCatalog) {
             Text("Fictional opportunities for demo only.", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        }
+        if (isDemoProfile) {
+            Text("Fictional profile facts saved locally for hands-on testing.", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }

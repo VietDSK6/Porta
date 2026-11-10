@@ -235,6 +235,7 @@ internal object PortaContestPackData {
     private fun schwarzman(): OpportunityDto {
         val source = "https://www.schwarzmanscholars.org/admissions/application-instructions/"
         val degreeAction = degreeAction("schwarzman", source)
+        val ieltsAction = ieltsAction("schwarzman", 7.0, source)
         return opportunity(
             id = "schwarzman-scholars-2028-2029",
             title = "Schwarzman Scholars",
@@ -292,6 +293,7 @@ internal object PortaContestPackData {
                         explanation = "IELTS 7.0 meets the published score for the IELTS route only.",
                         sourceNote = checked(source, "Language Skills", SOURCE_REFRESH_REVIEWED_ON),
                         actionability = Actionability.CONTROLLABLE,
+                        actionTemplateId = ieltsAction.id,
                     ),
                     manual(
                         id = "schwarzman-other-english-route",
@@ -315,7 +317,7 @@ internal object PortaContestPackData {
                 "U.S./Global applications are expected April–September 2027; confirm the exact closing date when published",
                 "IELTS 7.0 is one route; accepted tests and exemptions may also satisfy the language condition",
             ),
-            actions = listOf(degreeAction),
+            actions = listOf(degreeAction, ieltsAction),
             lastCheckedOn = SOURCE_REFRESH_REVIEWED_ON,
         )
     }
@@ -963,6 +965,23 @@ internal object PortaContestPackData {
         effort = EffortLevel.VERY_HIGH,
         costBand = CostBand.FREE,
         evidence = setOf("employment letters", "contracts or payslips"),
+        sourceNote = planningNote(source),
+    )
+
+    private fun ieltsAction(
+        id: String,
+        band: Double,
+        source: String,
+    ): ActionTemplateDto = action(
+        id = "$id-ielts-${band.toInt()}-band",
+        title = "Raise IELTS to ${band.toInt()}.0 band",
+        targetFactKey = FactKey.IELTS_SCORE,
+        targetValue = number(band, "band"),
+        targetActionability = Actionability.CONTROLLABLE,
+        minimumDurationDays = 45,
+        effort = EffortLevel.MEDIUM,
+        costBand = CostBand.LOW,
+        evidence = setOf("official IELTS score report"),
         sourceNote = planningNote(source),
     )
 

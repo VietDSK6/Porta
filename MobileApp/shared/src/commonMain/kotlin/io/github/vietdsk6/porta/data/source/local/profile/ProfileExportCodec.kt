@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.data.source.local.profile
 
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.DurationUnit
+import io.github.vietdsk6.porta.domain.model.EvidenceAttachmentMetadata
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactProvenance
@@ -25,6 +26,7 @@ class ProfileExportCodec(
         exportedAtEpochMillis: Long,
     ): String = json.encodeToString(
         ProfileMetadataExport(
+            schemaVersion = PROFILE_EXPORT_SCHEMA_VERSION,
             profileId = profile.id,
             exportedAtEpochMillis = exportedAtEpochMillis,
             facts = profile.facts.values
@@ -40,6 +42,9 @@ class ProfileExportCodec(
                         evidenceLabel = fact.evidence?.label,
                         evidenceReference = fact.evidence?.reference,
                         evidenceCheckedAtEpochMillis = fact.evidence?.checkedAtEpochMillis,
+                        evidenceAttachmentName = fact.evidence?.attachment?.displayName,
+                        evidenceAttachmentMimeType = fact.evidence?.attachment?.mimeType,
+                        evidenceAttachmentSize = fact.evidence?.attachment?.byteSize,
                         updatedAtEpochMillis = fact.updatedAtEpochMillis,
                     )
                 },
@@ -61,6 +66,9 @@ class ProfileExportCodec(
                         evidenceLabel = assertion.evidence?.label,
                         evidenceReference = assertion.evidence?.reference,
                         evidenceCheckedAtEpochMillis = assertion.evidence?.checkedAtEpochMillis,
+                        evidenceAttachmentName = assertion.evidence?.attachment?.displayName,
+                        evidenceAttachmentMimeType = assertion.evidence?.attachment?.mimeType,
+                        evidenceAttachmentSize = assertion.evidence?.attachment?.byteSize,
                         updatedAtEpochMillis = assertion.updatedAtEpochMillis,
                     )
                 },
@@ -69,7 +77,22 @@ class ProfileExportCodec(
 
     fun decode(encoded: String): ProfileSnapshot {
         val export = json.decodeFromString<ProfileMetadataExport>(encoded)
-        require(export.schemaVersion == 2) { "Unsupported profile export schema ${export.schemaVersion}." }
+        require(export.schemaVersion == PROFILE_EXPORT_SCHEMA_VERSION) {
+            "Unsupported profile export schema ${export.schemaVersion}."
+        }
+        require(export.profileId.isNotBlank()) { "Exported profile ID must not be blank." }
+        require(export.facts.size <= FactKey.entries.size) { "Profile export contains too many facts." }
+        require(export.ruleAssertions.size <= MAX_RULE_ASSERTIONS) {
+            "Profile export contains too many programme assertions."
+        }
+        val factKeys = export.facts.map { fact -> FactKey.valueOf(fact.key) }
+        require(factKeys.distinct().size == factKeys.size) { "Profile export contains duplicate fact keys." }
+        val ruleRefs = export.ruleAssertions.map { assertion ->
+            RuleRef(assertion.opportunityId, assertion.ruleId)
+        }
+        require(ruleRefs.distinct().size == ruleRefs.size) {
+            "Profile export contains duplicate programme rule references."
+        }
         val facts = export.facts.map { fact ->
             val key = FactKey.valueOf(fact.key)
             ProfileFact(
@@ -103,6 +126,9 @@ class ProfileExportCodec(
     }
 
     companion object {
+        private const val PROFILE_EXPORT_SCHEMA_VERSION = 2
+        private const val MAX_RULE_ASSERTIONS = 1_000
+
         private val DEFAULT_JSON = Json {
             encodeDefaults = true
             explicitNulls = false
@@ -146,7 +172,7 @@ private fun FactValueExport.toDomainValue(valueType: String): FactValue = when (
     "date" -> FactValue.DateValue(LocalDate.parse(checkNotNull(textValue)))
 
     "duration" -> FactValue.DurationValue(
-        amount = checkNotNull(durationAmount),
+        amount = checkNotNull(durationAmount).also { require(it >= 0) { "Duration must not be negative." } },
         unit = DurationUnit.valueOf(checkNotNull(durationUnit)),
     )
 
@@ -154,7 +180,10 @@ private fun FactValueExport.toDomainValue(valueType: String): FactValue = when (
 
     "enum" -> FactValue.EnumValue(checkNotNull(textValue))
 
-    "number" -> FactValue.NumberValue(checkNotNull(numberValue), unit.orEmpty())
+    "number" -> FactValue.NumberValue(
+        checkNotNull(numberValue).also { require(it.isFinite()) { "Number must be finite." } },
+        unit.orEmpty(),
+    )
 
     "text" -> FactValue.TextValue(textValue.orEmpty())
 
@@ -166,6 +195,11 @@ private fun ProfileFactExport.evidence(): EvidenceMetadata? = evidenceLabel?.let
         label = label,
         reference = evidenceReference,
         checkedAtEpochMillis = evidenceCheckedAtEpochMillis,
+        attachment = attachmentDescriptor(
+            displayName = evidenceAttachmentName,
+            mimeType = evidenceAttachmentMimeType,
+            byteSize = evidenceAttachmentSize,
+        ),
     )
 }
 
@@ -174,12 +208,33 @@ private fun RuleAssertionExport.evidence(): EvidenceMetadata? = evidenceLabel?.l
         label = label,
         reference = evidenceReference,
         checkedAtEpochMillis = evidenceCheckedAtEpochMillis,
+        attachment = attachmentDescriptor(
+            displayName = evidenceAttachmentName,
+            mimeType = evidenceAttachmentMimeType,
+            byteSize = evidenceAttachmentSize,
+        ),
+    )
+}
+
+private fun attachmentDescriptor(
+    displayName: String?,
+    mimeType: String?,
+    byteSize: Long?,
+): EvidenceAttachmentMetadata? = displayName?.let { name ->
+    require(name.isNotBlank()) { "Evidence attachment name must not be blank." }
+    val size = checkNotNull(byteSize) { "Evidence attachment size is required when a name is present." }
+    require(size >= 0L) { "Evidence attachment size must not be negative." }
+    EvidenceAttachmentMetadata(
+        displayName = name,
+        mimeType = mimeType,
+        byteSize = size,
+        storageKey = null,
     )
 }
 
 @Serializable
 private data class ProfileMetadataExport(
-    val schemaVersion: Int = 2,
+    val schemaVersion: Int,
     val warning: String = "Private profile metadata. Evidence binary files are not included. Rule assertions only apply to the exact opportunity rule and fingerprint shown.",
     val profileId: String,
     val exportedAtEpochMillis: Long,
@@ -198,6 +253,9 @@ private data class ProfileFactExport(
     val evidenceLabel: String? = null,
     val evidenceReference: String? = null,
     val evidenceCheckedAtEpochMillis: Long? = null,
+    val evidenceAttachmentName: String? = null,
+    val evidenceAttachmentMimeType: String? = null,
+    val evidenceAttachmentSize: Long? = null,
     val updatedAtEpochMillis: Long,
 )
 
@@ -213,6 +271,9 @@ private data class RuleAssertionExport(
     val evidenceLabel: String? = null,
     val evidenceReference: String? = null,
     val evidenceCheckedAtEpochMillis: Long? = null,
+    val evidenceAttachmentName: String? = null,
+    val evidenceAttachmentMimeType: String? = null,
+    val evidenceAttachmentSize: Long? = null,
     val updatedAtEpochMillis: Long,
 )
 

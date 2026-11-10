@@ -5,12 +5,14 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.EvidenceAttachmentMetadata
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
 import io.github.vietdsk6.porta.domain.model.RuleRef
+import io.github.vietdsk6.porta.util.file.FileManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
@@ -22,6 +24,7 @@ import kotlin.test.assertTrue
 class ProfileRepositoryTest {
     private lateinit var database: AppDatabase
     private lateinit var repository: ProfileRepository
+    private lateinit var fileManager: RecordingEvidenceFileManager
 
     @BeforeTest
     fun setUp() {
@@ -29,10 +32,12 @@ class ProfileRepositoryTest {
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.Default)
             .build()
+        fileManager = RecordingEvidenceFileManager()
         repository = ProfileRepository(
             profileFactDao = database.profileFactDao(),
             ruleAssertionDao = database.ruleAssertionDao(),
             backgroundExecutor = BackgroundExecutor(Dispatchers.Default),
+            fileManager = fileManager,
         )
     }
 
@@ -178,5 +183,50 @@ class ProfileRepositoryTest {
         val cleared = repository.getProfile().getOrThrow()
         assertTrue(cleared.facts.isEmpty())
         assertTrue(cleared.ruleAssertions.isEmpty())
+    }
+
+    @Test
+    fun `replacing and deleting evidence metadata cleans up app-private files after database writes`() = runTest {
+        val oldAttachment = attachment("old.pdf", "default/old.pdf")
+        val newAttachment = attachment("new.pdf", "default/new.pdf")
+        val original = ProfileFact(
+            id = "default:ielts_score",
+            key = FactKey.IELTS_SCORE,
+            value = FactValue.NumberValue(6.5, "band"),
+            evidence = EvidenceMetadata("Score report", attachment = oldAttachment),
+        )
+        repository.saveFacts(listOf(original)).getOrThrow()
+
+        repository.saveFacts(
+            listOf(original.copy(evidence = EvidenceMetadata("New score report", attachment = newAttachment))),
+        ).getOrThrow()
+        assertEquals(listOf(oldAttachment), fileManager.deletedAttachments)
+
+        repository.deleteFact(FactKey.IELTS_SCORE).getOrThrow()
+        assertEquals(listOf(oldAttachment, newAttachment), fileManager.deletedAttachments)
+    }
+
+    private fun attachment(name: String, storageKey: String) = EvidenceAttachmentMetadata(
+        displayName = name,
+        mimeType = "application/pdf",
+        byteSize = 10L,
+        storageKey = storageKey,
+    )
+}
+
+private class RecordingEvidenceFileManager : FileManager {
+    val deletedAttachments = mutableListOf<EvidenceAttachmentMetadata>()
+
+    override suspend fun saveTextByPickingUpLocation(
+        suggestedName: String,
+        extension: String,
+        content: String,
+    ): Result<Boolean> = Result.success(false)
+
+    override suspend fun deleteEvidenceAttachment(
+        attachment: EvidenceAttachmentMetadata,
+    ): Result<Unit> {
+        deletedAttachments += attachment
+        return Result.success(Unit)
     }
 }

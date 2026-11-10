@@ -9,11 +9,15 @@ import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ProfileExportRuleAssertionCodecTest {
@@ -64,5 +68,29 @@ class ProfileExportRuleAssertionCodecTest {
         assertEquals("boolean", assertion.getValue("valueType").jsonPrimitive.content)
         assertTrue(export.getValue("warning").jsonPrimitive.content.contains("exact opportunity rule"))
         assertEquals(profile, codec.decode(encoded))
+    }
+
+    @Test
+    fun `decode rejects duplicate programme rule references`() {
+        val ruleRef = RuleRef("cern-summer", "full-period-availability")
+        val profile = ProfileSnapshot(
+            ruleAssertions = mapOf(
+                ruleRef to RuleAssertion(
+                    ruleRef = ruleRef,
+                    ruleFingerprint = "sha256:full-period-availability",
+                    factKey = FactKey.AVAILABLE_FULL_PERIOD,
+                    value = FactValue.BooleanValue(true),
+                ),
+            ),
+        )
+        val codec = ProfileExportCodec()
+        val exported = Json.parseToJsonElement(codec.encode(profile, 50L)).jsonObject
+        val assertion = exported.getValue("ruleAssertions").jsonArray.single()
+        val duplicated = buildJsonObject {
+            exported.forEach { (key, value) -> put(key, value) }
+            put("ruleAssertions", JsonArray(listOf(assertion, assertion)))
+        }.toString()
+
+        assertFailsWith<IllegalArgumentException> { codec.decode(duplicated) }
     }
 }

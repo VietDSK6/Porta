@@ -3,6 +3,7 @@ package io.github.vietdsk6.porta.root
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
+import io.github.vietdsk6.porta.data.repository.ProfileImportRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
@@ -10,6 +11,7 @@ import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackPro
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
+import io.github.vietdsk6.porta.data.source.local.pack.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.data.source.preferences.PreferencesDataStoreProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
@@ -24,6 +26,7 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
+import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioViewModel
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
@@ -60,6 +63,7 @@ private val dataModule = module {
     singleOf(::BundledOpportunityPackProvider)
     singleOf(::OpportunityPackValidator)
     singleOf(::OpportunityPackParser)
+    singleOf(::OpportunityStudioDraftCompiler)
     single { ProfileExportCodec() }
 
     single {
@@ -70,6 +74,7 @@ private val dataModule = module {
 
     singleOf(::OpportunityPackRepository)
     singleOf(::PlanRepository)
+    singleOf(::ProfileImportRepository)
     singleOf(::ProfileRepository)
     singleOf(::RuleAssertionRepository)
     singleOf(::SavedOpportunityRepository)
@@ -91,6 +96,7 @@ private val presentationModule = module {
     viewModelOf(::ActivePlanViewModel)
     viewModelOf(::StudentProfileViewModel)
     viewModelOf(::PackInspectorViewModel)
+    viewModelOf(::OpportunityStudioViewModel)
     viewModelOf(::ActualProfileUpdateViewModel)
     // Add new view models below — generate_screen.sh inserts here.
 }

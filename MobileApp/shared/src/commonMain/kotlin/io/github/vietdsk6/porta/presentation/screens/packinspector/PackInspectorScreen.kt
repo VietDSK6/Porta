@@ -41,6 +41,8 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.util.Platform
+import io.github.vietdsk6.porta.util.getPlatform
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
@@ -52,6 +54,7 @@ import kotlinx.coroutines.launch
 fun PackInspectorScreen(
     viewModel: PackInspectorViewModel,
     onNavigateBack: () -> Unit,
+    onOpenOpportunityStudio: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,6 +84,8 @@ fun PackInspectorScreen(
         onNavigateBack = onNavigateBack,
         onImportPack = packPicker::launch,
         onOpenSource = uriHandler::openUri,
+        supportsOpportunityStudio = getPlatform() == Platform.Desktop,
+        onOpenOpportunityStudio = onOpenOpportunityStudio,
     )
 }
 
@@ -91,6 +96,8 @@ fun PackInspectorScreen(
     onNavigateBack: () -> Unit,
     onImportPack: () -> Unit,
     onOpenSource: (String) -> Unit,
+    supportsOpportunityStudio: Boolean = false,
+    onOpenOpportunityStudio: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ScreenWithToolbar(
@@ -106,6 +113,10 @@ fun PackInspectorScreen(
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sectionSpacing),
         ) {
             InspectorIntro()
+
+            if (supportsOpportunityStudio) {
+                OpportunityStudioEntry(onOpenOpportunityStudio)
+            }
 
             when {
                 uiState.isLoading -> LoadingPack()
@@ -148,6 +159,45 @@ fun PackInspectorScreen(
             onConfirm = { onUiEvent(PackInspectorUiEvent.ImportPreviewConfirmed) },
             onCancel = { onUiEvent(PackInspectorUiEvent.ImportPreviewCancelled) },
         )
+    }
+}
+
+@Composable
+private fun OpportunityStudioEntry(onOpenOpportunityStudio: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+        border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.45f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppTheme.spacing.cardContentSpacing),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "DESKTOP AUTHORING LAB",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodySmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.8.sp,
+            )
+            Text(
+                text = "Build a sourced opportunity draft",
+                style = AppTheme.typography.h5,
+                color = AppTheme.colors.text.primary,
+            )
+            Text(
+                text = "Create ALL or ANY eligibility rules with a form, validate the complete pack, then export JSON. " +
+                    "The active catalog changes only after you return here and approve its import diff.",
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.text.secondary,
+            )
+            AppButton(
+                modifier = Modifier.fillMaxWidth().testTag("pack-inspector-open-studio"),
+                text = "Open Opportunity Studio",
+                onClick = onOpenOpportunityStudio,
+            )
+        }
     }
 }
 

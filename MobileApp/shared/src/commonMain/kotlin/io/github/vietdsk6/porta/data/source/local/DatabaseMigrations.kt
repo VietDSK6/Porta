@@ -41,3 +41,13 @@ val MIGRATION_2_3 = Migration(2, 3) { connection ->
     connection.execSQL("DROP TABLE IF EXISTS generation_outputs")
     connection.execSQL("DROP TABLE IF EXISTS credit_transaction")
 }
+
+/** Adds optional app-private evidence attachment descriptors without changing existing evidence. */
+val MIGRATION_3_4 = Migration(3, 4) { connection ->
+    listOf("profile_fact", "rule_assertion").forEach { table ->
+        connection.execSQL("ALTER TABLE $table ADD COLUMN evidence_attachment_name TEXT")
+        connection.execSQL("ALTER TABLE $table ADD COLUMN evidence_attachment_mime_type TEXT")
+        connection.execSQL("ALTER TABLE $table ADD COLUMN evidence_attachment_size INTEGER")
+        connection.execSQL("ALTER TABLE $table ADD COLUMN evidence_attachment_storage_key TEXT")
+    }
+}

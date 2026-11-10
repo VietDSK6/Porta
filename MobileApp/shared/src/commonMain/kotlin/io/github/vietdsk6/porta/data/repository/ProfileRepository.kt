@@ -8,6 +8,7 @@ import io.github.vietdsk6.porta.data.source.local.entity.toModel
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.util.file.FileManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -15,6 +16,7 @@ class ProfileRepository(
     private val profileFactDao: ProfileFactDao,
     private val ruleAssertionDao: RuleAssertionDao,
     private val backgroundExecutor: BackgroundExecutor,
+    private val fileManager: FileManager? = null,
 ) {
     fun observeProfile(profileId: String = ProfileFact.DEFAULT_PROFILE_ID): Flow<ProfileSnapshot> = combine(
         profileFactDao.observeProfile(profileId),
@@ -44,7 +46,17 @@ class ProfileRepository(
         require(facts.map(ProfileFact::profileId).distinct().size <= 1) {
             "All facts in one save must belong to the same profile."
         }
+        val replacedAttachments = facts.mapNotNull { fact ->
+            profileFactDao.get(fact.profileId, fact.key.name)
+                ?.toModel()
+                ?.evidence
+                ?.attachment
+                ?.takeIf { old -> old.storageKey != fact.evidence?.attachment?.storageKey }
+        }
         profileFactDao.upsertAll(facts.map(ProfileFact::toEntity))
+        replacedAttachments.forEach { attachment ->
+            fileManager?.deleteEvidenceAttachment(attachment)
+        }
         Result.success(Unit)
     }
 
@@ -52,7 +64,12 @@ class ProfileRepository(
         key: FactKey,
         profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
     ): Result<Unit> = backgroundExecutor.execute {
+        val attachment = profileFactDao.get(profileId, key.name)
+            ?.toModel()
+            ?.evidence
+            ?.attachment
         profileFactDao.delete(profileId, key.name)
+        attachment?.let { fileManager?.deleteEvidenceAttachment(it) }
         Result.success(Unit)
     }
 
@@ -61,12 +78,14 @@ class ProfileRepository(
     ): Result<Unit> = backgroundExecutor.execute {
         profileFactDao.deleteProfile(profileId)
         ruleAssertionDao.deleteForProfile(profileId)
+        fileManager?.clearEvidenceAttachments(profileId)
         Result.success(Unit)
     }
 
     suspend fun clearAll(): Result<Unit> = backgroundExecutor.execute {
         profileFactDao.deleteAll()
         ruleAssertionDao.deleteAll()
+        fileManager?.clearEvidenceAttachments()
         Result.success(Unit)
     }
 }

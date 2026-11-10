@@ -6,6 +6,7 @@ data class StudentProfileUiState(
     val isLoading: Boolean = true,
     val isWorking: Boolean = false,
     val hasRealProfile: Boolean = false,
+    val isDemoProfile: Boolean = false,
     val factCount: Int = 0,
     val catalogOpportunityCount: Int = 0,
     val dependentOpportunityCount: Int = 0,
@@ -15,7 +16,27 @@ data class StudentProfileUiState(
     val expandedFactKey: FactKey? = null,
     val factPendingDelete: ProfileFactUiState? = null,
     val pendingDataAction: ProfileDataAction? = null,
+    val supportsProfileImport: Boolean = false,
+    val pendingProfileImport: ProfileImportPreviewUiState? = null,
+    val profileImportError: String? = null,
     val message: String? = null,
+)
+
+data class ProfileImportPreviewUiState(
+    val fileName: String,
+    val facts: List<ProfileImportFactUiState>,
+    val ruleAssertionCount: Int,
+    val evidenceMetadataCount: Int,
+    val sensitiveFactCount: Int,
+)
+
+data class ProfileImportFactUiState(
+    val key: FactKey,
+    val label: String,
+    val value: String,
+    val provenanceLabel: String,
+    val hasEvidenceMetadata: Boolean,
+    val isSensitive: Boolean,
 )
 
 enum class ProfileDataAction {
@@ -46,6 +67,9 @@ data class ProfileFactUiState(
     val actionabilityLabel: String,
     val evidenceLabel: String?,
     val dependentDoorTitles: List<String>,
+    val evidenceAttachmentName: String? = null,
+    val evidenceAttachmentDetail: String? = null,
+    val canOpenEvidenceAttachment: Boolean = false,
 ) {
     val usedByLabel: String
         get() = when (dependentDoorTitles.size) {
@@ -60,11 +84,24 @@ sealed interface StudentProfileUiEvent {
 
     data class DeleteFactRequested(val fact: ProfileFactUiState) : StudentProfileUiEvent
 
+    data class OpenEvidenceAttachment(val key: FactKey) : StudentProfileUiEvent
+
     data object DeleteFactCancelled : StudentProfileUiEvent
 
     data object DeleteFactConfirmed : StudentProfileUiEvent
 
     data object ExportMetadata : StudentProfileUiEvent
+
+    data class ImportProfileSelected(
+        val fileName: String,
+        val encodedProfile: String,
+    ) : StudentProfileUiEvent
+
+    data object ImportProfileReadFailed : StudentProfileUiEvent
+
+    data object ImportProfileCancelled : StudentProfileUiEvent
+
+    data object ImportProfileConfirmed : StudentProfileUiEvent
 
     data class DataActionRequested(val action: ProfileDataAction) : StudentProfileUiEvent
 

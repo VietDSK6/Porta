@@ -18,9 +18,31 @@ import io.github.vietdsk6.porta.presentation.screens.packinspector.PendingPackUp
 import io.github.vietdsk6.porta.presentation.screens.packinspector.RuleNodeUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class PackInspectorUiTest {
+    @Test
+    fun `desktop inspector opens opportunity studio without changing the pack`() = runComposeUiTest {
+        var studioRequested = false
+        setContent {
+            AppTheme {
+                PackInspectorScreen(
+                    uiState = activePackState,
+                    onUiEvent = {},
+                    onNavigateBack = {},
+                    onImportPack = {},
+                    onOpenSource = {},
+                    supportsOpportunityStudio = true,
+                    onOpenOpportunityStudio = { studioRequested = true },
+                )
+            }
+        }
+
+        onNodeWithTag("pack-inspector-open-studio").performScrollTo().performClick()
+        assertTrue(studioRequested)
+    }
+
     @Test
     fun `active pack exposes provenance rules and pack controls`() = runComposeUiTest {
         val events = mutableListOf<PackInspectorUiEvent>()

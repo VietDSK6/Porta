@@ -40,6 +40,7 @@ class OpportunityDetailViewModel(
             profile = PortaSampleData.profile,
             opportunities = PortaSampleData.opportunities,
             isSampleProfile = true,
+            isDemoProfile = false,
             isSampleCatalog = true,
             today = currentLocalDateProvider.today(),
         ),
@@ -59,6 +60,7 @@ class OpportunityDetailViewModel(
                         profile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile,
                         opportunities = pack?.opportunities ?: PortaSampleData.opportunities,
                         isSampleProfile = isSampleProfile,
+                        isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile),
                         isSampleCatalog = pack == null ||
                             pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
                         today = today,
@@ -77,6 +79,7 @@ class OpportunityDetailViewModel(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,
         isSampleProfile: Boolean,
+        isDemoProfile: Boolean,
         isSampleCatalog: Boolean,
         today: LocalDate,
     ): OpportunityDetailUiState = opportunities
@@ -162,6 +165,7 @@ class OpportunityDetailViewModel(
                 informationTasks = informationTasks,
                 canOpenSource = opportunity.sourceUrl.startsWith("https://"),
                 isSampleProfile = isSampleProfile,
+                isDemoProfile = isDemoProfile,
                 isSampleCatalog = isSampleCatalog,
             )
         } ?: OpportunityDetailUiState(error = "This opportunity is no longer in the active opportunity pack.")

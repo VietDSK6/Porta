@@ -3,6 +3,7 @@ package io.github.vietdsk6.porta.presentation.screens.studentprofile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.ProfileImportRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
@@ -18,8 +19,10 @@ import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.countryForStoredValue
+import io.github.vietdsk6.porta.util.Platform
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.file.FileManager
+import io.github.vietdsk6.porta.util.getPlatform
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +36,7 @@ class StudentProfileViewModel(
     private val opportunityPackRepository: OpportunityPackRepository,
     private val manageLocalPortaData: ManageLocalPortaDataUseCase,
     private val profileExportCodec: ProfileExportCodec,
+    private val profileImportRepository: ProfileImportRepository,
     private val fileManager: FileManager,
 ) : ViewModel() {
     private val transientState = MutableStateFlow(StudentProfileTransientState())
@@ -69,6 +73,8 @@ class StudentProfileViewModel(
                 it.copy(factPendingDelete = event.fact, message = null)
             }
 
+            is StudentProfileUiEvent.OpenEvidenceAttachment -> openEvidenceAttachment(event.key)
+
             StudentProfileUiEvent.DeleteFactCancelled -> transientState.update {
                 it.copy(factPendingDelete = null)
             }
@@ -76,6 +82,18 @@ class StudentProfileViewModel(
             StudentProfileUiEvent.DeleteFactConfirmed -> deletePendingFact()
 
             StudentProfileUiEvent.ExportMetadata -> exportMetadata()
+
+            is StudentProfileUiEvent.ImportProfileSelected -> previewProfileImport(event)
+
+            StudentProfileUiEvent.ImportProfileReadFailed -> showFailure(
+                "Porta could not read that profile copy. Your current profile is unchanged.",
+            )
+
+            StudentProfileUiEvent.ImportProfileCancelled -> transientState.update {
+                it.copy(pendingProfileImport = null, profileImportError = null)
+            }
+
+            StudentProfileUiEvent.ImportProfileConfirmed -> confirmProfileImport()
 
             is StudentProfileUiEvent.DataActionRequested -> transientState.update {
                 it.copy(pendingDataAction = event.action, message = null)
@@ -106,6 +124,34 @@ class StudentProfileViewModel(
                     }
                 }
                 .onFailure { showFailure("Porta could not remove that fact.") }
+        }
+    }
+
+    private fun openEvidenceAttachment(key: FactKey) {
+        viewModelScope.launch {
+            profileRepository.getProfile()
+                .mapCatching { profile ->
+                    profile.facts[key]
+                        ?.evidence
+                        ?.attachment
+                        ?: error("No evidence attachment is available for this fact.")
+                }
+                .fold(
+                    onSuccess = { attachment ->
+                        fileManager.openEvidenceAttachment(attachment).fold(
+                            onSuccess = { opened ->
+                                if (!opened) {
+                                    showFailure(
+                                        "That evidence file is not stored on this device. " +
+                                            "Imported profile copies include its description only.",
+                                    )
+                                }
+                            },
+                            onFailure = { showFailure("Porta could not open that evidence file.") },
+                        )
+                    },
+                    onFailure = { showFailure("That evidence file is no longer available.") },
+                )
         }
     }
 
@@ -144,6 +190,67 @@ class StudentProfileViewModel(
             },
             onFailure = { showFailure("Porta could not export the profile metadata.") },
         )
+    }
+
+    private fun previewProfileImport(event: StudentProfileUiEvent.ImportProfileSelected) {
+        runCatching {
+            require(getPlatform() == Platform.Desktop) { "Profile import is available on Desktop." }
+            require(event.encodedProfile.length <= MAX_PROFILE_IMPORT_CHARACTERS) {
+                "Profile copy is too large."
+            }
+            val profile = profileExportCodec.decode(event.encodedProfile)
+            require(profile.facts.isNotEmpty()) { "Profile copy contains no facts." }
+            require(profile.facts.size <= FactKey.entries.size) { "Profile copy contains too many facts." }
+            require(profile.ruleAssertions.size <= MAX_PROFILE_IMPORT_ASSERTIONS) {
+                "Profile copy contains too many programme confirmations."
+            }
+            PendingProfileImport(
+                fileName = event.fileName.take(MAX_PROFILE_IMPORT_FILE_NAME_CHARACTERS),
+                profile = profile,
+            )
+        }.fold(
+            onSuccess = { pendingImport ->
+                transientState.update {
+                    it.copy(
+                        pendingProfileImport = pendingImport,
+                        profileImportError = null,
+                        message = null,
+                    )
+                }
+            },
+            onFailure = {
+                showFailure("That file is not a supported Porta profile copy. Your current profile is unchanged.")
+            },
+        )
+    }
+
+    private fun confirmProfileImport() {
+        val pendingImport = transientState.value.pendingProfileImport ?: return
+        viewModelScope.launch {
+            transientState.update {
+                it.copy(isWorking = true, profileImportError = null, message = null)
+            }
+            profileImportRepository.replaceActiveProfile(pendingImport.profile)
+                .onSuccess {
+                    transientState.update {
+                        it.copy(
+                            isWorking = false,
+                            pendingProfileImport = null,
+                            profileImportError = null,
+                            expandedFactKey = null,
+                            message = "Profile copy imported. Doors and next moves now use the imported facts.",
+                        )
+                    }
+                }
+                .onFailure {
+                    transientState.update {
+                        it.copy(
+                            isWorking = false,
+                            profileImportError = "Import failed. Your current profile is unchanged.",
+                        )
+                    }
+                }
+        }
     }
 
     private fun confirmPendingDataAction() {
@@ -214,6 +321,14 @@ class StudentProfileViewModel(
                 dependentDoorTitles = opportunities
                     .filter { opportunity -> opportunity.eligibilityRule.uses(fact.key) }
                     .map(Opportunity::title),
+                evidenceAttachmentName = fact.evidence?.attachment?.displayName,
+                evidenceAttachmentDetail = fact.evidence?.attachment?.let { attachment ->
+                    listOfNotNull(
+                        attachment.mimeType?.takeIf(String::isNotBlank),
+                        attachment.byteSize.readableFileSize(),
+                    ).joinToString(" · ")
+                },
+                canOpenEvidenceAttachment = fact.evidence?.attachment?.storageKey != null,
             )
         }
         val sections = PROFILE_SECTIONS.mapNotNull { section ->
@@ -247,6 +362,7 @@ class StudentProfileViewModel(
             isLoading = false,
             isWorking = transient.isWorking,
             hasRealProfile = facts.isNotEmpty(),
+            isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile),
             factCount = facts.size,
             catalogOpportunityCount = opportunities.map(Opportunity::id).distinct().size,
             dependentOpportunityCount = referencedOpportunityCount(opportunities, facts.keys),
@@ -256,7 +372,34 @@ class StudentProfileViewModel(
             expandedFactKey = transient.expandedFactKey,
             factPendingDelete = transient.factPendingDelete,
             pendingDataAction = transient.pendingDataAction,
+            supportsProfileImport = getPlatform() == Platform.Desktop,
+            pendingProfileImport = transient.pendingProfileImport?.toPreview(),
+            profileImportError = transient.profileImportError,
             message = transient.message,
+        )
+    }
+
+    private fun PendingProfileImport.toPreview(): ProfileImportPreviewUiState {
+        val facts = profile.facts.values
+            .sortedBy { it.key.name }
+            .map { fact ->
+                ProfileImportFactUiState(
+                    key = fact.key,
+                    label = fact.key.label(),
+                    value = fact.value.profileDisplayValue(fact.key),
+                    provenanceLabel = fact.provenance.label(),
+                    hasEvidenceMetadata = fact.evidence != null,
+                    isSensitive = fact.key in SENSITIVE_PROFILE_FACTS,
+                )
+            }
+        val evidenceMetadataCount = profile.facts.values.count { it.evidence != null } +
+            profile.ruleAssertions.values.count { it.evidence != null }
+        return ProfileImportPreviewUiState(
+            fileName = fileName,
+            facts = facts,
+            ruleAssertionCount = profile.ruleAssertions.size,
+            evidenceMetadataCount = evidenceMetadataCount,
+            sensitiveFactCount = facts.count(ProfileImportFactUiState::isSensitive),
         )
     }
 
@@ -283,6 +426,19 @@ class StudentProfileViewModel(
     }
 
     private fun Double.compact(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
+
+    private fun Long.readableFileSize(): String = when {
+        this >= BYTES_PER_MEGABYTE -> "${(this.toDouble() / BYTES_PER_MEGABYTE).oneDecimal()} MB"
+        this >= BYTES_PER_KILOBYTE -> "${(this.toDouble() / BYTES_PER_KILOBYTE).oneDecimal()} KB"
+        else -> "$this B"
+    }
+
+    private fun Double.oneDecimal(): String {
+        val roundedTenths = (this * 10.0).toInt()
+        val whole = roundedTenths / 10
+        val fraction = roundedTenths % 10
+        return if (fraction == 0) whole.toString() else "$whole.$fraction"
+    }
 
     private fun FactKey.label(): String = when (this) {
         FactKey.GPA -> "GPA"
@@ -319,7 +475,14 @@ class StudentProfileViewModel(
         val expandedFactKey: FactKey? = null,
         val factPendingDelete: ProfileFactUiState? = null,
         val pendingDataAction: ProfileDataAction? = null,
+        val pendingProfileImport: PendingProfileImport? = null,
+        val profileImportError: String? = null,
         val message: String? = null,
+    )
+
+    private data class PendingProfileImport(
+        val fileName: String,
+        val profile: ProfileSnapshot,
     )
 
     private data class ProfileSectionDefinition(
@@ -329,6 +492,17 @@ class StudentProfileViewModel(
     )
 
     companion object {
+        private const val MAX_PROFILE_IMPORT_CHARACTERS = 1_000_000
+        private const val MAX_PROFILE_IMPORT_ASSERTIONS = 1_000
+        private const val MAX_PROFILE_IMPORT_FILE_NAME_CHARACTERS = 120
+        private const val BYTES_PER_KILOBYTE = 1_024L
+        private const val BYTES_PER_MEGABYTE = 1_024L * 1_024L
+        private val SENSITIVE_PROFILE_FACTS = setOf(
+            FactKey.NATIONALITY,
+            FactKey.RESIDENCY,
+            FactKey.DATE_OF_BIRTH,
+            FactKey.AGE,
+        )
         private val PROFILE_SECTIONS = listOf(
             ProfileSectionDefinition(
                 title = "Essentials",

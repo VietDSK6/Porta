@@ -431,6 +431,8 @@ private fun OpportunityHeader(uiState: OpportunityDetailUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             when {
+                uiState.isDemoProfile && uiState.isSampleCatalog -> "DEMO PROFILE · SYNTHETIC PACK"
+                uiState.isDemoProfile -> "DEMO PROFILE · SOURCED PACK"
                 uiState.isSampleProfile && uiState.isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
                 uiState.isSampleProfile -> "SAMPLE PROFILE · SOURCED PACK"
                 uiState.isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"

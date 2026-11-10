@@ -10,6 +10,8 @@ data class OnBoardingUiState(
     val isReceiptExpanded: Boolean = false,
     val completion: OnboardingCompletion? = null,
     val isLoading: Boolean = true,
+    val isInstallingDemoProfile: Boolean = false,
+    val demoProfileError: String? = null,
 ) {
     /** Demo doors are filtered to checks that fail at 6.5 and pass at 7.0. */
     val satisfiedIeltsRequirementCount: Int
@@ -103,6 +105,8 @@ sealed interface OnBoardingUiEvent {
     data object ReceiptToggled : OnBoardingUiEvent
 
     data object ExploreSample : OnBoardingUiEvent
+
+    data object UseDemoProfile : OnBoardingUiEvent
 
     data object BuildMyMap : OnBoardingUiEvent
 

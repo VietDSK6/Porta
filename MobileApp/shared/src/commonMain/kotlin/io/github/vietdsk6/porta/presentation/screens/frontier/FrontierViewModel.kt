@@ -47,12 +47,14 @@ class FrontierViewModel(
 ) : ViewModel() {
     private var activeProfile = PortaSampleData.profile
     private var isSampleProfile = true
+    private var isDemoProfile = false
     private var isSampleCatalog = true
     private var activeOpportunities = PortaSampleData.opportunities
     private var activeDate = currentLocalDateProvider.today()
     private var persistedSavedIds = emptySet<String>()
     private var activePlan: ActivePlanSummaryUiState? = null
     private var selectedActionId: String? = null
+    private var comparedActionIds = emptyList<String>()
     private var constraintsTouched = false
     private var constraints = DEFAULT_CONSTRAINTS
     private val _uiState = MutableStateFlow(buildState())
@@ -78,6 +80,7 @@ class FrontierViewModel(
                 val profile = inputs.profile
                 val pack = inputs.pack
                 isSampleProfile = profile.facts.isEmpty()
+                isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile)
                 activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
                 activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
                     ?: PortaSampleData.opportunities
@@ -137,6 +140,21 @@ class FrontierViewModel(
             is FrontierUiEvent.ActionSelected -> {
                 selectedActionId = event.actionId
                 _uiState.value = _uiState.value.copy(selectedActionId = event.actionId)
+            }
+
+            is FrontierUiEvent.ComparisonToggled -> {
+                val availableIds = _uiState.value.actions.map(FrontierActionUiState::id).toSet()
+                comparedActionIds = toggleComparedAction(
+                    currentActionIds = comparedActionIds,
+                    actionId = event.actionId,
+                    availableActionIds = availableIds,
+                )
+                _uiState.value = _uiState.value.copy(comparedActionIds = comparedActionIds)
+            }
+
+            FrontierUiEvent.ComparisonCleared -> {
+                comparedActionIds = emptyList()
+                _uiState.value = _uiState.value.copy(comparedActionIds = emptyList())
             }
         }
     }
@@ -318,8 +336,10 @@ class FrontierViewModel(
         selectedActionId = selectedActionId
             ?.takeIf { selectedId -> actions.any { it.id == selectedId } }
             ?: actions.firstOrNull()?.id
+        comparedActionIds = comparedActionIds.filter { comparedId -> actions.any { it.id == comparedId } }
         return FrontierUiState(
             isSampleMode = isSampleProfile,
+            isDemoProfile = isDemoProfile,
             isSampleCatalog = isSampleCatalog,
             catalogDoorCount = activeOpportunities.size,
             horizonDays = constraints.horizonDays,
@@ -331,6 +351,7 @@ class FrontierViewModel(
             exclusions = exclusions,
             suggestedGrowthHorizonDays = suggestedGrowthHorizonDays,
             selectedActionId = selectedActionId,
+            comparedActionIds = comparedActionIds,
         )
     }
 
@@ -414,4 +435,15 @@ class FrontierViewModel(
             prioritizeSaved = true,
         )
     }
+}
+
+internal fun toggleComparedAction(
+    currentActionIds: List<String>,
+    actionId: String,
+    availableActionIds: Set<String>,
+): List<String> = when {
+    actionId !in availableActionIds -> currentActionIds
+    actionId in currentActionIds -> currentActionIds - actionId
+    currentActionIds.size < MAX_COMPARED_ACTIONS -> currentActionIds + actionId
+    else -> currentActionIds
 }

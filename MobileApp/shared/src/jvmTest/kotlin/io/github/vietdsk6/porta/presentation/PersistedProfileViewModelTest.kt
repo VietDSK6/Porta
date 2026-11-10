@@ -37,6 +37,9 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierMoveKind
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
+import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingUiEvent
+import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
+import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.InformationTaskDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GpaScaleOption
@@ -107,6 +110,102 @@ class PersistedProfileViewModelTest {
     fun tearDown() {
         database.close()
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `ready made demo profile is persisted labelled and fully interactive`() = runTest(dispatcher) {
+        val onboarding = OnBoardingViewModel(
+            userPreferences = userPreferences,
+            eligibilityEvaluator = eligibilityEvaluator,
+            profileRepository = repository,
+            savedOpportunityRepository = savedOpportunityRepository,
+        )
+        advanceUntilIdle()
+
+        onboarding.onUiEvent(OnBoardingUiEvent.UseDemoProfile)
+        advanceUntilIdle()
+
+        val profile = repository.getProfile().getOrThrow()
+        assertEquals(PortaSampleData.judgeDemoProfile.facts.keys, profile.facts.keys)
+        assertTrue(PortaSampleData.isPersistedDemoProfile(profile))
+        assertEquals(OnboardingDestination.SAMPLE_MAP, onboarding.uiState.value.completion?.destination)
+        assertTrue(userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN))
+        assertEquals(
+            PortaSampleData.JUDGE_DEMO_HORIZON_DAYS,
+            userPreferences.getInt(UserPreferences.KEY_FRONTIER_HORIZON_DAYS),
+        )
+        assertTrue(userPreferences.getBoolean(UserPreferences.KEY_FRONTIER_PRIORITIZE_SAVED))
+        assertEquals(
+            PortaSampleData.judgeDemoSavedOpportunityIds,
+            savedOpportunityRepository.observeSavedIds().first(),
+        )
+
+        opportunityPackRepository.importPack(
+            BundledOpportunityPackProvider(OpportunityPackCodec()).rawJson(),
+        ).getOrThrow()
+
+        val doors = DoorsViewModel(
+            eligibilityEvaluator,
+            repository,
+            opportunityPackRepository,
+            savedOpportunityRepository,
+            currentLocalDateProvider,
+        )
+        val frontier = createFrontierViewModel()
+        advanceUntilIdle()
+
+        assertFalse(doors.uiState.value.isSampleMode)
+        assertTrue(doors.uiState.value.isDemoProfile)
+        assertEquals(15, doors.uiState.value.catalogDoorCount)
+        assertEquals(3, doors.uiState.value.doors.count { it.isSaved })
+        assertFalse(frontier.uiState.value.isSampleMode)
+        assertTrue(frontier.uiState.value.isDemoProfile)
+        assertEquals(PortaSampleData.JUDGE_DEMO_HORIZON_DAYS, frontier.uiState.value.horizonDays)
+        assertTrue(frontier.uiState.value.prioritizeSaved)
+        assertTrue(frontier.uiState.value.actions.any { it.title == "Raise IELTS to 7.0 band" })
+        assertTrue(frontier.uiState.value.actions.any { it.kind == FrontierMoveKind.PREPARE })
+        assertTrue(frontier.uiState.value.actions.any { it.kind == FrontierMoveKind.IMPROVE })
+        assertTrue(frontier.uiState.value.actions.any { it.kind == FrontierMoveKind.VERIFY })
+        assertTrue(frontier.uiState.value.actionFamilies.size >= 3)
+        assertTrue(frontier.uiState.value.hasMeaningfulTradeOffs)
+
+        repository.saveFacts(
+            listOf(
+                checkNotNull(profile.facts[FactKey.IELTS_SCORE]).copy(id = "default:ielts_score"),
+            ),
+        ).getOrThrow()
+        assertTrue(PortaSampleData.isPersistedDemoProfile(repository.getProfile().getOrThrow()))
+
+        val mixedProfile = repository.getProfile().getOrThrow()
+        repository.saveFacts(
+            mixedProfile.facts.values.map { fact ->
+                fact.copy(id = "default:${fact.key.name.lowercase()}")
+            },
+        ).getOrThrow()
+        assertTrue(PortaSampleData.isPersistedDemoProfile(repository.getProfile().getOrThrow()))
+    }
+
+    @Test
+    fun `ready made demo profile never overwrites an existing local profile`() = runTest(dispatcher) {
+        saveIelts(7.0)
+        val onboarding = OnBoardingViewModel(
+            userPreferences = userPreferences,
+            eligibilityEvaluator = eligibilityEvaluator,
+            profileRepository = repository,
+        )
+        advanceUntilIdle()
+
+        onboarding.onUiEvent(OnBoardingUiEvent.UseDemoProfile)
+        advanceUntilIdle()
+
+        val profile = repository.getProfile().getOrThrow()
+        assertEquals(setOf(FactKey.IELTS_SCORE), profile.facts.keys)
+        assertFalse(PortaSampleData.isPersistedDemoProfile(profile))
+        assertNull(onboarding.uiState.value.completion)
+        assertEquals(
+            "A local profile already exists, so Porta left it unchanged.",
+            onboarding.uiState.value.demoProfileError,
+        )
     }
 
     @Test

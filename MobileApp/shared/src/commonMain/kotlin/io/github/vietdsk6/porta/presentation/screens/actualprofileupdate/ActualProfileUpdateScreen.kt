@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,13 +20,18 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +39,16 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.util.file.EvidenceAttachmentPolicy
+import io.github.vietdsk6.porta.util.file.SelectedEvidenceFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.mimeType
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.size
+import kotlinx.coroutines.launch
 
 @Composable
 fun ActualProfileUpdateScreen(
@@ -42,6 +58,43 @@ fun ActualProfileUpdateScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    val evidencePicker = rememberFilePickerLauncher(
+        type = FileKitType.File(EvidenceAttachmentPolicy.allowedExtensions),
+        mode = FileKitMode.Single,
+    ) { file ->
+        file ?: return@rememberFilePickerLauncher
+        coroutineScope.launch {
+            runCatching {
+                val reportedSize = file.size()
+                require(reportedSize > 0L) { "Choose a non-empty evidence file." }
+                require(reportedSize <= EvidenceAttachmentPolicy.MAX_BYTE_SIZE) {
+                    "Choose a file no larger than 10 MB."
+                }
+                val bytes = file.readBytes()
+                require(bytes.isNotEmpty()) { "Choose a non-empty evidence file." }
+                require(bytes.size.toLong() <= EvidenceAttachmentPolicy.MAX_BYTE_SIZE) {
+                    "Choose a file no larger than 10 MB."
+                }
+                SelectedEvidenceFile(
+                    displayName = file.name,
+                    mimeType = file.mimeType()?.toString(),
+                    bytes = bytes,
+                )
+            }.fold(
+                onSuccess = { selectedFile ->
+                    viewModel.onUiEvent(ActualProfileUpdateUiEvent.EvidenceFileSelected(selectedFile))
+                },
+                onFailure = { error ->
+                    viewModel.onUiEvent(
+                        ActualProfileUpdateUiEvent.EvidenceFileSelectionFailed(
+                            error.message ?: "Porta could not read this local file.",
+                        ),
+                    )
+                },
+            )
+        }
+    }
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
@@ -55,6 +108,7 @@ fun ActualProfileUpdateScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
+        onPickEvidenceFile = evidencePicker::launch,
     )
 }
 
@@ -63,6 +117,7 @@ fun ActualProfileUpdateScreen(
     uiState: ActualProfileUpdateUiState,
     onUiEvent: (ActualProfileUpdateUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
+    onPickEvidenceFile: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ScreenWithToolbar(
@@ -76,7 +131,7 @@ fun ActualProfileUpdateScreen(
         when {
             uiState.isLoading -> LoadingState()
             !uiState.hasCompletedPlan -> UnavailableState(onNavigateBack)
-            else -> UpdateForm(uiState, onUiEvent, onNavigateBack)
+            else -> UpdateForm(uiState, onUiEvent, onNavigateBack, onPickEvidenceFile)
         }
     }
 }
@@ -126,12 +181,14 @@ private fun UpdateForm(
     uiState: ActualProfileUpdateUiState,
     onUiEvent: (ActualProfileUpdateUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
+    onPickEvidenceFile: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sectionSpacing)) {
         BoundaryBanner()
+        ConfirmationChecklist(uiState)
         ValueComparisonCard(uiState)
         AchievedValueCard(uiState, onUiEvent)
-        EvidenceCard(uiState, onUiEvent)
+        EvidenceCard(uiState, onUiEvent, onPickEvidenceFile)
         uiState.scopeWarning?.let { warning ->
             Text(
                 text = warning,
@@ -147,6 +204,17 @@ private fun UpdateForm(
                 modifier = Modifier.testTag("actual-profile-update-error"),
                 color = AppTheme.colors.status.error,
                 style = AppTheme.typography.bodyMedium,
+            )
+        }
+        uiState.confirmationGuidance?.let { guidance ->
+            Text(
+                text = guidance,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("actual-profile-update-guidance"),
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
             )
         }
         Button(
@@ -171,6 +239,78 @@ private fun UpdateForm(
             Text("Not yet — keep profile unchanged")
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun ConfirmationChecklist(uiState: ActualProfileUpdateUiState) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("actual-result-checklist"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Complete these steps", style = AppTheme.typography.h6)
+            ChecklistStep(
+                number = 1,
+                title = if (uiState.inputKind == ActualValueInputKind.BOOLEAN) {
+                    "Select actual result"
+                } else {
+                    "Enter actual result"
+                },
+                status = if (uiState.hasActualResult) "Done" else "Next",
+                isDone = uiState.hasActualResult,
+            )
+            val evidenceStatus = when {
+                uiState.hasSupportingEvidence -> "Added"
+
+                uiState.inputKind == ActualValueInputKind.BOOLEAN && uiState.achievedBoolean == false ->
+                    "Not needed for No"
+
+                uiState.isEvidenceRequired &&
+                    uiState.inputKind == ActualValueInputKind.BOOLEAN &&
+                    uiState.achievedBoolean == null -> "Required if result is Yes"
+
+                uiState.requiresSupportingEvidence -> "Required"
+
+                else -> "Optional"
+            }
+            ChecklistStep(
+                number = 2,
+                title = "Add supporting evidence",
+                status = evidenceStatus,
+                isDone = uiState.hasSupportingEvidence ||
+                    (uiState.inputKind == ActualValueInputKind.BOOLEAN && uiState.achievedBoolean == false),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChecklistStep(
+    number: Int,
+    title: String,
+    status: String,
+    isDone: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (isDone) "✓" else number.toString(),
+            color = AppTheme.colors.primary,
+            fontWeight = FontWeight.Bold,
+            style = AppTheme.typography.h6,
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = AppTheme.typography.bodyLarge)
+            Text(status, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        }
     }
 }
 
@@ -292,46 +432,111 @@ private fun AchievedValueCard(
             }
 
             ActualValueInputKind.NUMBER,
+            ActualValueInputKind.ENUM,
+            ActualValueInputKind.ENUM_LIST,
             ActualValueInputKind.TEXT,
+            ActualValueInputKind.DATE,
+            ActualValueInputKind.DURATION,
             -> OutlinedTextField(
-                modifier = Modifier.fillMaxWidth().testTag("achieved-value-input"),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("achieved-value-input")
+                    .semantics {
+                        uiState.inputKind.inputStateDescription(uiState.unitLabel)?.let {
+                            stateDescription = it
+                        }
+                    },
                 value = uiState.achievedValue,
                 onValueChange = { onUiEvent(ActualProfileUpdateUiEvent.AchievedValueChanged(it)) },
-                label = { Text("Achieved value") },
+                label = { Text(uiState.inputKind.inputLabel()) },
+                placeholder = uiState.inputKind.inputPlaceholder()?.let { placeholder ->
+                    { Text(placeholder) }
+                },
                 suffix = uiState.unitLabel.takeIf(String::isNotBlank)?.let { unit ->
                     { Text(unit) }
                 },
-                supportingText = uiState.achievedValueError?.let { message ->
+                supportingText = (uiState.achievedValueError ?: uiState.inputKind.inputGuidance())?.let { message ->
                     { Text(message) }
                 },
                 isError = uiState.achievedValueError != null,
-                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = uiState.inputKind.keyboardType()),
+                singleLine = uiState.inputKind != ActualValueInputKind.ENUM_LIST,
+                minLines = if (uiState.inputKind == ActualValueInputKind.ENUM_LIST) 2 else 1,
             )
         }
     }
+}
+
+private fun ActualValueInputKind.inputLabel(): String = when (this) {
+    ActualValueInputKind.NUMBER -> "Achieved number"
+    ActualValueInputKind.BOOLEAN -> "Achieved value"
+    ActualValueInputKind.ENUM -> "Achieved option"
+    ActualValueInputKind.ENUM_LIST -> "Achieved values"
+    ActualValueInputKind.TEXT -> "Achieved value"
+    ActualValueInputKind.DATE -> "Actual date"
+    ActualValueInputKind.DURATION -> "Actual duration"
+}
+
+private fun ActualValueInputKind.inputPlaceholder(): String? = when (this) {
+    ActualValueInputKind.DATE -> "YYYY-MM-DD"
+    ActualValueInputKind.ENUM_LIST -> "First value, second value"
+    else -> null
+}
+
+private fun ActualValueInputKind.inputGuidance(): String? = when (this) {
+    ActualValueInputKind.DATE -> "Use an ISO date in YYYY-MM-DD format"
+    ActualValueInputKind.DURATION -> "Enter a whole number; the plan unit is preserved"
+    ActualValueInputKind.ENUM_LIST -> "Separate multiple values with commas or new lines"
+    else -> null
+}
+
+private fun ActualValueInputKind.inputStateDescription(unitLabel: String): String? = when (this) {
+    ActualValueInputKind.DATE -> "Expected date format YYYY-MM-DD"
+    ActualValueInputKind.DURATION -> "Duration unit: $unitLabel"
+    ActualValueInputKind.ENUM_LIST -> "Separate values with commas or new lines"
+    else -> null
+}
+
+private fun ActualValueInputKind.keyboardType(): KeyboardType = when (this) {
+    ActualValueInputKind.NUMBER -> KeyboardType.Decimal
+    ActualValueInputKind.DURATION -> KeyboardType.Number
+    else -> KeyboardType.Text
 }
 
 @Composable
 private fun EvidenceCard(
     uiState: ActualProfileUpdateUiState,
     onUiEvent: (ActualProfileUpdateUiEvent) -> Unit,
+    onPickEvidenceFile: () -> Unit,
 ) {
+    val description = when {
+        uiState.isEvidenceRequired &&
+            uiState.inputKind == ActualValueInputKind.BOOLEAN &&
+            uiState.achievedBoolean == null ->
+            "Select Yes or No first. Supporting evidence is required only for a Yes result."
+
+        uiState.isEvidenceRequired &&
+            uiState.inputKind == ActualValueInputKind.BOOLEAN &&
+            uiState.achievedBoolean == false ->
+            "No supporting evidence is required for a No result."
+
+        uiState.requiresSupportingEvidence ->
+            "Add a short title or attach a file. A file is recommended and stays on this device."
+
+        else -> "Store an optional local note or attach a file that supports this fact."
+    }
     FormCard(
-        title = if (uiState.isEvidenceRequired) "Evidence for this programme check" else "Evidence (optional)",
-        description = if (uiState.isEvidenceRequired) {
-            "A programme-specific confirmation needs a local evidence note. Porta does not upload the file."
-        } else {
-            "Store a local note about what supports this fact. Porta does not upload the file."
-        },
+        title = "Supporting evidence",
+        description = description,
     ) {
-        if (uiState.isEvidenceRequired) {
+        if (uiState.requiresSupportingEvidence) {
             Text(
-                text = "Required before this exact requirement can be confirmed",
+                text = "Required for a Yes result: add a title or file",
                 color = AppTheme.colors.primary,
                 style = AppTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-        } else {
+        } else if (!uiState.isEvidenceRequired) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     modifier = Modifier.testTag("include-evidence-checkbox"),
@@ -341,15 +546,44 @@ private fun EvidenceCard(
                 Text("Add evidence details", style = AppTheme.typography.bodyLarge)
             }
         }
-        if (uiState.includeEvidence) {
+        if (uiState.showEvidenceInputs) {
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth().testTag("pick-evidence-attachment"),
+                enabled = !uiState.isSaving,
+                onClick = onPickEvidenceFile,
+            ) {
+                Text(
+                    when {
+                        uiState.evidenceAttachment != null -> "Replace attached file"
+                        uiState.requiresSupportingEvidence -> "Attach image or file (recommended)"
+                        else -> "Attach image or file"
+                    },
+                )
+            }
+            Text(
+                "Accepted: images, PDF, TXT, DOC, or DOCX · maximum 10 MB",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            uiState.evidenceAttachment?.let { attachment ->
+                EvidenceAttachmentCard(attachment, onUiEvent)
+            }
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth().testTag("evidence-label-input"),
                 value = uiState.evidenceLabel,
                 onValueChange = { onUiEvent(ActualProfileUpdateUiEvent.EvidenceLabelChanged(it)) },
-                label = { Text("Evidence label") },
-                placeholder = { Text("IELTS result, transcript, certificate…") },
-                supportingText = if (uiState.evidenceLabel.isBlank()) {
-                    { Text(if (uiState.showEvidenceLabelError) "Give the evidence a short label" else "Required: name the evidence supporting this result") }
+                label = { Text("Evidence title") },
+                placeholder = { Text("Calendar approval, transcript, certificate…") },
+                supportingText = if (uiState.evidenceLabel.isBlank() && uiState.evidenceAttachment == null) {
+                    {
+                        Text(
+                            if (uiState.showEvidenceLabelError) {
+                                "Add a short title or attach a file"
+                            } else {
+                                "Add a short title, or attach a file instead"
+                            },
+                        )
+                    }
                 } else {
                     null
                 },
@@ -364,6 +598,67 @@ private fun EvidenceCard(
                 placeholder = { Text("Optional file name, URL, or note") },
                 singleLine = true,
             )
+            uiState.evidenceAttachmentError?.let { error ->
+                Text(
+                    text = error,
+                    modifier = Modifier.testTag("evidence-attachment-error"),
+                    color = AppTheme.colors.status.error,
+                    style = AppTheme.typography.bodyMedium,
+                )
+            }
+            Text(
+                "Stored locally on this device. Porta does not independently verify authenticity or submit it.",
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EvidenceAttachmentCard(
+    attachment: EvidenceAttachmentUiState,
+    onUiEvent: (ActualProfileUpdateUiEvent) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("evidence-attachment-card"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.background),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                attachment.displayName,
+                color = AppTheme.colors.text.primary,
+                fontWeight = FontWeight.SemiBold,
+                style = AppTheme.typography.bodyLarge,
+            )
+            Text(
+                listOfNotNull(attachment.mimeType, attachment.byteSize.toReadableSize()).joinToString(" · "),
+                color = AppTheme.colors.text.secondary,
+                style = AppTheme.typography.bodySmall,
+            )
+            Text(
+                if (attachment.isStored) "Stored in Porta's private local storage" else "Ready to store when you confirm",
+                color = AppTheme.colors.primary,
+                style = AppTheme.typography.bodySmall,
+            )
+            if (attachment.isStored) {
+                TextButton(
+                    modifier = Modifier.testTag("open-evidence-attachment"),
+                    onClick = { onUiEvent(ActualProfileUpdateUiEvent.OpenEvidenceAttachment) },
+                ) {
+                    Text("Open file")
+                }
+            }
+            TextButton(
+                modifier = Modifier.testTag("remove-evidence-attachment"),
+                onClick = { onUiEvent(ActualProfileUpdateUiEvent.RemoveEvidenceAttachment) },
+            ) {
+                Text("Remove file")
+            }
         }
     }
 }
@@ -403,7 +698,13 @@ private fun FormCard(
     }
 }
 
-@Preview
+private fun Long.toReadableSize(): String = when {
+    this < 1024L -> "$this B"
+    this < 1024L * 1024L -> "${this / 1024L} KB"
+    else -> "${this / (1024L * 1024L)} MB"
+}
+
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun ActualProfileUpdateScreenPreview() {
     AppTheme {
@@ -415,11 +716,46 @@ private fun ActualProfileUpdateScreenPreview() {
                 factLabel = "IELTS score",
                 currentValueLabel = "6.5 band",
                 plannedTargetLabel = "7.0 band",
-                achievedValue = "",
+                achievedValue = "7.0",
                 unitLabel = "band",
+                includeEvidence = true,
+                evidenceLabel = "Official IELTS score report",
+                evidenceAttachment = EvidenceAttachmentUiState(
+                    displayName = "ielts-score-report.pdf",
+                    mimeType = "application/pdf",
+                    byteSize = 458_752L,
+                    isStored = true,
+                ),
             ),
             onUiEvent = {},
             onNavigateBack = {},
         )
+    }
+}
+
+@Preview(widthDp = 390, heightDp = 700)
+@Composable
+private fun EvidenceAttachmentCardPreview() {
+    AppTheme {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(20.dp),
+        ) {
+            EvidenceCard(
+                uiState = ActualProfileUpdateUiState(
+                    isLoading = false,
+                    hasCompletedPlan = true,
+                    includeEvidence = true,
+                    evidenceLabel = "Official IELTS score report",
+                    evidenceAttachment = EvidenceAttachmentUiState(
+                        displayName = "ielts-score-report.pdf",
+                        mimeType = "application/pdf",
+                        byteSize = 458_752L,
+                        isStored = true,
+                    ),
+                ),
+                onUiEvent = {},
+                onPickEvidenceFile = {},
+            )
+        }
     }
 }

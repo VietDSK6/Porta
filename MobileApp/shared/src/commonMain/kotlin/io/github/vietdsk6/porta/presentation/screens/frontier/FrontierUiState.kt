@@ -6,6 +6,7 @@ import io.github.vietdsk6.porta.domain.model.PlanStatus
 
 data class FrontierUiState(
     val isSampleMode: Boolean = true,
+    val isDemoProfile: Boolean = false,
     val isSampleCatalog: Boolean = true,
     val catalogDoorCount: Int = 0,
     val horizonDays: Int = 90,
@@ -17,6 +18,7 @@ data class FrontierUiState(
     val exclusions: List<FrontierExcludedActionUiState> = emptyList(),
     val suggestedGrowthHorizonDays: Int? = null,
     val selectedActionId: String? = null,
+    val comparedActionIds: List<String> = emptyList(),
 ) {
     val actionFamilies: List<FrontierActionFamilyUiState>
         get() = actions
@@ -41,6 +43,11 @@ data class FrontierUiState(
             }
             .distinct()
             .size > 1
+
+    val comparedActions: List<FrontierActionUiState>
+        get() = comparedActionIds.mapNotNull { comparedId ->
+            actions.firstOrNull { action -> action.id == comparedId }
+        }
 }
 
 data class ActivePlanSummaryUiState(
@@ -127,4 +134,10 @@ sealed interface FrontierUiEvent {
     data class PrioritizeSavedChanged(val prioritize: Boolean) : FrontierUiEvent
 
     data class ActionSelected(val actionId: String) : FrontierUiEvent
+
+    data class ComparisonToggled(val actionId: String) : FrontierUiEvent
+
+    data object ComparisonCleared : FrontierUiEvent
 }
+
+internal const val MAX_COMPARED_ACTIONS = 3

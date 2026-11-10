@@ -40,6 +40,7 @@ class DoorsViewModel(
     private val pendingSavedStates = mutableMapOf<String, Boolean>()
     private val savedMutationMutex = Mutex()
     private var isSampleProfile = true
+    private var isDemoProfile = false
     private var isSampleCatalog = true
     private var activeProfile = PortaSampleData.profile
     private var activeOpportunities = PortaSampleData.opportunities
@@ -72,6 +73,7 @@ class DoorsViewModel(
                     (opportunityId in savedIds) == isSaved
                 }
                 isSampleProfile = profile.facts.isEmpty()
+                isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile)
                 activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
                 activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
                     ?: PortaSampleData.opportunities
@@ -200,6 +202,7 @@ class DoorsViewModel(
         }
         return DoorsUiState(
             isSampleMode = isSampleProfile,
+            isDemoProfile = isDemoProfile,
             isSampleCatalog = isSampleCatalog,
             catalogDoorCount = refreshed.size,
             selectedFilter = current.selectedFilter,

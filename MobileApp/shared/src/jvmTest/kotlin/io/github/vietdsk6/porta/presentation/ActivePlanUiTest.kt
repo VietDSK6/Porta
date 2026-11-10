@@ -42,6 +42,8 @@ class ActivePlanUiTest {
         }
 
         onNodeWithTag("active-plan-card").assertExists()
+        onNodeWithTag("active-plan-list").performScrollToNode(hasText("Suggested evidence"))
+        onNodeWithText("Suggested evidence").assertExists()
         onNodeWithTag("active-plan-list").performScrollToNode(hasText("Work complete · actual result pending"))
         onNodeWithText("Work complete · actual result pending").assertExists()
         onNodeWithTag("active-plan-list").performScrollToNode(hasTestTag("update-profile-button"))

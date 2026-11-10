@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.data.source.local.entity
 
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
+import io.github.vietdsk6.porta.domain.model.EvidenceAttachmentMetadata
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
@@ -27,6 +28,10 @@ data class RuleAssertionEntity(
     @ColumnInfo("evidence_label") val evidenceLabel: String? = null,
     @ColumnInfo("evidence_reference") val evidenceReference: String? = null,
     @ColumnInfo("evidence_checked_at") val evidenceCheckedAtEpochMillis: Long? = null,
+    @ColumnInfo("evidence_attachment_name") val evidenceAttachmentName: String? = null,
+    @ColumnInfo("evidence_attachment_mime_type") val evidenceAttachmentMimeType: String? = null,
+    @ColumnInfo("evidence_attachment_size") val evidenceAttachmentSize: Long? = null,
+    @ColumnInfo("evidence_attachment_storage_key") val evidenceAttachmentStorageKey: String? = null,
     @ColumnInfo("updated_at") val updatedAtEpochMillis: Long,
 )
 
@@ -52,6 +57,14 @@ fun RuleAssertionEntity.toModel(): RuleAssertion = RuleAssertion(
             label = it,
             reference = evidenceReference,
             checkedAtEpochMillis = evidenceCheckedAtEpochMillis,
+            attachment = evidenceAttachmentName?.let { displayName ->
+                EvidenceAttachmentMetadata(
+                    displayName = displayName,
+                    mimeType = evidenceAttachmentMimeType,
+                    byteSize = evidenceAttachmentSize ?: 0L,
+                    storageKey = evidenceAttachmentStorageKey,
+                )
+            },
         )
     },
     updatedAtEpochMillis = updatedAtEpochMillis,
@@ -75,6 +88,10 @@ fun RuleAssertion.toEntity(): RuleAssertionEntity {
         evidenceLabel = evidence?.label,
         evidenceReference = evidence?.reference,
         evidenceCheckedAtEpochMillis = evidence?.checkedAtEpochMillis,
+        evidenceAttachmentName = evidence?.attachment?.displayName,
+        evidenceAttachmentMimeType = evidence?.attachment?.mimeType,
+        evidenceAttachmentSize = evidence?.attachment?.byteSize,
+        evidenceAttachmentStorageKey = evidence?.attachment?.storageKey,
         updatedAtEpochMillis = updatedAtEpochMillis,
     )
 }

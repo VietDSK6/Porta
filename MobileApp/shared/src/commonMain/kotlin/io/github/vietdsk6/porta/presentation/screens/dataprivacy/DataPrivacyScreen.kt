@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,13 +33,22 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileDataAction
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileImportFactUiState
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileImportPreviewUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiEvent
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.confirmationBody
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.confirmationButton
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.confirmationTitle
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readString
+import kotlinx.coroutines.launch
 
 @Composable
 fun DataPrivacyScreen(
@@ -45,11 +58,34 @@ fun DataPrivacyScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    val profilePicker = rememberFilePickerLauncher(
+        type = FileKitType.File("json"),
+        mode = FileKitMode.Single,
+    ) { file ->
+        file ?: return@rememberFilePickerLauncher
+        coroutineScope.launch {
+            runCatching { file.readString() }.fold(
+                onSuccess = { encodedProfile ->
+                    viewModel.onUiEvent(
+                        StudentProfileUiEvent.ImportProfileSelected(
+                            fileName = file.name,
+                            encodedProfile = encodedProfile,
+                        ),
+                    )
+                },
+                onFailure = {
+                    viewModel.onUiEvent(StudentProfileUiEvent.ImportProfileReadFailed)
+                },
+            )
+        }
+    }
     DataPrivacyScreen(
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
         onOpenPackInspector = onOpenPackInspector,
+        onImportProfile = profilePicker::launch,
         modifier = modifier,
     )
 }
@@ -60,6 +96,7 @@ fun DataPrivacyScreen(
     onUiEvent: (StudentProfileUiEvent) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenPackInspector: () -> Unit,
+    onImportProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ScreenWithToolbar(
@@ -75,12 +112,18 @@ fun DataPrivacyScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
-                text = "Your profile and plans are stored on this device. You can inspect the rules, export a copy of your profile metadata, or remove local data here.",
+                text = if (uiState.supportsProfileImport) {
+                    "Your profile and plans are stored on this device. Inspect rules, export a profile copy, " +
+                        "or preview a copy from Android before importing it here."
+                } else {
+                    "Your profile and plans are stored on this device. You can inspect the rules, " +
+                        "export a copy of your profile metadata, or remove local data here."
+                },
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.secondary,
             )
 
-            DataSection(title = "Review and export") {
+            DataSection(title = "Review and transfer") {
                 DataActionRow(
                     title = "Opportunity pack",
                     description = "See which encoded checks use your profile facts.",
@@ -98,6 +141,17 @@ fun DataPrivacyScreen(
                     enabled = uiState.hasRealProfile && !uiState.isWorking && !uiState.isLoading,
                     onClick = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
                 )
+                if (uiState.supportsProfileImport) {
+                    HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.24f))
+                    DataActionRow(
+                        title = "Profile copy from another device",
+                        description = "Preview a Porta JSON export, then replace this device's profile facts and programme confirmations.",
+                        action = "Import",
+                        tag = "student-profile-import",
+                        enabled = !uiState.isWorking && !uiState.isLoading,
+                        onClick = onImportProfile,
+                    )
+                }
             }
 
             DataSection(title = "Remove local data") {
@@ -169,6 +223,141 @@ fun DataPrivacyScreen(
             },
         )
     }
+
+    uiState.pendingProfileImport?.let { preview ->
+        ProfileImportPreviewDialog(
+            preview = preview,
+            isWorking = uiState.isWorking,
+            error = uiState.profileImportError,
+            onConfirm = { onUiEvent(StudentProfileUiEvent.ImportProfileConfirmed) },
+            onCancel = { onUiEvent(StudentProfileUiEvent.ImportProfileCancelled) },
+        )
+    }
+}
+
+@Composable
+private fun ProfileImportPreviewDialog(
+    preview: ProfileImportPreviewUiState,
+    isWorking: Boolean,
+    error: String?,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        modifier = Modifier.testTag("student-profile-import-preview"),
+        onDismissRequest = { if (!isWorking) onCancel() },
+        title = { Text("Import this profile copy?") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = preview.fileName,
+                    modifier = Modifier.testTag("student-profile-import-file-name"),
+                    style = AppTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${preview.facts.size} profile facts · " +
+                        "${preview.ruleAssertionCount} programme confirmations · " +
+                        "${preview.evidenceMetadataCount} evidence metadata records",
+                    modifier = Modifier.testTag("student-profile-import-counts"),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.text.secondary,
+                )
+                Surface(
+                    color = AppTheme.colors.alternative,
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "This replaces every profile fact and programme confirmation on this device. It is not a merge.",
+                            fontWeight = FontWeight.Bold,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                        Text(
+                            text = "Plans, saved doors, planning limits and the opportunity catalog stay unchanged.",
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                if (preview.sensitiveFactCount > 0 || preview.evidenceMetadataCount > 0) {
+                    Text(
+                        text = "Sensitive preview: ${preview.sensitiveFactCount} identity/context facts and " +
+                            "${preview.evidenceMetadataCount} evidence labels or references. Evidence files are not included.",
+                        modifier = Modifier.testTag("student-profile-import-sensitive-warning"),
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.status.warning,
+                    )
+                }
+                Text("Facts in this copy", style = AppTheme.typography.h6)
+                preview.facts.forEach { fact ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("student-profile-import-fact-${fact.key.name.lowercase()}"),
+                        color = AppTheme.colors.surfaceContainer,
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(fact.label, fontWeight = FontWeight.SemiBold)
+                            Text(fact.value, style = AppTheme.typography.bodyMedium)
+                            Text(
+                                text = buildString {
+                                    append(fact.provenanceLabel)
+                                    if (fact.hasEvidenceMetadata) append(" · evidence metadata included")
+                                    if (fact.isSensitive) append(" · sensitive context")
+                                },
+                                style = AppTheme.typography.bodySmall,
+                                color = AppTheme.colors.text.secondary,
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = "Programme confirmations are only reused when their opportunity rule fingerprint still matches this catalog.",
+                    modifier = Modifier.testTag("student-profile-import-fingerprint-note"),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.text.secondary,
+                )
+                error?.let {
+                    Text(
+                        text = it,
+                        modifier = Modifier.testTag("student-profile-import-error"),
+                        color = MaterialTheme.colorScheme.error,
+                        style = AppTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                modifier = Modifier.testTag("student-profile-import-confirm"),
+                enabled = !isWorking,
+                onClick = onConfirm,
+            ) {
+                Text(if (isWorking) "Importing…" else "Replace profile")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                modifier = Modifier.testTag("student-profile-import-cancel"),
+                enabled = !isWorking,
+                onClick = onCancel,
+            ) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable
@@ -242,7 +431,52 @@ private fun DataActionRow(
 private fun DataPrivacyScreenPreview() {
     AppTheme {
         DataPrivacyScreen(
-            uiState = StudentProfileUiState(isLoading = false, hasRealProfile = true),
+            uiState = StudentProfileUiState(
+                isLoading = false,
+                hasRealProfile = true,
+                supportsProfileImport = true,
+            ),
+            onUiEvent = {},
+            onNavigateBack = {},
+            onOpenPackInspector = {},
+        )
+    }
+}
+
+@Preview(device = "spec:width=1280dp,height=1000dp,dpi=160")
+@Composable
+private fun DataPrivacyImportPreview() {
+    AppTheme {
+        DataPrivacyScreen(
+            uiState = StudentProfileUiState(
+                isLoading = false,
+                hasRealProfile = true,
+                supportsProfileImport = true,
+                pendingProfileImport = ProfileImportPreviewUiState(
+                    fileName = "porta-profile.json",
+                    facts = listOf(
+                        ProfileImportFactUiState(
+                            key = FactKey.NATIONALITY,
+                            label = "Nationality",
+                            value = "Vietnam",
+                            provenanceLabel = "Self-reported",
+                            hasEvidenceMetadata = false,
+                            isSensitive = true,
+                        ),
+                        ProfileImportFactUiState(
+                            key = FactKey.IELTS_SCORE,
+                            label = "IELTS score",
+                            value = "7.0 band",
+                            provenanceLabel = "Evidence-backed",
+                            hasEvidenceMetadata = true,
+                            isSensitive = false,
+                        ),
+                    ),
+                    ruleAssertionCount = 3,
+                    evidenceMetadataCount = 1,
+                    sensitiveFactCount = 1,
+                ),
+            ),
             onUiEvent = {},
             onNavigateBack = {},
             onOpenPackInspector = {},

@@ -137,6 +137,14 @@ data class EvidenceMetadata(
     val label: String,
     val reference: String? = null,
     val checkedAtEpochMillis: Long? = null,
+    val attachment: EvidenceAttachmentMetadata? = null,
+)
+
+data class EvidenceAttachmentMetadata(
+    val displayName: String,
+    val mimeType: String? = null,
+    val byteSize: Long,
+    val storageKey: String? = null,
 )
 
 fun FactValue.displayValue(): String = when (this) {

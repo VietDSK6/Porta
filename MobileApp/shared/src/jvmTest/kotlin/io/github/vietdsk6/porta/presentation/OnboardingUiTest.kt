@@ -75,7 +75,7 @@ class OnboardingUiTest {
     }
 
     @Test
-    fun `real and sample choices remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+    fun `profile choices remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
         val events = mutableListOf<OnBoardingUiEvent>()
         setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
@@ -93,6 +93,8 @@ class OnboardingUiTest {
 
         onNodeWithTag("onboarding-build-profile").performScrollTo().assertIsDisplayed().performClick()
         assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
+        onNodeWithTag("onboarding-use-demo-profile").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals(OnBoardingUiEvent.UseDemoProfile, events.last())
         onNodeWithTag("onboarding-explore-sample").performScrollTo().assertIsDisplayed().performClick()
         assertEquals(OnBoardingUiEvent.ExploreSample, events.last())
     }
@@ -236,7 +238,7 @@ class OnboardingUiTest {
     }
 
     @Test
-    fun `final choice keeps sample and real profile paths separate`() = runComposeUiTest {
+    fun `final choice separates personal saved demo and temporary paths`() = runComposeUiTest {
         val events = mutableListOf<OnBoardingUiEvent>()
         setContent {
             AppTheme {
@@ -248,10 +250,14 @@ class OnboardingUiTest {
             }
         }
 
-        onNodeWithText("Your profile facts stay on this device. The demo did not save any of them.")
+        onNodeWithText("Saved profile facts stay on this device. Demo facts are fictional and clearly labelled.")
             .assertExists()
+        onNodeWithText("Meet Linh, a fictional CS undergraduate", substring = true).assertExists()
+        onNodeWithText("programme-verification trade-offs over 180 days", substring = true).assertExists()
         onNodeWithTag("onboarding-build-profile").performScrollTo().performClick()
         assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
+        onNodeWithTag("onboarding-use-demo-profile").performScrollTo().performClick()
+        assertEquals(OnBoardingUiEvent.UseDemoProfile, events.last())
         onNodeWithTag("onboarding-explore-sample").performScrollTo().performClick()
         assertEquals(OnBoardingUiEvent.ExploreSample, events.last())
     }

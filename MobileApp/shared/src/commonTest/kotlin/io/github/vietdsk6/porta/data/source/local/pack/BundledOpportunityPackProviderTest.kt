@@ -37,7 +37,7 @@ class BundledOpportunityPackProviderTest {
         val document = assertNotNull(result.document)
         val opportunities = document.opportunities
         assertEquals(BundledOpportunityPackProvider.PACK_ID, document.metadata.id)
-        assertEquals(3, document.metadata.version)
+        assertEquals(4, document.metadata.version)
         assertEquals(PortaContestPackData.REVIEWED_ON, document.metadata.lastCheckedOn.toString())
         assertEquals(15, opportunities.size)
         assertTrue(opportunities.all { it.eligibilityRule.id.isNotBlank() })
@@ -103,8 +103,8 @@ class BundledOpportunityPackProviderTest {
 
         assertTrue(provider.shouldInstallOver(activePackId = null, activeVersion = null))
         assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID, 1))
-        assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 2))
-        assertFalse(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 3))
+        assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 3))
+        assertFalse(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 4))
         assertFalse(provider.shouldInstallOver("student-imported-catalog", 1))
     }
 
@@ -142,6 +142,10 @@ class BundledOpportunityPackProviderTest {
     fun `schwarzman IELTS is one accepted route and cannot make the whole programme open`() {
         val opportunity = bundledOpportunities().first { it.id == "schwarzman-scholars-2028-2029" }
         val evaluator = EligibilityEvaluator()
+        val ieltsRule = opportunity.eligibilityRule.flatten()
+            .filterIsInstance<RuleNode.Atomic>()
+            .single { it.id == "schwarzman-ielts-seven" }
+        val ieltsAction = opportunity.actionTemplates.single { it.id == ieltsRule.actionTemplateId }
         val commonFacts = arrayOf(
             FactKey.DATE_OF_BIRTH to FactValue.DateValue(LocalDate(2006, 4, 12)),
             FactKey.DEGREE_COMPLETED to FactValue.BooleanValue(true),
@@ -158,6 +162,10 @@ class BundledOpportunityPackProviderTest {
         )
 
         assertEquals(RuleResult.FAIL, below.rules.single { it.ruleId == "schwarzman-ielts-seven" }.result)
+        assertEquals("Raise IELTS to 7.0 band", ieltsAction.title)
+        assertEquals(FactKey.IELTS_SCORE, ieltsAction.targetFactKey)
+        assertEquals(FactValue.NumberValue(7.0, "band"), ieltsAction.targetValue)
+        assertEquals(45, ieltsAction.minimumDurationDays)
         assertTrue(below.rules.any { it.ruleId == "schwarzman-other-english-route" && it.result == RuleResult.REVIEW })
         assertEquals(RuleResult.PASS, atThreshold.rules.single { it.ruleId == "schwarzman-ielts-seven" }.result)
         assertEquals(RuleResult.REVIEW, atThreshold.rootResult)
