@@ -63,6 +63,11 @@ Current evidence:
 - [x] A JVM terminal companion validates a pack, evaluates a Porta profile export, and calculates Route paths through
   the same `:engine` used by the app. `export-bundled` and `validate` smoke checks passed on the 15-door catalog.
   This expands ways to inspect the product logic without claiming a browser target or another graphical app.
+- [x] P4 optional Studio rule drafting has three offline source fixtures and a user-supplied Gemini
+  key lead to untrusted suggestions; QuoteGuard requires a matching source quotation and unsupported typed values
+  become manual checks. Individual curator approval, Studio validation and Pack inspector approval remain required.
+  Scoped tests and Android/Desktop builds pass. A real-key exercise remains pending before treating the live
+  Gemini path as verified. AI never decides eligibility, and no Web runnable-target claim follows from this feature.
 - [x] Trust-first v2 model scopes programme confirmations by opportunity, rule and fingerprint; stale assertions are
   ignored, ambiguous v1 availability actions are rejected, and cross-opportunity leakage is covered by tests.
 - [x] Constraint-aware Action Frontier now persists time/effort/cost/saved-door priorities, reacts to Room-backed
@@ -113,6 +118,9 @@ Required evidence:
   and typed opportunity-pack DSL. `:shared` consumes it for Android/Desktop; `:cli` consumes the same engine and
   app pack/profile codecs for terminal commands. The bundled pack's DSL conversion was compared with the prior
   implementation for exact JSON, DTO, and rule-fingerprint equality before the old file was removed.
+- [x] P4's pure QuoteGuard and closed typed suggestion conversion live in `:engine`; the shared Studio UI, draft
+  service, and local key settings passed engine/shared tests and Android/Desktop builds. The live Gemini call still
+  needs a user-supplied key and a documented manual exercise.
 - [x] Shared repository, validation, Room persistence, and import/export.
 - [x] Room schema v2 preserves existing facts, saved doors and active plans while adding scoped rule assertions;
   profile export v2 round-trips facts and assertions as separate sections.
@@ -158,8 +166,8 @@ Required evidence:
   the frozen commit; see `KMP_EVIDENCE.md` for the fixture and limits.
 - [ ] Repeat the characterization on the frozen submission commit and replace the provisional commit row in
   `KMP_EVIDENCE.md` before final delivery.
-- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `d3d34dc`: 14,933 NCLOC across 75
-  explicitly allowlisted shared Porta production files plus 96 NCLOC across four platform integration files; tests and Kotlin data are
+- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `de44448`: 18,273 NCLOC across 89
+  explicitly allowlisted shared Porta production files plus 632 NCLOC across 11 platform and CLI files; tests and Kotlin data are
   reported separately, while generated/vendor/unchanged starter code, package-only renames and mixed-provenance
   integration files are excluded.
 - [x] The 11 November P3 working-tree scoped gates passed `spotlessCheck`, `:engine:jvmTest`, `:shared:jvmTest`,
@@ -167,6 +175,8 @@ Required evidence:
   `:cli:test`. Their JUnit counts are 39 engine JVM, 269 shared JVM, 78 Android host, and 3 CLI, with zero
   failures/errors/skips. A separate Roborazzi recording passed with 72 preview cases; its XML is not added to
   the scoped-gate counts. Repeat the gates on a frozen public commit before submission.
+- [x] The 12 November P4 working-tree scoped gates passed the same tasks with 46 engine JVM, 282 shared JVM,
+  82 Android-host core tests, and 3 CLI tests, all clean. A separate snapshot recording passed 72 previews.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
 

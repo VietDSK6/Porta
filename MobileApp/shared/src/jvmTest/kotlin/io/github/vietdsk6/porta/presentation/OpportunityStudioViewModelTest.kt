@@ -6,12 +6,20 @@ import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.RuleDraftRepository
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityStudioDraftCompiler
+import io.github.vietdsk6.porta.data.source.preferences.FakeUserPreferences
+import io.github.vietdsk6.porta.data.source.remote.draft.DraftService
+import io.github.vietdsk6.porta.domain.model.DraftExpectedValue
+import io.github.vietdsk6.porta.domain.model.DraftGroundingStatus
+import io.github.vietdsk6.porta.domain.model.DraftReviewStatus
+import io.github.vietdsk6.porta.domain.model.OpportunityStudioRuleDraft
+import io.github.vietdsk6.porta.domain.model.RawRuleDraftSuggestion
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioMetadataField
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioRuleTextField
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioUiEvent
@@ -119,6 +127,175 @@ class OpportunityStudioViewModelTest {
         assertFalse(viewModel.uiState.value.canExport)
         assertNull(viewModel.uiState.value.rawJson)
         assertTrue(viewModel.uiState.value.diagnostics.any { it.path.endsWith("sourceUrl") })
+    }
+
+    @Test
+    fun `grounded draft remains inert until accepted and cannot be accepted twice`() = runTest(dispatcher) {
+        installAiService(
+            RawRuleDraftSuggestion(
+                id = "age",
+                kind = "ATOMIC",
+                factKey = "AGE",
+                operator = "GREATER_THAN_OR_EQUAL",
+                expected = DraftExpectedValue("number", "18", "years"),
+                actionability = "IMMUTABLE",
+                quote = "at least 18 years old",
+                rationale = "Entrants must be at least 18.",
+            ),
+        )
+        advanceUntilIdle()
+        val source = "Applicants must be at least 18 years old."
+        val originalRuleCount = requireNotNull(viewModel.uiState.value.draft).rules.size
+        viewModel.onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged(source))
+        viewModel.onUiEvent(OpportunityStudioUiEvent.DraftRulesRequested)
+        advanceUntilIdle()
+
+        val suggestion = viewModel.uiState.value.aiSuggestions.single()
+        assertEquals(DraftGroundingStatus.GROUNDED, suggestion.groundingStatus)
+        assertEquals(originalRuleCount, requireNotNull(viewModel.uiState.value.draft).rules.size)
+
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted(suggestion.id))
+        val accepted = viewModel.uiState.value
+        assertEquals(DraftReviewStatus.ACCEPTED, accepted.aiSuggestions.single().reviewStatus)
+        assertEquals(originalRuleCount + 1, requireNotNull(accepted.draft).rules.size)
+        val added = requireNotNull(accepted.draft).rules.last() as OpportunityStudioRuleDraft.Atomic
+        assertTrue(added.sourceNote.contains(suggestion.quote))
+
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted(suggestion.id))
+        assertEquals(originalRuleCount + 1, requireNotNull(viewModel.uiState.value.draft).rules.size)
+    }
+
+    @Test
+    fun `ungrounded suggestion cannot enter draft and rejection leaves it untouched`() = runTest(dispatcher) {
+        installAiService(
+            RawRuleDraftSuggestion(
+                id = "invented",
+                kind = "ATOMIC",
+                factKey = "AGE",
+                operator = "GREATER_THAN_OR_EQUAL",
+                expected = DraftExpectedValue("number", "18", "years"),
+                quote = "Applicants are guaranteed an award",
+                rationale = "This text is not present.",
+            ),
+        )
+        advanceUntilIdle()
+        val originalRuleCount = requireNotNull(viewModel.uiState.value.draft).rules.size
+        viewModel.onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged("Applicants must be at least 18."))
+        viewModel.onUiEvent(OpportunityStudioUiEvent.DraftRulesRequested)
+        advanceUntilIdle()
+
+        val suggestion = viewModel.uiState.value.aiSuggestions.single()
+        assertEquals(DraftGroundingStatus.REJECTED_UNGROUNDED, suggestion.groundingStatus)
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted(suggestion.id))
+        assertEquals(originalRuleCount, requireNotNull(viewModel.uiState.value.draft).rules.size)
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionRejected(suggestion.id))
+        assertEquals(DraftReviewStatus.REJECTED, viewModel.uiState.value.aiSuggestions.single().reviewStatus)
+        assertEquals(originalRuleCount, requireNotNull(viewModel.uiState.value.draft).rules.size)
+    }
+
+    @Test
+    fun `unsupported fact becomes manual check only after approval`() = runTest(dispatcher) {
+        installAiService(
+            RawRuleDraftSuggestion(
+                id = "untyped",
+                kind = "ATOMIC",
+                factKey = "UNSUPPORTED_FACT",
+                operator = "EQUALS",
+                expected = DraftExpectedValue("boolean", "true"),
+                quote = "A portfolio is required.",
+                rationale = "Confirm the portfolio requirement.",
+            ),
+        )
+        advanceUntilIdle()
+        viewModel.onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged("A portfolio is required."))
+        viewModel.onUiEvent(OpportunityStudioUiEvent.DraftRulesRequested)
+        advanceUntilIdle()
+
+        val suggestion = viewModel.uiState.value.aiSuggestions.single()
+        assertEquals(DraftGroundingStatus.GROUNDED, suggestion.groundingStatus)
+        assertNotNull(suggestion.manualFallbackReason)
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted(suggestion.id))
+        val added = requireNotNull(viewModel.uiState.value.draft).rules.last()
+        assertTrue(added is OpportunityStudioRuleDraft.ManualCheck)
+    }
+
+    @Test
+    fun `changing pasted source removes accepted AI rules but preserves manual rules`() = runTest(dispatcher) {
+        installAiService(ageSuggestion())
+        advanceUntilIdle()
+        viewModel.onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged("Applicants must be at least 18 years old."))
+        viewModel.onUiEvent(OpportunityStudioUiEvent.DraftRulesRequested)
+        advanceUntilIdle()
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted("ai-1"))
+        viewModel.onUiEvent(OpportunityStudioUiEvent.AddManualRule)
+        val before = requireNotNull(viewModel.uiState.value.draft)
+        assertEquals(3, before.rules.size)
+
+        viewModel.onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged("A different official passage."))
+
+        val after = requireNotNull(viewModel.uiState.value.draft)
+        assertEquals(2, after.rules.size)
+        assertTrue(after.rules.any { it.id == "manual-1" })
+        assertTrue(after.rules.none { it.id.startsWith("ai-") })
+        assertTrue(viewModel.uiState.value.aiSuggestions.isEmpty())
+        assertTrue(viewModel.uiState.value.acceptedAiRuleIds.isEmpty())
+    }
+
+    @Test
+    fun `accepted AI quote and ID stay locked while explanation stays editable`() = runTest(dispatcher) {
+        installAiService(ageSuggestion())
+        advanceUntilIdle()
+        viewModel.onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged("Applicants must be at least 18 years old."))
+        viewModel.onUiEvent(OpportunityStudioUiEvent.DraftRulesRequested)
+        advanceUntilIdle()
+        viewModel.onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted("ai-1"))
+        val index = requireNotNull(viewModel.uiState.value.draft).rules.lastIndex
+        val initial = requireNotNull(viewModel.uiState.value.draft).rules[index] as OpportunityStudioRuleDraft.Atomic
+
+        viewModel.onUiEvent(
+            OpportunityStudioUiEvent.RuleTextChanged(index, OpportunityStudioRuleTextField.SOURCE_NOTE, "Invented source"),
+        )
+        viewModel.onUiEvent(OpportunityStudioUiEvent.RuleTextChanged(index, OpportunityStudioRuleTextField.ID, "renamed"))
+        val locked = requireNotNull(viewModel.uiState.value.draft).rules[index] as OpportunityStudioRuleDraft.Atomic
+        assertEquals(initial.id, locked.id)
+        assertEquals(initial.sourceNote, locked.sourceNote)
+
+        viewModel.onUiEvent(
+            OpportunityStudioUiEvent.RuleTextChanged(index, OpportunityStudioRuleTextField.EXPLANATION, "Human edited explanation."),
+        )
+        val edited = requireNotNull(viewModel.uiState.value.draft).rules[index] as OpportunityStudioRuleDraft.Atomic
+        assertEquals("Human edited explanation.", edited.explanation)
+    }
+
+    private fun ageSuggestion() = RawRuleDraftSuggestion(
+        id = "age",
+        kind = "ATOMIC",
+        factKey = "AGE",
+        operator = "GREATER_THAN_OR_EQUAL",
+        expected = DraftExpectedValue("number", "18", "years"),
+        actionability = "IMMUTABLE",
+        quote = "at least 18 years old",
+        rationale = "Entrants must be at least 18.",
+    )
+
+    private fun installAiService(vararg suggestions: RawRuleDraftSuggestion) {
+        val codec = OpportunityPackCodec()
+        val parser = OpportunityPackParser(codec, OpportunityPackValidator())
+        val service = object : DraftService {
+            override suspend fun draft(sourceText: String) = suggestions.toList()
+        }
+        viewModel = OpportunityStudioViewModel(
+            opportunityPackRepository = repository,
+            draftCompiler = OpportunityStudioDraftCompiler(codec, parser),
+            fileManager = fileManager,
+            currentLocalDateProvider = CurrentLocalDateProvider { LocalDate(2026, 11, 4) },
+            ruleDraftRepository = RuleDraftRepository(
+                userPreferences = FakeUserPreferences(),
+                demoDraftService = service,
+                geminiDraftServiceFactory = { service },
+                backgroundExecutor = BackgroundExecutor(dispatcher),
+            ),
+        )
     }
 
     private fun makeDraftValid() {

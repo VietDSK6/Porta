@@ -405,7 +405,8 @@ Each opportunity must show:
 - Public pack registry.
 - Advisor/student shared workspace.
 - Cloud synchronization.
-- OCR or AI-assisted rule drafting with mandatory human confirmation.
+- OCR of source documents. Optional text-only AI rule drafting is now a controlled authoring aid under §19; it does
+  not evaluate eligibility or bypass the pack approval flow.
 - Automatic source-change detection.
 - Mentor/alumni journeys.
 - Application tracking.
@@ -1141,6 +1142,10 @@ For every opportunity:
 7. Have the rule receipt reviewed against the source.
 8. Mark uncertain rules `MANUAL`, never guess.
 
+Opportunity Studio may start this manual workflow with optional AI suggestions from text a curator pastes. A
+suggestion is only a draft: quote matching, closed fact/operator/unit validation, individual human review, the
+existing compiler and validator, and Pack inspector approval all remain required before activation.
+
 ## 18.3 Update policy
 
 - Expired records remain viewable but do not contribute to current recommendations.
@@ -1155,6 +1160,19 @@ For every opportunity:
 - All personal data stays local in P0.
 - No third-party analytics SDK.
 - No cloud backup by default.
+- Optional AI drafting defaults to three bundled, offline source excerpts. No API key is required for the app or the
+  demo. A user may save a personal Gemini key in local preferences and delete it there; the key is never committed,
+  logged, embedded in a binary, or included in a profile export.
+- With a key configured, only the source text the curator explicitly pastes for a draft request is sent to
+  Gemini. A live service failure never changes the active pack or an actual profile.
+- Every AI suggestion must include a quote from that pasted text. QuoteGuard permits only typography and whitespace
+  normalization; unmatched text is marked `REJECTED_UNGROUNDED` and cannot be accepted. The quote remains highlighted
+  in the original text so the curator can inspect its context.
+- Facts, operators, values and units must belong to Porta's supported typed catalog. Unsupported combinations become
+  manual checks; no new profile fact or automatic rule is invented from model output.
+- The curator accepts, edits or rejects each suggestion separately. Only accepted rules enter Opportunity Studio's
+  draft, which still runs through the compiler, validator, export, Pack inspector diff, and explicit import approval.
+  AI never makes eligibility, admission or selection decisions.
 - Export warns about GPA, nationality, age and other sensitive fields.
 - Delete clears profile, scenarios and plans.
 - Official providers are not presented as partners.
@@ -1373,6 +1391,9 @@ The following are automatically cut if P0 slips:
 5. Vietnamese localization.
 6. Cloud-synced or binary-embedded evidence export; local app-private attachments may ship only after P0 stays green.
 7. Any AI feature.
+
+This is the historical P0 cut order. The later optional Studio drafting flow is constrained by §19 and remains
+separate from the deterministic eligibility and Route engines.
 
 ---
 

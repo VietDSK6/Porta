@@ -17,6 +17,7 @@ import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
 import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.data.source.preferences.FakeUserPreferences
+import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
@@ -35,6 +36,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -44,6 +46,7 @@ class StudentProfileImportViewModelTest {
     private lateinit var database: AppDatabase
     private lateinit var profileRepository: ProfileRepository
     private lateinit var viewModel: StudentProfileViewModel
+    private lateinit var preferences: FakeUserPreferences
     private val codec = ProfileExportCodec()
 
     @BeforeTest
@@ -67,7 +70,7 @@ class StudentProfileImportViewModelTest {
         )
         val planRepository = PlanRepository(database.planItemDao(), backgroundExecutor)
         val savedOpportunityRepository = SavedOpportunityRepository(database.savedOpportunityDao(), backgroundExecutor)
-        val preferences = FakeUserPreferences()
+        preferences = FakeUserPreferences()
         viewModel = StudentProfileViewModel(
             profileRepository = profileRepository,
             opportunityPackRepository = opportunityPackRepository,
@@ -88,6 +91,7 @@ class StudentProfileImportViewModelTest {
                     content: String,
                 ): Result<Boolean> = Result.success(false)
             },
+            userPreferences = preferences,
         )
     }
 
@@ -132,6 +136,23 @@ class StudentProfileImportViewModelTest {
         assertEquals(FactValue.NumberValue(7.5, "band"), stored.facts.getValue(FactKey.IELTS_SCORE).value)
         assertNull(viewModel.uiState.value.pendingProfileImport)
         assertTrue(viewModel.uiState.value.message.orEmpty().contains("Profile copy imported"))
+    }
+
+    @Test
+    fun `AI drafting key stays local and can be removed`() = runTest(dispatcher) {
+        val localValue = "local-test-value"
+        viewModel.onUiEvent(StudentProfileUiEvent.AiKeySaveRequested(localValue))
+        advanceUntilIdle()
+
+        assertEquals(localValue, preferences.getString(UserPreferences.KEY_AI_DRAFT_API_KEY))
+        assertTrue(viewModel.uiState.value.aiKeySaved)
+        assertFalse(codec.encode(profileRepository.getProfile().getOrThrow(), 0L).contains(localValue))
+
+        viewModel.onUiEvent(StudentProfileUiEvent.AiKeyDeleteRequested)
+        advanceUntilIdle()
+
+        assertNull(preferences.getString(UserPreferences.KEY_AI_DRAFT_API_KEY))
+        assertFalse(viewModel.uiState.value.aiKeySaved)
     }
 
     private fun fact(

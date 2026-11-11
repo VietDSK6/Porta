@@ -6,6 +6,7 @@ import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileImportRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
+import io.github.vietdsk6.porta.data.repository.RuleDraftRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
@@ -16,6 +17,8 @@ import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.data.source.preferences.PreferencesDataStoreProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferencesImpl
+import io.github.vietdsk6.porta.data.source.remote.draft.DemoDraftService
+import io.github.vietdsk6.porta.data.source.remote.draft.GeminiDraftService
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
@@ -40,6 +43,7 @@ import io.github.vietdsk6.porta.util.logging.Logger
 import io.github.vietdsk6.porta.util.logging.NapierLogger
 import io.github.vietdsk6.porta.util.platformModule
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
+import io.ktor.client.HttpClient
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -70,6 +74,8 @@ private val dataModule = module {
     singleOf(::OpportunityPackParser)
     singleOf(::OpportunityStudioDraftCompiler)
     single { ProfileExportCodec() }
+    single { HttpClient() }
+    singleOf(::DemoDraftService)
 
     single {
         UserPreferencesImpl(
@@ -83,6 +89,15 @@ private val dataModule = module {
     singleOf(::ProfileRepository)
     singleOf(::RuleAssertionRepository)
     singleOf(::SavedOpportunityRepository)
+    single {
+        val httpClient = get<HttpClient>()
+        RuleDraftRepository(
+            userPreferences = get(),
+            demoDraftService = get<DemoDraftService>(),
+            geminiDraftServiceFactory = { key -> GeminiDraftService(httpClient, key) },
+            backgroundExecutor = get(),
+        )
+    }
 
     factory<Logger> { NapierLogger() }
 }
@@ -100,9 +115,13 @@ private val presentationModule = module {
         ScenarioPreviewViewModel(actionId, get(), get(), get(), get(), get())
     }
     viewModelOf(::ActivePlanViewModel)
-    viewModelOf(::StudentProfileViewModel)
+    viewModel {
+        StudentProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get())
+    }
     viewModelOf(::PackInspectorViewModel)
-    viewModelOf(::OpportunityStudioViewModel)
+    viewModel {
+        OpportunityStudioViewModel(get(), get(), get(), get(), get(), get())
+    }
     viewModelOf(::ActualProfileUpdateViewModel)
     // Add new view models below — generate_screen.sh inserts here.
 }

@@ -5,6 +5,7 @@ import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.OpportunityStudioDraft
+import io.github.vietdsk6.porta.domain.model.RuleDraftSuggestion
 import io.github.vietdsk6.porta.domain.model.StudioDeadlineKind
 import io.github.vietdsk6.porta.domain.model.StudioFactValueKind
 import io.github.vietdsk6.porta.domain.model.StudioRootRuleKind
@@ -21,6 +22,12 @@ data class OpportunityStudioUiState(
     val diagnostics: List<OpportunityStudioDiagnosticUiState> = emptyList(),
     val rawJson: String? = null,
     val isJsonPreviewVisible: Boolean = false,
+    val pastedSourceText: String = "",
+    val isDraftingRules: Boolean = false,
+    val aiSuggestions: List<RuleDraftSuggestion> = emptyList(),
+    val acceptedAiRuleIds: Set<String> = emptySet(),
+    val editingSuggestionId: String? = null,
+    val aiDraftMessage: String? = null,
     val message: String? = null,
 ) {
     val canExport: Boolean
@@ -58,6 +65,22 @@ enum class OpportunityStudioRuleTextField {
 }
 
 sealed interface OpportunityStudioUiEvent {
+    data class PastedSourceChanged(val value: String) : OpportunityStudioUiEvent
+
+    data class DemoSourceSelected(val sourceText: String, val sourceUrl: String) : OpportunityStudioUiEvent
+
+    data object DraftRulesRequested : OpportunityStudioUiEvent
+
+    data class SuggestionEditRequested(val suggestionId: String) : OpportunityStudioUiEvent
+
+    data class SuggestionQuoteChanged(val suggestionId: String, val quote: String) : OpportunityStudioUiEvent
+
+    data class SuggestionRationaleChanged(val suggestionId: String, val rationale: String) : OpportunityStudioUiEvent
+
+    data class SuggestionAccepted(val suggestionId: String) : OpportunityStudioUiEvent
+
+    data class SuggestionRejected(val suggestionId: String) : OpportunityStudioUiEvent
+
     data class MetadataChanged(
         val field: OpportunityStudioMetadataField,
         val value: String,

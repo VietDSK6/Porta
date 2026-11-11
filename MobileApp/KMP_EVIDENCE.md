@@ -1,8 +1,8 @@
 # Porta shared Kotlin evidence
 
-> Snapshot date: 2 November 2026
+> Snapshot date: 11 November 2026
 > Baseline: `bd5fd5d` — the last repository commit before Porta work began in `6be9ec1`
-> Measured Kotlin head: `d3d34dc`
+> Measured Kotlin head: `de44448`
 
 This document records an internal, reproducible view of where **new Porta-owned Kotlin** lives. It is not an
 official contest formula or a judging score. The Kotlin Student Coding Competition rules do not prescribe a shared
@@ -26,17 +26,17 @@ Snapshot output:
 
 | Category | Files | NCLOC |
 |---|---:|---:|
-| Shared production | 75 | 14,933 |
-| Platform production | 4 | 96 |
-| Kotlin data/fixtures | 2 | 1,075 |
-| Shared tests | 16 | 2,658 |
-| Platform-run tests | 26 | 4,572 |
-| Excluded added Kotlin files | 18 | — |
+| Shared production | 89 | 18,273 |
+| Platform production | 11 | 632 |
+| Kotlin data/fixtures | 2 | 1,177 |
+| Shared tests | 22 | 3,460 |
+| Platform-run tests | 37 | 7,150 |
+| Excluded added Kotlin files | 29 | — |
 
-Within this deliberately narrow production sample, the shared proportion is **14,933 / 15,029 = 99.4%**.
+Within this deliberately narrow production sample, the shared proportion is **18,273 / 18,905 = 96.7%**.
 
-That number means all but 96 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
-The four measured platform files provide narrowly scoped target integration. It does **not** mean 99.4% of the whole repository
+That number means all but 632 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
+The measured platform files provide target integration and the JVM CLI. It does **not** mean 96.7% of the whole repository
 is shared, nor that platform code is unnecessary. Android and Desktop still use target launchers, drivers, packaging,
 and platform services inherited from the starter kit; those inherited lines are excluded rather than claimed as
 Porta work.
@@ -54,11 +54,10 @@ Porta work.
 5. Report tests and static Kotlin data separately from production code.
 
 The script intentionally requires allowlist maintenance when a new product area is added. A new file is not silently
-treated as contest-owned evidence just because it appears under the Porta package. The 2 November NCLOC snapshot
-predates the Route planner, Desktop workflow, and P3 engine/CLI extraction. Its 99.4% figure must not be presented
-as a fresh measurement of the current working tree. Moving domain files from `:shared` to `:engine` also changes
-module paths without changing their Kotlin Multiplatform common-source nature. The script's allowlist now recognizes
-the engine and CLI paths; rerun it on the frozen submission commit before quoting a new ratio.
+treated as contest-owned evidence just because it appears under the Porta package. This snapshot includes the Route
+planner, Desktop workflow, and P3 engine/CLI extraction at `de44448`. Moving domain files from `:shared` to `:engine`
+changes module paths without changing their Kotlin Multiplatform common-source nature. Rerun it on the frozen
+submission commit before quoting a final ratio.
 
 ## Exclusions
 
@@ -105,7 +104,7 @@ top three route IDs and asserts that result, including a door lost to a deadline
 
 Desktop's File/View/Help menu, keyboard shortcuts, pack-JSON drop target, saved window geometry, and OS-standard
 storage paths are platform integration around the same shared command, pack preview, and persistence flows. The
-new platform files are outside the older NCLOC snapshot.
+new platform files are included in the 11 November NCLOC snapshot.
 
 The Android-to-Desktop handoff is also shared Kotlin rather than a platform-specific duplicate: Android exports the
 versioned profile JSON through the shared `StudentProfileViewModel`, Desktop previews the same decoded domain model,

@@ -13,7 +13,7 @@ Required facts:
 Count only the text between the markers:
 
 ```bash
-sed -n '/ESSAY_START/,/ESSAY_END/p' SUBMISSION/ESSAY.md | sed '1d;$d' | wc -w
+sed -n '/^<!-- ESSAY_START -->$/,/^<!-- ESSAY_END -->$/p' SUBMISSION/ESSAY.md | sed '1d;$d' | wc -w
 ```
 
 <!-- ESSAY_START -->
@@ -23,7 +23,7 @@ Students often find many scholarships, internships, contests, and study programm
 
 A student can inspect why a door needs action or verification, change planning constraints, and preview one milestone without modifying the saved profile. Porta shows only the opportunity conclusions and individual rules that actually change. Completing a plan never silently proves a fact; updating the real profile requires a separate confirmation, with optional evidence metadata. Missing information stays unknown, manual requirements stay manual, and soft selection criteria never become eligibility scores.
 
-Porta is built with Kotlin 2.4.10 and Compose Multiplatform. Shared Kotlin contains the rule graph, deterministic evaluator, scenario engine, Pareto frontier and ranking, pack validation, Room persistence, repositories, ViewModels, UI state, and most interface code. Android supports quick profile and progress updates, while JVM Desktop provides a wider comparison and inspection workspace. Common, JVM, and Android-host tests exercise the same trust rules and product behavior.
+Porta is built with Kotlin 2.4.10 and Compose Multiplatform. Shared Kotlin contains the rule graph, deterministic evaluator, scenario engine, Pareto frontier, Route planner, pack validation, Room persistence, repositories, ViewModels, UI state, and most interface code. Android supports quick profile and progress updates, while JVM Desktop provides a wider comparison and inspection workspace. Common, JVM, and Android-host tests exercise the same trust rules and product behavior.
 
-Porta works locally without accounts, cloud services, analytics, subscriptions, or AI eligibility decisions. It does not predict who will win. Its goal is narrower and more honest: give students a source-linked map of possibilities they can realistically create next across phones and desktop computers.
+Porta works locally without accounts, analytics, subscriptions, or an AI key. Optional drafting uses offline examples; with a personal key, Gemini proposes source-quoted rules for human approval. It never decides eligibility or predicts selection. Porta gives students a source-linked map of realistic possibilities across phones and desktop computers.
 <!-- ESSAY_END -->

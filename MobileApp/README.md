@@ -36,6 +36,14 @@ Archived cycles remain inspectable but are separated from ordinary closed deadli
 Porta does **not** predict admission or scholarship success, turn soft selection criteria into pass/fail rules, scrape
 providers, submit applications, or use AI to decide eligibility.
 
+Opportunity Studio also offers optional AI **rule drafting**. With no API key, three bundled source excerpts provide an
+offline demonstration. If the student adds a personal Gemini key in the Profile tab's AI drafting settings, Studio
+sends only the text they paste for that draft request to Gemini. The key stays in local preferences and is absent from
+profile exports. Every suggested rule must quote the pasted source: Porta checks the quotation, marks a missing quote
+as rejected, and turns unsupported facts, operators or units into manual checks. The curator must accept, edit or
+reject each suggestion. Accepted rules still pass Studio's compiler and validator, then Pack inspector's explicit
+diff and import approval. AI never supplies an eligibility conclusion.
+
 ## Demo path
 
 1. Finish onboarding with **Use ready-made demo profile** for Linh, an editable fictional CS undergraduate with
@@ -57,8 +65,9 @@ providers, submit applications, or use AI to decide eligibility.
    results and an added/changed/removed preview; the active catalog changes only after explicit approval. You can
    export the active pack or diagnostic results from the same screen.
 8. From Pack inspector, open **Opportunity Studio** to draft a sourced record with form-based `ALL`/`ANY`, atomic,
-   and manual-check rules. Resolve validation issues, export the draft JSON, then return to Pack inspector to preview
-   and approve its import. Studio does not silently activate the draft.
+   and manual-check rules. Paste a source excerpt to try optional AI suggestions, inspect each highlighted quotation,
+   then accept, edit or reject individual rules. Resolve validation issues, export the draft JSON, then return to
+   Pack inspector to preview and approve its import. Studio does not silently activate the draft.
 
 On Desktop, the **File**, **View**, and **Help** menus expose import/export, navigation, search, and source actions.
 The View shortcuts use Cmd+1–5 on macOS or Ctrl+1–5 elsewhere; Cmd/Ctrl+O, E, and F open pack import, profile export,
@@ -112,6 +121,7 @@ sdk.dir=/absolute/path/to/Android/sdk
 ```
 
 Porta does not require Firebase configuration, authentication credentials, billing keys, or AI-provider API keys.
+The AI drafting demo runs offline; a personal Gemini key is optional for live drafting and is stored only on that device.
 
 ## Run Android
 
@@ -169,11 +179,11 @@ The core product documents are:
 
 ### Shared Kotlin evidence
 
-The conservative contest-period measurement currently finds 14,933 NCLOC across 75 newly added, explicitly
-allowlisted shared Porta production files, plus 96 NCLOC across four narrowly scoped platform files. Static opportunity/sample data,
+The conservative contest-period measurement at `de44448` finds 18,273 NCLOC across 89 newly added, explicitly
+allowlisted shared Porta production files, plus 632 NCLOC across 11 platform and CLI files. Static opportunity/sample data,
 tests, integration files with mixed starter provenance, generated/build/vendor code, package-only renames, and
 unchanged scaffold are excluded or reported separately. This is an internal provenance check—not an official contest
-formula or a claim that the whole repository is 99.4% shared. Reproduce it with:
+formula or a claim that the whole repository is 96.7% shared. Reproduce it with:
 
 ```bash
 ./scripts/measure_porta_kmp_evidence.sh

@@ -106,6 +106,7 @@ private fun StudioContent(
     val draft = requireNotNull(uiState.draft)
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sectionSpacing)) {
         StudioIntro(uiState)
+        AiDraftPanel(uiState = uiState, onUiEvent = onUiEvent)
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val useTwoPane = opportunityStudioUsesTwoPane(maxWidth, LocalDensity.current.fontScale)
             if (useTwoPane) {
@@ -150,7 +151,7 @@ private fun StudioIntro(uiState: OpportunityStudioUiState) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "DESKTOP AUTHORING · SAFE DRAFT",
+                text = "SOURCE AUTHORING · SAFE DRAFT",
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.primary,
                 fontWeight = FontWeight.ExtraBold,
@@ -320,6 +321,7 @@ private fun RuleWorkspace(
                 RuleEditor(
                     index = selectedIndex,
                     rule = selectedRule,
+                    sourceNoteLocked = selectedRule.id in uiState.acceptedAiRuleIds,
                     onUiEvent = onUiEvent,
                 )
             }
@@ -381,6 +383,7 @@ private fun RuleSelector(
 private fun RuleEditor(
     index: Int,
     rule: OpportunityStudioRuleDraft,
+    sourceNoteLocked: Boolean,
     onUiEvent: (OpportunityStudioUiEvent) -> Unit,
 ) {
     Column(
@@ -392,11 +395,19 @@ private fun RuleEditor(
             value = rule.id,
             label = "Rule ID",
             tag = "opportunity-studio-rule-id",
+            readOnly = sourceNoteLocked,
             onValueChange = { onUiEvent.ruleText(index, OpportunityStudioRuleTextField.ID, it) },
         )
+        if (sourceNoteLocked) {
+            Text(
+                "The accepted AI rule keeps its ID and grounded quote. Remove it and draft again to change either one.",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
+        }
         when (rule) {
-            is OpportunityStudioRuleDraft.Atomic -> AtomicRuleEditor(index, rule, onUiEvent)
-            is OpportunityStudioRuleDraft.ManualCheck -> ManualRuleEditor(index, rule, onUiEvent)
+            is OpportunityStudioRuleDraft.Atomic -> AtomicRuleEditor(index, rule, sourceNoteLocked, onUiEvent)
+            is OpportunityStudioRuleDraft.ManualCheck -> ManualRuleEditor(index, rule, sourceNoteLocked, onUiEvent)
         }
     }
 }
@@ -405,6 +416,7 @@ private fun RuleEditor(
 private fun AtomicRuleEditor(
     index: Int,
     rule: OpportunityStudioRuleDraft.Atomic,
+    sourceNoteLocked: Boolean,
     onUiEvent: (OpportunityStudioUiEvent) -> Unit,
 ) {
     EnumDropdown(
@@ -472,6 +484,7 @@ private fun AtomicRuleEditor(
         value = rule.sourceNote,
         label = "Source note",
         tag = "opportunity-studio-rule-source-note",
+        readOnly = sourceNoteLocked,
         minLines = 2,
         onValueChange = { onUiEvent.ruleText(index, OpportunityStudioRuleTextField.SOURCE_NOTE, it) },
     )
@@ -481,6 +494,7 @@ private fun AtomicRuleEditor(
 private fun ManualRuleEditor(
     index: Int,
     rule: OpportunityStudioRuleDraft.ManualCheck,
+    sourceNoteLocked: Boolean,
     onUiEvent: (OpportunityStudioUiEvent) -> Unit,
 ) {
     Text(
@@ -499,6 +513,7 @@ private fun ManualRuleEditor(
         value = rule.sourceNote,
         label = "Source note · optional",
         tag = "opportunity-studio-rule-source-note",
+        readOnly = sourceNoteLocked,
         minLines = 2,
         onValueChange = { onUiEvent.ruleText(index, OpportunityStudioRuleTextField.SOURCE_NOTE, it) },
     )
@@ -621,6 +636,7 @@ private fun StudioTextField(
     onValueChange: (String) -> Unit,
     supportingText: String? = null,
     minLines: Int = 1,
+    readOnly: Boolean = false,
 ) {
     OutlinedTextField(
         value = value,
@@ -629,6 +645,7 @@ private fun StudioTextField(
         label = { Text(label) },
         supportingText = supportingText?.let { text -> ({ Text(text) }) },
         minLines = minLines,
+        readOnly = readOnly,
         singleLine = minLines == 1,
     )
 }
@@ -689,9 +706,9 @@ private fun LoadingStudio() {
 
 @Composable
 private fun UnsupportedStudio() {
-    StudioPanel(title = "Desktop authoring tool") {
+    StudioPanel(title = "Authoring unavailable") {
         Text(
-            "Opportunity Studio is available on Desktop. Android keeps the focused review and planning flow.",
+            "Opportunity Studio is unavailable on this device. You can still review opportunities and plan routes.",
             modifier = Modifier.testTag("opportunity-studio-unsupported"),
             color = AppTheme.colors.text.secondary,
         )

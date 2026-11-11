@@ -87,6 +87,10 @@ kotlin {
             implementation(libs.room.runtime)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.engine.defaults)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.compose.navigation3)
@@ -105,6 +109,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.compose.uiTest)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
 
         // Android host tests run on the JVM via Robolectric. Roborazzi snapshots

@@ -13,6 +13,7 @@ interface UserPreferences {
         const val KEY_FRONTIER_MAX_EFFORT = "KEY_FRONTIER_MAX_EFFORT"
         const val KEY_FRONTIER_MAX_COST = "KEY_FRONTIER_MAX_COST"
         const val KEY_FRONTIER_PRIORITIZE_SAVED = "KEY_FRONTIER_PRIORITIZE_SAVED"
+        const val KEY_AI_DRAFT_API_KEY = "KEY_AI_DRAFT_API_KEY"
     }
 
     suspend fun getString(key: String, defaultValue: String? = null): String?

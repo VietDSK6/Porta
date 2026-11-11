@@ -17,6 +17,8 @@ data class StudentProfileUiState(
     val factPendingDelete: ProfileFactUiState? = null,
     val pendingDataAction: ProfileDataAction? = null,
     val supportsProfileImport: Boolean = false,
+    val aiDraftSettingsAvailable: Boolean = false,
+    val aiKeySaved: Boolean = false,
     val pendingProfileImport: ProfileImportPreviewUiState? = null,
     val profileImportError: String? = null,
     val message: String? = null,
@@ -108,6 +110,10 @@ sealed interface StudentProfileUiEvent {
     data object DataActionCancelled : StudentProfileUiEvent
 
     data object DataActionConfirmed : StudentProfileUiEvent
+
+    class AiKeySaveRequested(val key: String) : StudentProfileUiEvent
+
+    data object AiKeyDeleteRequested : StudentProfileUiEvent
 
     data object MessageHandled : StudentProfileUiEvent
 }

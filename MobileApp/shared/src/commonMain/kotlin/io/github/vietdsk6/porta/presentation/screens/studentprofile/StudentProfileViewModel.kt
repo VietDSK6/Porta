@@ -8,6 +8,7 @@ import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
+import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactProvenance
@@ -39,8 +40,13 @@ class StudentProfileViewModel(
     private val profileImportRepository: ProfileImportRepository,
     private val fileManager: FileManager,
     private val platformCapabilities: PlatformCapabilities = getPlatformCapabilities(),
+    private val userPreferences: UserPreferences? = null,
 ) : ViewModel() {
     private val transientState = MutableStateFlow(StudentProfileTransientState())
+
+    init {
+        loadAiKeyStatus()
+    }
 
     val uiState: StateFlow<StudentProfileUiState> = combine(
         profileRepository.observeProfile(),
@@ -105,6 +111,10 @@ class StudentProfileViewModel(
             }
 
             StudentProfileUiEvent.DataActionConfirmed -> confirmPendingDataAction()
+
+            is StudentProfileUiEvent.AiKeySaveRequested -> saveAiKey(event.key)
+
+            StudentProfileUiEvent.AiKeyDeleteRequested -> deleteAiKey()
 
             StudentProfileUiEvent.MessageHandled -> transientState.update { it.copy(message = null) }
         }
@@ -298,6 +308,53 @@ class StudentProfileViewModel(
         transientState.update { it.copy(isWorking = false, message = message) }
     }
 
+    private fun loadAiKeyStatus() {
+        val preferences = userPreferences ?: return
+        viewModelScope.launch {
+            try {
+                val saved = !preferences.getString(UserPreferences.KEY_AI_DRAFT_API_KEY).isNullOrBlank()
+                transientState.update { it.copy(aiKeySaved = saved) }
+            } catch (_: Exception) {
+                showFailure("Porta could not read AI drafting settings on this device.")
+            }
+        }
+    }
+
+    private fun saveAiKey(rawKey: String) {
+        val preferences = userPreferences ?: return
+        val key = rawKey.trim()
+        if (key.isEmpty() || key.length > MAX_AI_KEY_CHARACTERS) {
+            showFailure("Enter a valid AI drafting key before saving.")
+            return
+        }
+        viewModelScope.launch {
+            transientState.update { it.copy(isWorking = true, message = null) }
+            try {
+                preferences.putString(UserPreferences.KEY_AI_DRAFT_API_KEY, key)
+                transientState.update {
+                    it.copy(isWorking = false, aiKeySaved = true, message = "AI drafting key saved on this device.")
+                }
+            } catch (_: Exception) {
+                showFailure("Porta could not save the AI drafting key.")
+            }
+        }
+    }
+
+    private fun deleteAiKey() {
+        val preferences = userPreferences ?: return
+        viewModelScope.launch {
+            transientState.update { it.copy(isWorking = true, message = null) }
+            try {
+                preferences.remove(UserPreferences.KEY_AI_DRAFT_API_KEY)
+                transientState.update {
+                    it.copy(isWorking = false, aiKeySaved = false, message = "AI drafting key removed from this device.")
+                }
+            } catch (_: Exception) {
+                showFailure("Porta could not remove the AI drafting key.")
+            }
+        }
+    }
+
     private fun buildUiState(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,
@@ -374,6 +431,8 @@ class StudentProfileViewModel(
             factPendingDelete = transient.factPendingDelete,
             pendingDataAction = transient.pendingDataAction,
             supportsProfileImport = platformCapabilities.supportsStudio,
+            aiDraftSettingsAvailable = userPreferences != null,
+            aiKeySaved = transient.aiKeySaved,
             pendingProfileImport = transient.pendingProfileImport?.toPreview(),
             profileImportError = transient.profileImportError,
             message = transient.message,
@@ -473,6 +532,7 @@ class StudentProfileViewModel(
 
     private data class StudentProfileTransientState(
         val isWorking: Boolean = false,
+        val aiKeySaved: Boolean = false,
         val expandedFactKey: FactKey? = null,
         val factPendingDelete: ProfileFactUiState? = null,
         val pendingDataAction: ProfileDataAction? = null,
@@ -496,6 +556,7 @@ class StudentProfileViewModel(
         private const val MAX_PROFILE_IMPORT_CHARACTERS = 1_000_000
         private const val MAX_PROFILE_IMPORT_ASSERTIONS = 1_000
         private const val MAX_PROFILE_IMPORT_FILE_NAME_CHARACTERS = 120
+        private const val MAX_AI_KEY_CHARACTERS = 512
         private const val BYTES_PER_KILOBYTE = 1_024L
         private const val BYTES_PER_MEGABYTE = 1_024L * 1_024L
         private val SENSITIVE_PROFILE_FACTS = setOf(

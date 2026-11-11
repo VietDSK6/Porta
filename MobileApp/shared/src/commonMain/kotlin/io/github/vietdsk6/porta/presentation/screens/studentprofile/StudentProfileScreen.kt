@@ -19,18 +19,23 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -129,6 +134,9 @@ fun StudentProfileScreen(
             }
 
             if (!uiState.isLoading) {
+                if (uiState.aiDraftSettingsAvailable) {
+                    AiDraftSettingsCard(uiState = uiState, onUiEvent = onUiEvent)
+                }
                 DataPrivacyEntry(
                     isWorking = uiState.isWorking,
                     onClick = onOpenDataPrivacy,
@@ -781,6 +789,68 @@ private fun DependencyDetails(
                 onClick = onDelete,
             ) {
                 Text("Remove this fact")
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiDraftSettingsCard(
+    uiState: StudentProfileUiState,
+    onUiEvent: (StudentProfileUiEvent) -> Unit,
+) {
+    var enteredKey by remember { mutableStateOf("") }
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("student-profile-ai-drafting"),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("AI drafting (optional)", style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Without a key, Opportunity Studio uses offline demo examples. AI only suggests rules; " +
+                    "you approve each one, and Porta never uses AI to decide eligibility.",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
+            Text(
+                if (uiState.aiKeySaved) "A key is saved on this device." else "No key saved on this device.",
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
+            OutlinedTextField(
+                value = enteredKey,
+                onValueChange = { enteredKey = it },
+                modifier = Modifier.fillMaxWidth().testTag("student-profile-ai-key-input"),
+                label = { Text("Gemini API key") },
+                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
+                enabled = !uiState.isWorking,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    modifier = Modifier.testTag("student-profile-ai-key-save"),
+                    enabled = !uiState.isWorking && enteredKey.isNotBlank(),
+                    onClick = {
+                        val key = enteredKey
+                        enteredKey = ""
+                        onUiEvent(StudentProfileUiEvent.AiKeySaveRequested(key))
+                    },
+                ) {
+                    Text("Save key")
+                }
+                if (uiState.aiKeySaved) {
+                    TextButton(
+                        modifier = Modifier.testTag("student-profile-ai-key-delete"),
+                        enabled = !uiState.isWorking,
+                        onClick = { onUiEvent(StudentProfileUiEvent.AiKeyDeleteRequested) },
+                    ) {
+                        Text("Delete key")
+                    }
+                }
             }
         }
     }

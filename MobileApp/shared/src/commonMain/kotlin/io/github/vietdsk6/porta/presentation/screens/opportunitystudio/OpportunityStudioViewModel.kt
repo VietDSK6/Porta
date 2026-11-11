@@ -3,8 +3,10 @@ package io.github.vietdsk6.porta.presentation.screens.opportunitystudio
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.RuleDraftRepository
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.domain.model.Actionability
+import io.github.vietdsk6.porta.domain.model.DraftReviewStatus
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
@@ -12,12 +14,14 @@ import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
 import io.github.vietdsk6.porta.domain.model.OpportunityStudioDraft
 import io.github.vietdsk6.porta.domain.model.OpportunityStudioExpectedValueDraft
 import io.github.vietdsk6.porta.domain.model.OpportunityStudioRuleDraft
+import io.github.vietdsk6.porta.domain.model.RuleDraftSuggestion
 import io.github.vietdsk6.porta.domain.model.StudioDeadlineKind
 import io.github.vietdsk6.porta.domain.model.StudioFactValueKind
 import io.github.vietdsk6.porta.domain.model.StudioRootRuleKind
-import io.github.vietdsk6.porta.util.Platform
+import io.github.vietdsk6.porta.domain.usecase.QuoteGuard
+import io.github.vietdsk6.porta.util.PlatformCapabilities
 import io.github.vietdsk6.porta.util.file.FileManager
-import io.github.vietdsk6.porta.util.getPlatform
+import io.github.vietdsk6.porta.util.getPlatformCapabilities
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,10 +34,12 @@ class OpportunityStudioViewModel(
     private val draftCompiler: OpportunityStudioDraftCompiler,
     private val fileManager: FileManager,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
+    private val platformCapabilities: PlatformCapabilities = getPlatformCapabilities(),
+    private val ruleDraftRepository: RuleDraftRepository? = null,
 ) : ViewModel() {
     private var baseDocument: OpportunityPackDocument? = null
     private val _uiState = MutableStateFlow(
-        OpportunityStudioUiState(isSupported = getPlatform() == Platform.Desktop),
+        OpportunityStudioUiState(isSupported = platformCapabilities.supportsStudio),
     )
     val uiState: StateFlow<OpportunityStudioUiState> = _uiState.asStateFlow()
 
@@ -47,6 +53,37 @@ class OpportunityStudioViewModel(
 
     fun onUiEvent(event: OpportunityStudioUiEvent) {
         when (event) {
+            is OpportunityStudioUiEvent.PastedSourceChanged -> changeAiSource(event.value)
+
+            is OpportunityStudioUiEvent.DemoSourceSelected -> changeAiSource(event.sourceText, event.sourceUrl)
+
+            OpportunityStudioUiEvent.DraftRulesRequested -> requestAiDraft()
+
+            is OpportunityStudioUiEvent.SuggestionEditRequested -> _uiState.update { state ->
+                val suggestion = state.aiSuggestions.firstOrNull { it.id == event.suggestionId }
+                if (suggestion?.reviewStatus != DraftReviewStatus.PENDING) {
+                    state
+                } else {
+                    state.copy(
+                        editingSuggestionId = event.suggestionId.takeUnless { it == state.editingSuggestionId },
+                    )
+                }
+            }
+
+            is OpportunityStudioUiEvent.SuggestionQuoteChanged -> updateSuggestion(event.suggestionId) { suggestion ->
+                QuoteGuard.check(_uiState.value.pastedSourceText, suggestion.copy(quote = event.quote))
+            }
+
+            is OpportunityStudioUiEvent.SuggestionRationaleChanged -> updateSuggestion(event.suggestionId) {
+                it.copy(rationale = event.rationale)
+            }
+
+            is OpportunityStudioUiEvent.SuggestionAccepted -> acceptSuggestion(event.suggestionId)
+
+            is OpportunityStudioUiEvent.SuggestionRejected -> updateSuggestion(event.suggestionId) {
+                it.copy(reviewStatus = DraftReviewStatus.REJECTED)
+            }
+
             is OpportunityStudioUiEvent.MetadataChanged -> updateDraft { draft ->
                 when (event.field) {
                     OpportunityStudioMetadataField.OPPORTUNITY_ID -> draft.copy(opportunityId = event.value)
@@ -111,6 +148,122 @@ class OpportunityStudioViewModel(
             OpportunityStudioUiEvent.ExportDraft -> exportDraft()
 
             OpportunityStudioUiEvent.MessageHandled -> _uiState.update { it.copy(message = null) }
+        }
+    }
+
+    private fun changeAiSource(sourceText: String, sourceUrl: String? = null) {
+        val acceptedRuleIds = _uiState.value.acceptedAiRuleIds
+        _uiState.update { state ->
+            state.copy(
+                pastedSourceText = sourceText,
+                isDraftingRules = false,
+                aiSuggestions = emptyList(),
+                acceptedAiRuleIds = emptySet(),
+                editingSuggestionId = null,
+                aiDraftMessage = if (acceptedRuleIds.isNotEmpty()) {
+                    "Previously accepted AI rules were removed because their source changed. Draft them again."
+                } else {
+                    null
+                },
+            )
+        }
+        if (acceptedRuleIds.isNotEmpty() || sourceUrl != null) {
+            updateDraft { draft ->
+                draft.copy(
+                    sourceUrl = sourceUrl ?: draft.sourceUrl,
+                    rules = draft.rules.filterNot { it.id in acceptedRuleIds },
+                )
+            }
+        }
+    }
+
+    private fun requestAiDraft() {
+        val state = _uiState.value
+        val source = state.pastedSourceText
+        val repository = ruleDraftRepository
+        if (!state.isSupported || state.draft == null || source.isBlank() || state.isDraftingRules) return
+        if (repository == null) {
+            _uiState.update { it.copy(aiDraftMessage = "Rule drafting is unavailable on this device.") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDraftingRules = true, aiDraftMessage = null) }
+            repository.draft(source).fold(
+                onSuccess = { suggestions ->
+                    _uiState.update { current ->
+                        if (current.pastedSourceText != source) {
+                            current
+                        } else {
+                            current.copy(
+                                isDraftingRules = false,
+                                aiSuggestions = suggestions.mapIndexed { index, suggestion ->
+                                    suggestion.copy(id = "ai-${index + 1}")
+                                },
+                                editingSuggestionId = null,
+                                aiDraftMessage = if (suggestions.isEmpty()) {
+                                    "No sourced rules were suggested. Add a rule manually or paste a fuller excerpt."
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                },
+                onFailure = {
+                    _uiState.update { current ->
+                        if (current.pastedSourceText != source) {
+                            current
+                        } else {
+                            current.copy(
+                                isDraftingRules = false,
+                                aiDraftMessage = "Porta could not draft rules. Check the source text or try again.",
+                            )
+                        }
+                    }
+                },
+            )
+        }
+    }
+
+    private fun updateSuggestion(id: String, transform: (RuleDraftSuggestion) -> RuleDraftSuggestion) {
+        _uiState.update { state ->
+            val updated = state.aiSuggestions.map { suggestion ->
+                if (suggestion.id == id && suggestion.reviewStatus == DraftReviewStatus.PENDING) {
+                    transform(suggestion)
+                } else {
+                    suggestion
+                }
+            }
+            state.copy(
+                aiSuggestions = updated,
+                editingSuggestionId = state.editingSuggestionId.takeUnless { editingId ->
+                    updated.firstOrNull { it.id == editingId }?.reviewStatus != DraftReviewStatus.PENDING
+                },
+            )
+        }
+    }
+
+    private fun acceptSuggestion(id: String) {
+        val state = _uiState.value
+        val suggestion = state.aiSuggestions.firstOrNull { it.id == id } ?: return
+        if (!suggestion.canAccept) {
+            _uiState.update { it.copy(aiDraftMessage = "Find the quoted words in the pasted source before accepting this rule.") }
+            return
+        }
+        val draft = state.draft ?: return
+        val index = draft.rules.size
+        val ruleId = draft.nextRuleId("ai")
+        val rule = suggestion.asStudioRule(ruleId, draft.sourceUrl)
+        recompile(draft.copy(rules = draft.rules + rule), selectedRuleIndex = index)
+        _uiState.update { current ->
+            current.copy(
+                aiSuggestions = current.aiSuggestions.map { item ->
+                    if (item.id == id) item.copy(reviewStatus = DraftReviewStatus.ACCEPTED) else item
+                },
+                acceptedAiRuleIds = current.acceptedAiRuleIds + ruleId,
+                editingSuggestionId = null,
+                aiDraftMessage = "Rule added to the editable draft. Check its source and details before export.",
+            )
         }
     }
 
@@ -206,14 +359,25 @@ class OpportunityStudioViewModel(
     private fun removeRule(ruleIndex: Int) {
         val draft = _uiState.value.draft ?: return
         if (ruleIndex !in draft.rules.indices) return
+        val removedId = draft.rules[ruleIndex].id
         recompile(
             draft.copy(rules = draft.rules.filterIndexed { index, _ -> index != ruleIndex }),
             selectedRuleIndex = (ruleIndex - 1).takeIf { it >= 0 },
         )
+        _uiState.update { it.copy(acceptedAiRuleIds = it.acceptedAiRuleIds - removedId) }
     }
 
     private fun updateRuleText(event: OpportunityStudioUiEvent.RuleTextChanged) {
-        val draft = _uiState.value.draft ?: return
+        val state = _uiState.value
+        val draft = state.draft ?: return
+        if (draft.rules.getOrNull(event.ruleIndex)?.id in state.acceptedAiRuleIds &&
+            event.field in setOf(OpportunityStudioRuleTextField.ID, OpportunityStudioRuleTextField.SOURCE_NOTE)
+        ) {
+            _uiState.update {
+                it.copy(aiDraftMessage = "AI rule IDs and source quotes stay locked. Remove and redraft to change either one.")
+            }
+            return
+        }
         val rules = draft.rules.mapIndexed { index, rule ->
             if (index != event.ruleIndex) return@mapIndexed rule
             when (rule) {
@@ -264,8 +428,8 @@ class OpportunityStudioViewModel(
 
     private fun exportDraft() {
         val state = _uiState.value
-        if (!state.isSupported || getPlatform() != Platform.Desktop) {
-            _uiState.update { it.copy(message = "Opportunity Studio export is available on Desktop.") }
+        if (!state.isSupported || !platformCapabilities.supportsStudio) {
+            _uiState.update { it.copy(message = "Opportunity Studio export is unavailable on this device.") }
             return
         }
         val rawJson = state.rawJson
