@@ -4,7 +4,8 @@
 
 Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a bundled opportunity
 pack against the student's actual profile, explains every published-check conclusion, and builds an **Action Frontier** of
-controllable milestones ranked by assessed marginal opportunity gain, time, effort, and cost.
+controllable milestones ranked by assessed marginal opportunity gain, time, effort, and cost. **Route** then sequences
+up to four milestones against the student's time, cost, effort, and opportunity deadlines.
 
 The contest build is completely free. Core profile, rule assessment, simulation, and planning work without an account,
 cloud service, API key, or network connection. Opening official sources requires the network, and a future catalog refresh
@@ -41,8 +42,11 @@ providers, submit applications, or use AI to decide eligibility.
    deliberate strengths and gaps, a 180-day horizon, and Erasmus, Schwarzman, and Kotlin Contest already saved. Or
    browse the temporary sample without saving or enter your own local facts. Demo facts remain explicitly labelled.
 2. Open **Doors** to see the current source-linked conclusions.
-3. Open **Next moves** and change the time, budget, and effort constraints.
-4. On Desktop, select two or three actions in Compare Lab to compare independent What-if results against the same
+3. Open **Route** to compare ordered milestone paths. Compact layouts show a timeline; wide Desktop layouts show a
+   metro-style map. Inspect which checks improve, which doors open, and which deadlines can close along the way.
+   Change the time, cost, and effort limits, then save a chosen path as ordered steps in the active plan.
+4. Open **Next moves** for individual actions. On Desktop, select two or three actions in Compare Lab to compare
+   independent What-if results against the same
    Actual profile; scenarios are never combined or saved.
 5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed. Add
    an optional image, PDF, text file, or Word document as local supporting evidence and reopen it from Porta.
@@ -56,16 +60,38 @@ providers, submit applications, or use AI to decide eligibility.
    and manual-check rules. Resolve validation issues, export the draft JSON, then return to Pack inspector to preview
    and approve its import. Studio does not silently activate the draft.
 
+On Desktop, the **File**, **View**, and **Help** menus expose import/export, navigation, search, and source actions.
+The View shortcuts use Cmd+1–5 on macOS or Ctrl+1–5 elsewhere; Cmd/Ctrl+O, E, and F open pack import, profile export,
+and search. Dropping a pack JSON file on the window opens its validation preview in Pack inspector. Window size,
+position, and maximized state are saved locally.
+
 The bundled catalog currently contains 15 independently encoded records. Its official URLs, interpretation boundary,
 and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md).
+
+## Terminal companion
+
+The JVM CLI uses the same `:engine` rule evaluators and Route planner as the Android and Desktop app, along with
+the app's pack parser and profile-export decoder. From `MobileApp/` with JDK 21 available:
+
+```bash
+./gradlew :cli:run --args='export-bundled --out porta-pack.json'
+./gradlew :cli:run --args='validate porta-pack.json'
+./gradlew :cli:run --args='evaluate --profile my-profile.json --pack porta-pack.json --date 2026-11-11'
+./gradlew :cli:run --args='route --profile my-profile.json --pack porta-pack.json --horizon 180 --budget low --effort high --json'
+```
+
+Use a JSON profile exported from Porta for `--profile`. `evaluate` and `route` use the bundled catalog when `--pack`
+is omitted; `--date` defaults to the local day. `route` prints human-readable paths unless `--json` is supplied.
+These commands assess encoded checks and planning estimates, not provider decisions. The CLI is a terminal companion,
+not a third graphical contest target.
 
 ## Declared contest targets
 
 The Porta submission promises two runnable targets:
 
 - **Android** — compact, touch-first tracking and profile updates.
-- **JVM Desktop** — wide 2–3 scenario comparison, profile handoff, pack inspection and import, sourced rule authoring,
-  and planning workspace.
+- **JVM Desktop** — wide route map and 2–3 scenario comparison, profile handoff, pack inspection and import, sourced
+  rule authoring, native menus and shortcuts, and planning workspace.
 
 The repository inherits iOS and Web wrappers from the starter kit. They remain useful compatibility scaffolding, but
 they are not declared Porta contest targets and are excluded from the submission's runnable-target claim.
@@ -120,17 +146,18 @@ Compose Desktop writes the package below `desktopApp/build/compose/binaries/main
 
 ```text
 Android launcher ─┐
-                  ├─ shared Compose UI + Navigation 3
-Desktop launcher ─┘              │
-                                 ├─ profile / plan / pack repositories and import validation
-                                 ├─ typed published-rule + scenario engines
-                                 ├─ constrained Action Frontier
-                                 ├─ Desktop Opportunity Studio draft compiler
-                                 └─ Room + bundled local opportunity pack
+                  ├─ :shared Compose UI, Navigation 3, Room, pack/profile codecs
+Desktop launcher ─┘       │
+                          └─ :engine rules, scenario, Frontier, Route, pack DSL
+CLI ────────────────── :shared codecs + :engine decisions
 ```
 
-The shared module owns the domain models, deterministic rule graph, evaluation receipts, counterfactual simulation,
-Action Frontier, persistence, ViewModels, and most UI. Platform modules provide launchers and platform services.
+The `:engine` module owns pure domain models, the deterministic rule graph, eligibility receipts, counterfactual
+simulation, Action Frontier, Route planner, and the typed pack DSL. `:shared` uses that engine for Android/Desktop
+while owning Room persistence, pack/profile codecs, ViewModels, and Compose UI. `:cli` calls the same engine through
+the shared codecs. The DSL-generated 15-door bundle was compared with the previous pack for exact JSON, DTO, and
+rule-fingerprint equality before the previous source file was removed. Platform modules provide launchers and
+platform services.
 There is no server-authoritative admission or selection decision.
 
 The core product documents are:
@@ -154,21 +181,19 @@ formula or a claim that the whole repository is 99.4% shared. Reproduce it with:
 
 ## Quality gates
 
-Run the same scoped checks used by the repository workflow:
+Run these scoped local checks:
 
 ```bash
 ./gradlew spotlessApply
 ./gradlew spotlessCheck
+./gradlew :engine:jvmTest
 ./gradlew :shared:jvmTest :shared:testAndroidHostTest
 ./gradlew :androidApp:assembleDebug
+./gradlew :desktopApp:packageDistributionForCurrentOS
+./gradlew :cli:test
 ```
 
-When shared code changes, these additional compile checks protect the inherited browser source sets without claiming
-them as contest targets:
-
-```bash
-./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs
-```
+Web build work is deferred. Historical shared JS/Wasm compile checks are not evidence of a runnable browser target.
 
 Do not use the aggregate `check`, `build`, or `clean build` tasks for routine validation; they pull in unrelated
 platform work, including iOS.
@@ -186,6 +211,8 @@ platform work, including iOS.
   the binary file or its private storage key.
 - Provider-specific, constituency-specific, legal, soft, or ambiguous conditions remain explicit manual checks.
 - Action duration, cost, and effort are Porta planning estimates, not provider claims.
+- Route counts only doors opened under the encoded rules before their deadlines. The bundled 15-door Linh demo
+  currently yields paths that improve checks but open zero doors; the UI keeps that outcome visible.
 - TBA and rolling deadlines are never inferred from an older cycle.
 - Opportunity-pack imports show an added/changed/removed preview before activation. Profile facts and saved doors are
   preserved; programme confirmations whose exact rule fingerprint changed remain stored but no longer satisfy checks.
@@ -219,7 +246,7 @@ agent context and skills as development infrastructure.
 
 | Inherited Koko foundation | Porta-specific contest work |
 |---|---|
-| Gradle targets, launchers, CI/release helpers, generic design system, reusable agent skills | Typed opportunity and rule models, deterministic eligibility and scenario engines, Action Frontier |
+| Gradle targets, launchers, CI/release helpers, generic design system, reusable agent skills | Typed opportunity and rule models, deterministic eligibility and scenario engines, Action Frontier, Route planner, pack DSL and CLI |
 | Optional auth, billing, AI/media, ads, analytics, Remote Config, and notification architecture | Pack schema, validation and import; Room profile/plan persistence; saved doors and scoped assertions |
 | Generic test and publishing foundations | Porta screen flows, adaptive Desktop workspace, curated sources, tests, and documentation |
 

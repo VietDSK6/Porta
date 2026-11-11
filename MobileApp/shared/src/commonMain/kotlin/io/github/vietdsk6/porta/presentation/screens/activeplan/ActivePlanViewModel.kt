@@ -35,22 +35,41 @@ class ActivePlanViewModel(
     private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
     private val operation = MutableStateFlow(OperationState())
+    private val selectedPlanId = MutableStateFlow<String?>(null)
+    private val planSelection = combine(planRepository.observePlans(), selectedPlanId) { plans, selectedId ->
+        plans to selectedId
+    }
 
     val uiState: StateFlow<ActivePlanUiState> = combine(
-        planRepository.observeCurrentPlan(),
+        planSelection,
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
         operation,
         currentLocalDateProvider.currentDate,
-    ) { plan, profile, packResult, operation, today ->
+    ) { (plans, selectedId), profile, packResult, operation, today ->
         val activePack = packResult.getOrNull()
         val opportunities = activePack?.opportunities ?: PortaSampleData.opportunities
+        val routePlans = plans.filter { it.routeId != null && it.sequence != null }.sortedBy { it.sequence }
+        val selectedPlan = routePlans.firstOrNull { it.id == selectedId }
+            ?: routePlans.firstOrNull()
+            ?: plans.firstOrNull { it.status == PlanStatus.IN_PROGRESS }
+            ?: plans.firstOrNull { it.status == PlanStatus.PLANNED }
+            ?: plans.firstOrNull { it.status == PlanStatus.PAUSED }
+            ?: plans.firstOrNull()
         ActivePlanUiState(
             isLoading = false,
             isWorking = operation.isWorking,
             isSampleCatalog = activePack == null ||
                 activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
-            plan = plan?.toUiState(profile, opportunities, today),
+            plan = selectedPlan?.toUiState(profile, opportunities, today),
+            routeSteps = routePlans.map { plan ->
+                ActiveRouteStepUiState(
+                    planId = plan.id,
+                    sequence = plan.sequence ?: 0,
+                    title = plan.title,
+                )
+            },
+            selectedPlanId = selectedPlan?.id,
             error = operation.error,
         )
     }.stateIn(
@@ -60,8 +79,13 @@ class ActivePlanViewModel(
     )
 
     fun onUiEvent(event: ActivePlanUiEvent) {
+        if (event is ActivePlanUiEvent.SelectStep) {
+            if (uiState.value.routeSteps.any { it.planId == event.planId }) selectedPlanId.value = event.planId
+            return
+        }
         val plan = uiState.value.plan ?: return
         when (event) {
+            is ActivePlanUiEvent.SelectStep -> Unit
             ActivePlanUiEvent.Start -> updateStatus(plan.id, PlanStatus.IN_PROGRESS)
             ActivePlanUiEvent.Pause -> updateStatus(plan.id, PlanStatus.PAUSED)
             ActivePlanUiEvent.Resume -> updateStatus(plan.id, PlanStatus.IN_PROGRESS)
@@ -183,11 +207,13 @@ internal fun projectPlanImpacts(
         }
 }
 
-private fun Opportunity.planTiming(today: LocalDate, minimumDurationDays: Int?): PlanTimingStatus = when {
-    archived -> PlanTimingStatus.OUTSIDE_CURRENT_CYCLE
-    deadline is Deadline.Known && deadline.date < today -> PlanTimingStatus.MISSES_KNOWN_DEADLINE
-    minimumDurationDays == null -> PlanTimingStatus.TIMING_UNVERIFIED
-    deadline !is Deadline.Known -> PlanTimingStatus.TIMING_UNVERIFIED
-    isFeasibleForPlanning(today, minimumDurationDays) -> PlanTimingStatus.WITHIN_KNOWN_DEADLINE
-    else -> PlanTimingStatus.MISSES_KNOWN_DEADLINE
+private fun Opportunity.planTiming(today: LocalDate, minimumDurationDays: Int?): PlanTimingStatus {
+    val publishedDeadline = deadline as? Deadline.Known
+    return when {
+        archived -> PlanTimingStatus.OUTSIDE_CURRENT_CYCLE
+        publishedDeadline != null && publishedDeadline.date < today -> PlanTimingStatus.MISSES_KNOWN_DEADLINE
+        minimumDurationDays == null || publishedDeadline == null -> PlanTimingStatus.TIMING_UNVERIFIED
+        isFeasibleForPlanning(today, minimumDurationDays) -> PlanTimingStatus.WITHIN_KNOWN_DEADLINE
+        else -> PlanTimingStatus.MISSES_KNOWN_DEADLINE
+    }
 }

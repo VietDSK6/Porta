@@ -102,10 +102,11 @@ class OpportunityStudioDraftCompiler(
         diagnostics: MutableList<PackDiagnostic>,
     ): RuleNodeDto? = when (this) {
         is OpportunityStudioRuleDraft.Atomic -> {
+            val expectedValue = expected
             val expectedDto = when {
                 operator == Operator.EXISTS -> null
-                expected == null -> null
-                else -> expected.toDto(index = index, diagnostics = diagnostics)
+                expectedValue == null -> null
+                else -> expectedValue.toDto(index = index, diagnostics = diagnostics)
             }
             RuleNodeDto.Atomic(
                 id = id.trim(),

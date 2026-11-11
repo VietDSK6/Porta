@@ -132,6 +132,23 @@ class DatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun `migration 5 to 6 adds nullable route ordering and preserves existing plan`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        try {
+            connection.execSQL("CREATE TABLE plan_item (id TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL)")
+            connection.execSQL("INSERT INTO plan_item VALUES ('one-step', 'Existing plan')")
+
+            MIGRATION_5_6.migrate(connection)
+
+            assertTrue(connection.columnNames("plan_item").containsAll(setOf("route_id", "sequence")))
+            assertEquals("Existing plan", connection.singleText("SELECT title FROM plan_item WHERE id = 'one-step'"))
+            assertEquals("null,null", connection.singleText("SELECT COALESCE(route_id, 'null') || ',' || COALESCE(sequence, 'null') FROM plan_item WHERE id = 'one-step'"))
+        } finally {
+            connection.close()
+        }
+    }
+
     private fun androidx.sqlite.SQLiteConnection.singleText(sql: String): String = prepare(sql).use { statement ->
         check(statement.step()) { "Query returned no rows: $sql" }
         statement.getText(0)

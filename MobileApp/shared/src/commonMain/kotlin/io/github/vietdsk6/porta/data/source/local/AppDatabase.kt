@@ -20,7 +20,7 @@ import io.github.vietdsk6.porta.data.source.local.entity.SavedOpportunityEntity
 // the shipped schema changes so existing local Porta data remains readable.
 @Database(
     entities = [PlanItemEntity::class, SavedOpportunityEntity::class, OpportunityPackEntity::class, ProfileFactEntity::class, RuleAssertionEntity::class],
-    version = 5,
+    version = 6,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

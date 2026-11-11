@@ -93,12 +93,15 @@ fun EligibilityReceipt.requirementAssessmentLabel(): String = if (cycleStatus ==
     }
 }
 
-fun EligibilityReceipt.timingLabel(): String = when {
-    cycleStatus == OpportunityCycleStatus.ARCHIVED -> "Timing: archived cycle retained for reference"
-    state == EligibilityState.CLOSED -> "Timing: application window closed"
-    deadline is Deadline.Known -> "Timing: published deadline ${deadline.date}"
-    deadline == Deadline.Tba -> "Timing: provider date not yet published"
-    else -> "Timing: deadline not found in this source record"
+fun EligibilityReceipt.timingLabel(): String {
+    val publishedDeadline = deadline as? Deadline.Known
+    return when {
+        cycleStatus == OpportunityCycleStatus.ARCHIVED -> "Timing: archived cycle retained for reference"
+        state == EligibilityState.CLOSED -> "Timing: application window closed"
+        publishedDeadline != null -> "Timing: published deadline ${publishedDeadline.date}"
+        deadline == Deadline.Tba -> "Timing: provider date not yet published"
+        else -> "Timing: deadline not found in this source record"
+    }
 }
 
 fun EligibilityReceipt.trustSummary(): String = when {

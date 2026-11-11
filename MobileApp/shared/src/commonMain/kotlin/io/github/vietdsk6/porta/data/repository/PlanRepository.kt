@@ -6,6 +6,7 @@ import io.github.vietdsk6.porta.data.source.local.entity.toEntity
 import io.github.vietdsk6.porta.data.source.local.entity.toModel
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
+import io.github.vietdsk6.porta.domain.model.PlannedRoute
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,34 @@ class PlanRepository(
 
     suspend fun replaceCurrentPlan(plan: PlanItem): Result<Unit> = backgroundExecutor.execute {
         planItemDao.replaceForProfile(plan.toEntity())
+        Result.success(Unit)
+    }
+
+    /** Replaces the active plan with an ordered route in one database transaction. */
+    suspend fun saveRoute(
+        route: PlannedRoute,
+        profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
+    ): Result<Unit> = backgroundExecutor.execute {
+        require(route.steps.isNotEmpty()) { "Cannot save an empty route." }
+        val savedAt = nowEpochMillis()
+        val plans = route.steps.mapIndexed { index, step ->
+            PlanItem(
+                id = "${route.id}:$index",
+                profileId = profileId,
+                actionTemplateId = step.template.id,
+                title = step.template.title,
+                target = step.template.target,
+                targetDateEpochDays = step.endDate.toEpochDays().toLong(),
+                expectedDurationDays = step.template.minimumDurationDays,
+                effort = step.template.effort,
+                costBand = step.template.costBand,
+                createdAtEpochMillis = savedAt,
+                updatedAtEpochMillis = savedAt,
+                routeId = route.id,
+                sequence = index,
+            )
+        }
+        planItemDao.replaceRouteForProfile(profileId, plans.map(PlanItem::toEntity))
         Result.success(Unit)
     }
 

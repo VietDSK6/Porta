@@ -16,6 +16,7 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RouteConstraints
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
@@ -38,6 +39,7 @@ class ScenarioEnginePerformanceCharacterizationTest {
     private val eligibilityEvaluator = EligibilityEvaluator()
     private val scenarioEvaluator = ScenarioEvaluator(eligibilityEvaluator)
     private val frontierEngine = ActionFrontierEngine(eligibilityEvaluator, scenarioEvaluator)
+    private val routePlanner = RoutePlanner(eligibilityEvaluator, scenarioEvaluator)
     private val fixture = performanceFixture()
 
     @Volatile
@@ -87,6 +89,7 @@ class ScenarioEnginePerformanceCharacterizationTest {
                 FrontierExclusionReason.MISSES_KNOWN_DEADLINES in exclusion.reasons
             },
         )
+        assertEquals(evaluateRoutes(), evaluateRoutes())
         assertEquals(fixture.originalProfile, fixture.profile)
     }
 
@@ -96,11 +99,13 @@ class ScenarioEnginePerformanceCharacterizationTest {
             observe(evaluateEligibility().eligibilityChecksum())
             observe(evaluateScenario().scenarioChecksum())
             observe(evaluateFrontier().frontierChecksum())
+            observe(evaluateRoutes().size)
         }
 
         val eligibility = measureRuns { evaluateEligibility().eligibilityChecksum() }
         val scenario = measureRuns { evaluateScenario().scenarioChecksum() }
         val frontier = measureRuns { evaluateFrontier().frontierChecksum() }
+        val routes = measureRuns { evaluateRoutes().size }
 
         println(
             "PORTA_PERF_ENV " +
@@ -112,10 +117,12 @@ class ScenarioEnginePerformanceCharacterizationTest {
         println(eligibility.asReport("eligibility_100"))
         println(scenario.asReport("scenario_100"))
         println(frontier.asReport("action_frontier_100"))
+        println(routes.asReport("route_planner_100"))
 
         assertTrue(eligibility.samplesNanos.all { nanos -> nanos > 0L })
         assertTrue(scenario.samplesNanos.all { nanos -> nanos > 0L })
         assertTrue(frontier.samplesNanos.all { nanos -> nanos > 0L })
+        assertTrue(routes.samplesNanos.all { nanos -> nanos > 0L })
     }
 
     private fun evaluateEligibility(): List<EligibilityReceipt> = fixture.opportunities.map { opportunity ->
@@ -134,6 +141,18 @@ class ScenarioEnginePerformanceCharacterizationTest {
         opportunities = fixture.opportunities,
         savedOpportunityIds = fixture.savedOpportunityIds,
         constraints = fixture.constraints,
+        today = today,
+    )
+
+    private fun evaluateRoutes() = routePlanner.plan(
+        profile = fixture.profile,
+        opportunities = fixture.opportunities,
+        savedOpportunityIds = fixture.savedOpportunityIds,
+        constraints = RouteConstraints(
+            horizonDays = fixture.constraints.horizonDays,
+            maxTotalCost = fixture.constraints.maxCost,
+            maxEffort = fixture.constraints.maxEffort,
+        ),
         today = today,
     )
 

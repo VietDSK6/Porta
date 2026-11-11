@@ -34,6 +34,10 @@ data class ProfileSetupScreenRoute(
 data object DoorsScreenRoute : TopLevelScreenRoute
 
 @Serializable
+@SerialName("Route")
+data object RouteScreenRoute : TopLevelScreenRoute
+
+@Serializable
 @SerialName("OpportunityDetail")
 data class OpportunityDetailScreenRoute(val opportunityId: String) : ScreenRoute
 

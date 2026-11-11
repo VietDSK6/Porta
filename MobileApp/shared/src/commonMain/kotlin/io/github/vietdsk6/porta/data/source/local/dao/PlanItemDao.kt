@@ -27,10 +27,19 @@ interface PlanItemDao {
     @Upsert
     suspend fun upsert(entity: PlanItemEntity)
 
+    @Upsert
+    suspend fun upsertAll(entities: List<PlanItemEntity>)
+
     @Transaction
     suspend fun replaceForProfile(entity: PlanItemEntity) {
         deleteForProfile(entity.profileId)
         upsert(entity)
+    }
+
+    @Transaction
+    suspend fun replaceRouteForProfile(profileId: String, entities: List<PlanItemEntity>) {
+        deleteForProfile(profileId)
+        upsertAll(entities)
     }
 
     @Query("UPDATE plan_item SET status = :status, updated_at = :updatedAt WHERE id = :id")

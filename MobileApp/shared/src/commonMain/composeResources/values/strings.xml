@@ -1,5 +1,6 @@
 <resources>
     <string name="bottom_nav_label_doors">Doors</string>
+    <string name="bottom_nav_label_route">Route</string>
     <string name="bottom_nav_label_frontier">Next moves</string>
     <string name="bottom_nav_label_profile">Profile</string>
 </resources>

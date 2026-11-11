@@ -7,6 +7,7 @@ androidx-core-splashscreen = "1.2.0"
 androidx-uiTest = "1.12.0"
 androidxLifecycle = "2.11.0"
 buildConfig = "6.0.10"
+clikt = "5.1.0"
 composablePreviewScanner = "0.9.3"
 compose = "1.11.1"
 composeLifecyleRuntime="2.11.0"
@@ -43,6 +44,7 @@ androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-p
 androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidxLifecycle" }
 androidx-uitest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-uiTest" }
 androidx-uitest-testManifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-uiTest" }
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
 composable-preview-scanner-android = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composablePreviewScanner" }
 compose-animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "compose" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose" }

@@ -1,12 +1,16 @@
 package io.github.vietdsk6.porta.data.source.local.pack
 
+import io.github.vietdsk6.porta.domain.dsl.opportunityPack
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.Operator
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
+import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
+import kotlinx.datetime.LocalDate
 
 /**
  * The offline catalog shipped with Porta.
@@ -15,11 +19,55 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
  * it means the official condition is real, but the current typed profile cannot evaluate it without
  * inventing an equivalence. Estimates on action templates are Porta planning aids, not provider data.
  */
-internal object PortaContestPackData {
+internal object BundledPack {
     const val REVIEWED_ON = "2026-10-21"
     const val SOURCE_REFRESH_REVIEWED_ON = "2026-11-02"
 
-    fun create(): OpportunityPackDto = OpportunityPackDto(
+    /** Replays the curated records through the validated, typed pack DSL. */
+    fun document(): OpportunityPackDocument {
+        val curated = curatedRecords()
+        return opportunityPack(
+            id = curated.id,
+            name = curated.name,
+            publisher = curated.publisher,
+            lastCheckedOn = LocalDate.parse(curated.lastCheckedOn),
+            version = curated.version,
+            schemaVersion = curated.schemaVersion,
+            sourceUrl = curated.sourceUrl,
+        ) {
+            curated.opportunities.forEach { record ->
+                val original = record.toDomain()
+                opportunity(
+                    id = original.id,
+                    title = original.title,
+                    provider = original.provider,
+                    category = original.category,
+                    cycle = original.cycle,
+                ) {
+                    cycleStartOn = original.cycleStartOn
+                    schemaVersion = original.schemaVersion
+                    disclaimer = original.disclaimer
+                    archived = original.archived
+                    source(original.sourceUrl, original.sourceSection, original.lastCheckedOn)
+                    deadline {
+                        when (val value = original.deadline) {
+                            is Deadline.Known -> known(value.date)
+                            Deadline.Tba -> tba()
+                            Deadline.Missing -> missing()
+                        }
+                    }
+                    eligibility { rule(original.eligibilityRule) }
+                    softCriteria.addAll(original.softCriteria)
+                    readinessItems.addAll(original.readinessItems)
+                    original.actionTemplates.forEach { action(it) }
+                }
+            }
+        }
+    }
+
+    fun create(): OpportunityPackDto = document().toDto()
+
+    private fun curatedRecords(): OpportunityPackDto = OpportunityPackDto(
         schemaVersion = OpportunityPackCodec.CURRENT_SCHEMA_VERSION,
         id = BundledOpportunityPackProvider.PACK_ID,
         name = "Porta curated opportunity pack",

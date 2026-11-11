@@ -7,7 +7,7 @@ package io.github.vietdsk6.porta.data.source.local.pack
 class BundledOpportunityPackProvider(
     private val codec: OpportunityPackCodec,
 ) {
-    fun rawJson(): String = codec.encode(PortaContestPackData.create())
+    fun rawJson(): String = codec.encode(BundledPack.create())
 
     /** Refresh only an older bundled pack; a user-imported catalog stays active. */
     fun shouldInstallOver(activePackId: String?, activeVersion: Int?): Boolean = activePackId == null ||

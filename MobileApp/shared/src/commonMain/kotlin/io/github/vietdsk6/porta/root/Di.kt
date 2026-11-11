@@ -19,6 +19,7 @@ import io.github.vietdsk6.porta.data.source.preferences.UserPreferencesImpl
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
+import io.github.vietdsk6.porta.domain.usecase.RoutePlanner
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanViewModel
 import io.github.vietdsk6.porta.presentation.screens.actualprofileupdate.ActualProfileUpdateViewModel
@@ -29,10 +30,12 @@ import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.Opportuni
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioViewModel
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
+import io.github.vietdsk6.porta.presentation.screens.route.RouteViewModel
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.util.ApplicationScope
 import io.github.vietdsk6.porta.util.defaultAsyncDispatcher
+import io.github.vietdsk6.porta.util.getPlatformCapabilities
 import io.github.vietdsk6.porta.util.logging.Logger
 import io.github.vietdsk6.porta.util.logging.NapierLogger
 import io.github.vietdsk6.porta.util.platformModule
@@ -50,12 +53,14 @@ private val domainModule = module {
     singleOf(::EligibilityEvaluator)
     singleOf(::ScenarioEvaluator)
     singleOf(::ActionFrontierEngine)
+    singleOf(::RoutePlanner)
     singleOf(::ManageLocalPortaDataUseCase)
 }
 
 private val dataModule = module {
     singleOf(::ApplicationScope)
     single { CurrentLocalDateProvider() }
+    single { getPlatformCapabilities() }
     factory { defaultAsyncDispatcher } bind CoroutineContext::class
     factory { BackgroundExecutor.IO } bind BackgroundExecutor::class
 
@@ -90,6 +95,7 @@ private val presentationModule = module {
         OpportunityDetailViewModel(opportunityId, get(), get(), get(), get(), get())
     }
     viewModelOf(::FrontierViewModel)
+    viewModelOf(::RouteViewModel)
     viewModel { (actionId: String) ->
         ScenarioPreviewViewModel(actionId, get(), get(), get(), get(), get())
     }

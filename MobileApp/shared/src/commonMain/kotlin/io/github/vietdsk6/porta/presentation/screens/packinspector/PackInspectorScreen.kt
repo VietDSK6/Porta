@@ -20,6 +20,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -41,14 +42,16 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
-import io.github.vietdsk6.porta.util.Platform
-import io.github.vietdsk6.porta.util.getPlatform
+import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
+import io.github.vietdsk6.porta.presentation.navigation.LocalDesktopCommand
+import io.github.vietdsk6.porta.util.PlatformCapabilities
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readString
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 @Composable
 fun PackInspectorScreen(
@@ -76,6 +79,21 @@ fun PackInspectorScreen(
             )
         }
     }
+    val desktopRequest = LocalDesktopCommand.current
+    LaunchedEffect(desktopRequest?.command) {
+        when (val command = desktopRequest?.command) {
+            DesktopCommand.ImportPack -> packPicker.launch()
+
+            is DesktopCommand.ImportPackJson -> viewModel.onUiEvent(
+                PackInspectorUiEvent.ImportPack(command.fileName, command.rawJson),
+            )
+
+            DesktopCommand.ExportPack -> viewModel.onUiEvent(PackInspectorUiEvent.ExportActivePack)
+
+            else -> return@LaunchedEffect
+        }
+        desktopRequest?.onHandled()
+    }
 
     PackInspectorScreen(
         modifier = modifier.fillMaxSize(),
@@ -84,7 +102,7 @@ fun PackInspectorScreen(
         onNavigateBack = onNavigateBack,
         onImportPack = packPicker::launch,
         onOpenSource = uriHandler::openUri,
-        supportsOpportunityStudio = getPlatform() == Platform.Desktop,
+        supportsOpportunityStudio = koinInject<PlatformCapabilities>().supportsStudio,
         onOpenOpportunityStudio = onOpenOpportunityStudio,
     )
 }

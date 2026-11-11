@@ -38,15 +38,15 @@ class BundledOpportunityPackProviderTest {
         val opportunities = document.opportunities
         assertEquals(BundledOpportunityPackProvider.PACK_ID, document.metadata.id)
         assertEquals(4, document.metadata.version)
-        assertEquals(PortaContestPackData.REVIEWED_ON, document.metadata.lastCheckedOn.toString())
+        assertEquals(BundledPack.REVIEWED_ON, document.metadata.lastCheckedOn.toString())
         assertEquals(15, opportunities.size)
         assertTrue(opportunities.all { it.eligibilityRule.id.isNotBlank() })
         assertTrue(opportunities.all { it.sourceUrl.startsWith("https://") })
         assertTrue(
             opportunities.all {
                 it.lastCheckedOn.toString() in setOf(
-                    PortaContestPackData.REVIEWED_ON,
-                    PortaContestPackData.SOURCE_REFRESH_REVIEWED_ON,
+                    BundledPack.REVIEWED_ON,
+                    BundledPack.SOURCE_REFRESH_REVIEWED_ON,
                 )
             },
         )
@@ -61,7 +61,7 @@ class BundledOpportunityPackProviderTest {
                 "unicef-internship-rolling",
             ),
             opportunities
-                .filter { it.lastCheckedOn.toString() == PortaContestPackData.SOURCE_REFRESH_REVIEWED_ON }
+                .filter { it.lastCheckedOn.toString() == BundledPack.SOURCE_REFRESH_REVIEWED_ON }
                 .mapTo(mutableSetOf()) { it.id },
         )
         assertFalse(opportunities.any { "example.invalid" in it.sourceUrl })
@@ -377,7 +377,7 @@ class BundledOpportunityPackProviderTest {
             val delta = assertNotNull(impact.changedRules.singleOrNull { it.ruleId == ruleId })
             assertEquals(RuleResult.FAIL, delta.beforeResult)
             assertEquals(RuleResult.PASS, delta.afterResult)
-            assertTrue(delta.sourceNote?.contains(PortaContestPackData.SOURCE_REFRESH_REVIEWED_ON) == true)
+            assertTrue(delta.sourceNote?.contains(BundledPack.SOURCE_REFRESH_REVIEWED_ON) == true)
             assertTrue(impact.afterState != EligibilityState.OPEN)
         }
         assertTrue(

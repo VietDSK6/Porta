@@ -172,6 +172,34 @@ private fun ActivePlanContent(
                 )
             }
         }
+        if (uiState.routeSteps.isNotEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().testTag("active-route-steps"),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Route milestones", style = AppTheme.typography.h6)
+                    uiState.routeSteps.forEach { step ->
+                        val selected = step.planId == uiState.selectedPlanId
+                        if (selected) {
+                            Button(
+                                modifier = Modifier.fillMaxWidth().testTag("route-step-${step.sequence}"),
+                                onClick = { onUiEvent(ActivePlanUiEvent.SelectStep(step.planId)) },
+                            ) {
+                                Text("${step.sequence + 1}. ${step.title}")
+                            }
+                        } else {
+                            OutlinedButton(
+                                modifier = Modifier.fillMaxWidth().testTag("route-step-${step.sequence}"),
+                                onClick = { onUiEvent(ActivePlanUiEvent.SelectStep(step.planId)) },
+                            ) {
+                                Text("${step.sequence + 1}. ${step.title}")
+                            }
+                        }
+                    }
+                }
+            }
+        }
         item { GoalCard(plan) }
         item { PlanTimeline(plan) }
         item { EvidenceAndImpactCard(plan) }

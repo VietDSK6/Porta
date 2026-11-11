@@ -1,9 +1,7 @@
 package io.github.vietdsk6.porta.domain.usecase
 
 import io.github.vietdsk6.porta.domain.model.ActionFrontierEvaluation
-import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
-import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FrontierAction
@@ -13,12 +11,8 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleReceipt
-import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
-import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.displayValue
-import io.github.vietdsk6.porta.domain.model.findAtomicRule
-import io.github.vietdsk6.porta.domain.model.fingerprint
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import kotlinx.datetime.LocalDate
@@ -34,6 +28,8 @@ class ActionFrontierEngine(
     private val eligibilityEvaluator: EligibilityEvaluator,
     private val scenarioEvaluator: ScenarioEvaluator,
 ) {
+    private val candidateCatalog = CandidateCatalog()
+
     /** Returns the first unmet, ethically actionable check that can still fit its published deadline. */
     fun relevantActionFor(
         profile: ProfileSnapshot,
@@ -90,28 +86,7 @@ class ActionFrontierEngine(
         val baseline = opportunities.associate { opportunity ->
             opportunity.id to eligibilityEvaluator.evaluate(profile, opportunity, today)
         }
-        val candidates = opportunities.flatMap { opportunity ->
-            val templates = opportunity.actionTemplates.associateBy(ActionTemplate::id)
-            baseline.getValue(opportunity.id).rules.mapNotNull { receipt ->
-                receipt.actionTemplateId
-                    ?.let(templates::get)
-                    ?.takeIf { template ->
-                        template.targetsReceipt(opportunityId = opportunity.id, receipt = receipt)
-                    }
-                    ?.takeIf { template -> template.canAddress(receipt.result) }
-            }
-        }
-            .filter { it.isEthicallyActionable() }
-            .groupBy { it.signature() }
-            .values
-            .map { matching ->
-                matching.minWith(
-                    compareBy<ActionTemplate>(ActionTemplate::minimumDurationDays)
-                        .thenBy { it.effort.rank }
-                        .thenBy { it.costBand.rank }
-                        .thenBy(ActionTemplate::id),
-                )
-            }
+        val candidates = candidateCatalog.select(opportunities, baseline)
         val exclusions = mutableListOf<FrontierExclusion>()
         val impacted = candidates.mapNotNull { template ->
             val reasons = linkedSetOf<FrontierExclusionReason>()
@@ -280,71 +255,6 @@ class ActionFrontierEngine(
             "Estimated duration: ${template.minimumDurationDays} days. " +
             "Effort: ${template.effort.name.lowercase()}. Cost: ${template.costBand.name.lowercase()}."
     }
-
-    private fun ActionTemplate.signature(): String = when (val actionTarget = target) {
-        is ActionTarget.ProfileFactTarget -> {
-            "profile:${actionTarget.factKey.name}:${actionTarget.value.displayValue()}"
-        }
-
-        is ActionTarget.OpportunityRuleTarget -> {
-            "rule:${actionTarget.opportunityId}:${actionTarget.ruleId}:${actionTarget.value.displayValue()}"
-        }
-    }
-
-    private fun ActionTemplate.targetsReceipt(
-        opportunityId: String,
-        receipt: RuleReceipt,
-    ): Boolean = when (val actionTarget = target) {
-        is ActionTarget.ProfileFactTarget -> receipt.actionTemplateId == id && receipt.factKey == actionTarget.factKey
-
-        is ActionTarget.OpportunityRuleTarget -> {
-            receipt.actionTemplateId == id &&
-                actionTarget.opportunityId == opportunityId &&
-                actionTarget.ruleId == receipt.ruleId &&
-                receipt.factKey == actionTarget.factKey
-        }
-    }
-
-    private fun ActionTemplate.canAddress(result: RuleResult): Boolean = when (target) {
-        is ActionTarget.ProfileFactTarget -> result == RuleResult.FAIL
-
-        is ActionTarget.OpportunityRuleTarget -> {
-            result == RuleResult.FAIL || result == RuleResult.UNKNOWN
-        }
-    }
-
-    private fun ActionTemplate.scenarioOverrides(
-        opportunityById: Map<String, Opportunity>,
-    ): ScenarioOverrides = when (val actionTarget = target) {
-        is ActionTarget.ProfileFactTarget -> ScenarioOverrides(
-            profileFacts = mapOf(actionTarget.factKey to actionTarget.value),
-        )
-
-        is ActionTarget.OpportunityRuleTarget -> {
-            val currentRule = opportunityById[actionTarget.opportunityId]
-                ?.eligibilityRule
-                ?.findAtomicRule(actionTarget.ruleId)
-            if (
-                currentRule == null ||
-                currentRule.factKey != actionTarget.factKey ||
-                currentRule.fingerprint() != actionTarget.ruleFingerprint
-            ) {
-                ScenarioOverrides()
-            } else {
-                ScenarioOverrides(
-                    ruleAssertions = mapOf(
-                        RuleRef(
-                            opportunityId = actionTarget.opportunityId,
-                            ruleId = actionTarget.ruleId,
-                        ) to actionTarget.value,
-                    ),
-                )
-            }
-        }
-    }
-
-    private fun ActionTemplate.isEthicallyActionable(): Boolean = targetActionability == Actionability.CONTROLLABLE ||
-        targetActionability == Actionability.TIME_DEPENDENT
 
     private data class RelevantCandidate(
         val receipt: RuleReceipt,

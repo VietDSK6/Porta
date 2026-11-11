@@ -44,6 +44,8 @@ data class PlanItemEntity(
     @ColumnInfo("cost_band") val costBand: String,
     @ColumnInfo("created_at") val createdAtEpochMillis: Long,
     @ColumnInfo("updated_at") val updatedAtEpochMillis: Long,
+    @ColumnInfo("route_id") val routeId: String? = null,
+    @ColumnInfo("sequence") val sequence: Int? = null,
 )
 
 fun PlanItemEntity.toModel(): PlanItem = PlanItem(
@@ -60,6 +62,8 @@ fun PlanItemEntity.toModel(): PlanItem = PlanItem(
     costBand = CostBand.valueOf(costBand),
     createdAtEpochMillis = createdAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    routeId = routeId,
+    sequence = sequence,
 )
 
 fun PlanItem.toEntity(): PlanItemEntity {
@@ -92,6 +96,8 @@ fun PlanItem.toEntity(): PlanItemEntity {
         costBand = costBand.name,
         createdAtEpochMillis = createdAtEpochMillis,
         updatedAtEpochMillis = updatedAtEpochMillis,
+        routeId = routeId,
+        sequence = sequence,
     )
 }
 

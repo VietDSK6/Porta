@@ -63,21 +63,7 @@ SHARED_PRODUCTION_EXACT_PATHS=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/OpportunityPackNormalizer.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/OpportunityPackParser.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/OpportunityPackValidator.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/ActionFrontier.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/Opportunity.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/OpportunityLifecycle.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/OpportunityPack.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/OpportunityPackDocument.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/OpportunityPackImport.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/OpportunityPackUpdate.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/PlanItem.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/ProfileFact.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/RuleFingerprint.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/SavedOpportunity.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ActionFrontierEngine.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/EligibilityEvaluator.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ManageLocalPortaDataUseCase.kt"
-    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ScenarioEvaluator.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/EligibilityTrustCopy.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/SourceFreshnessCopy.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/ActionRipple.kt"
@@ -87,6 +73,9 @@ SHARED_PRODUCTION_EXACT_PATHS=(
 )
 
 SHARED_PRODUCTION_PREFIXES=(
+    "MobileApp/engine/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/model/"
+    "MobileApp/engine/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/"
+    "MobileApp/engine/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/dsl/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/profile/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/activeplan/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/actualprofileupdate/"
@@ -95,6 +84,7 @@ SHARED_PRODUCTION_PREFIXES=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/opportunitydetail/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/packinspector/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/profilesetup/"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/route/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/scenariopreview/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/studentprofile/"
 )
@@ -115,17 +105,21 @@ is_shared_production_file() {
 while IFS= read -r source_path; do
     if is_shared_production_file "$source_path"; then
         echo "$source_path" >> "$SHARED_PRODUCTION_FILES"
-    elif [[ "$source_path" == MobileApp/androidApp/src/main/kotlin/* ]] ||
+    elif [[ "$source_path" == MobileApp/cli/src/main/kotlin/* ]] ||
+        [[ "$source_path" == MobileApp/androidApp/src/main/kotlin/* ]] ||
         [[ "$source_path" == MobileApp/desktopApp/src/main/kotlin/* ]] ||
         [[ "$source_path" == MobileApp/shared/src/androidMain/kotlin/io/github/vietdsk6/porta/* ]] ||
         [[ "$source_path" == MobileApp/shared/src/jvmMain/kotlin/io/github/vietdsk6/porta/* ]]; then
         echo "$source_path" >> "$PLATFORM_PRODUCTION_FILES"
     elif [[ "$source_path" == MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/sample/PortaSampleData.kt ]] ||
+        [[ "$source_path" == MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/BundledPack.kt ]] ||
         [[ "$source_path" == MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/PortaContestPackData.kt ]]; then
         echo "$source_path" >> "$KOTLIN_DATA_FILES"
-    elif [[ "$source_path" == MobileApp/shared/src/commonTest/kotlin/io/github/vietdsk6/porta/* ]]; then
+    elif [[ "$source_path" == MobileApp/engine/src/commonTest/kotlin/io/github/vietdsk6/porta/* ]] ||
+        [[ "$source_path" == MobileApp/shared/src/commonTest/kotlin/io/github/vietdsk6/porta/* ]]; then
         echo "$source_path" >> "$SHARED_TEST_FILES"
-    elif [[ "$source_path" == MobileApp/shared/src/jvmTest/kotlin/io/github/vietdsk6/porta/* ]] ||
+    elif [[ "$source_path" == MobileApp/cli/src/test/kotlin/* ]] ||
+        [[ "$source_path" == MobileApp/shared/src/jvmTest/kotlin/io/github/vietdsk6/porta/* ]] ||
         [[ "$source_path" == MobileApp/shared/src/androidHostTest/kotlin/io/github/vietdsk6/porta/* ]]; then
         echo "$source_path" >> "$PLATFORM_TEST_FILES"
     else

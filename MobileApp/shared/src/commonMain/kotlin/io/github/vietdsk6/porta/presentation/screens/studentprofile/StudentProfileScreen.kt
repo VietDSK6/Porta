@@ -23,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,8 @@ import io.github.vietdsk6.porta.designsystem.components.ButtonStyle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
+import io.github.vietdsk6.porta.presentation.navigation.LocalDesktopCommand
 
 @Composable
 fun StudentProfileScreen(
@@ -52,6 +55,13 @@ fun StudentProfileScreen(
     onSaveNoticeDismissed: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val desktopRequest = LocalDesktopCommand.current
+    LaunchedEffect(desktopRequest?.command) {
+        if (desktopRequest?.command == DesktopCommand.ExportProfile) {
+            viewModel.onUiEvent(StudentProfileUiEvent.ExportMetadata)
+            desktopRequest.onHandled()
+        }
+    }
 
     StudentProfileScreen(
         modifier = modifier.fillMaxSize(),

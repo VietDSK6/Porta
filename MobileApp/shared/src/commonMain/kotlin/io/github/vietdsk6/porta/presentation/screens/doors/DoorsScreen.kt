@@ -28,10 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -47,6 +50,8 @@ import io.github.vietdsk6.porta.designsystem.components.porta.PortaArch
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
+import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
+import io.github.vietdsk6.porta.presentation.navigation.LocalDesktopCommand
 import kotlinx.coroutines.delay
 
 @Composable
@@ -71,6 +76,14 @@ fun DoorsScreen(
     onOpenOpportunity: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val searchFocusRequester = remember { FocusRequester() }
+    val desktopRequest = LocalDesktopCommand.current
+    LaunchedEffect(desktopRequest) {
+        if (desktopRequest?.command == DesktopCommand.FocusSearch) {
+            searchFocusRequester.requestFocus()
+            desktopRequest.onHandled()
+        }
+    }
     LaunchedEffect(uiState.highlightedDoorIds) {
         if (uiState.highlightedDoorIds.isNotEmpty()) {
             delay(DOOR_HIGHLIGHT_DURATION_MILLIS)
@@ -107,6 +120,7 @@ fun DoorsScreen(
                     onSearchChanged = { onUiEvent(DoorsUiEvent.SearchChanged(it)) },
                     onCategoryChanged = { onUiEvent(DoorsUiEvent.CategoryChanged(it)) },
                     onDeadlineChanged = { onUiEvent(DoorsUiEvent.DeadlineFilterChanged(it)) },
+                    searchFocusRequester = searchFocusRequester,
                 )
             }
             item {
@@ -267,6 +281,7 @@ private fun DoorCatalogControls(
     onSearchChanged: (String) -> Unit,
     onCategoryChanged: (OpportunityCategory?) -> Unit,
     onDeadlineChanged: (DoorDeadlineFilter) -> Unit,
+    searchFocusRequester: FocusRequester,
 ) {
     var showMore by rememberSaveable {
         mutableStateOf(selectedCategory != null || selectedDeadlineFilter != DoorDeadlineFilter.ALL)
@@ -275,6 +290,7 @@ private fun DoorCatalogControls(
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(searchFocusRequester)
                 .testTag("doors-search"),
             value = searchQuery,
             onValueChange = onSearchChanged,

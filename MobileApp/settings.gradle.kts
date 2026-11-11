@@ -37,6 +37,8 @@ plugins {
 }
 
 include(":shared")
+include(":engine")
+include(":cli")
 include(":androidApp")
 include(":desktopApp")
 include(":webApp")

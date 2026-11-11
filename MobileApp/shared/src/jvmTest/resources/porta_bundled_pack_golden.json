@@ -1,0 +1,1361 @@
+{
+    "schemaVersion": 2,
+    "id": "porta-curated-opportunities-2026-10-21",
+    "name": "Porta curated opportunity pack",
+    "publisher": "Porta · independently curated from official sources",
+    "version": 4,
+    "lastCheckedOn": "2026-10-21",
+    "opportunities": [
+        {
+            "id": "kotlin-student-coding-competition-2026",
+            "title": "Kotlin Student Coding Competition",
+            "provider": "Kotlin Foundation",
+            "category": "STUDENT_CONTEST",
+            "cycle": "2026 competition",
+            "sourceUrl": "https://kotlinconf.com/contest-rules/",
+            "sourceSection": "Eligibility; How to Enter",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "known",
+                "date": "2026-12-07"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "kotlin-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "kotlin-age",
+                        "factKey": "AGE",
+                        "operator": "GREATER_THAN_OR_EQUAL",
+                        "expected": {
+                            "kind": "number",
+                            "amount": 18.0,
+                            "unit": "years"
+                        },
+                        "explanation": "Entrants must be at least 18, or the older age of majority where they live.",
+                        "sourceNote": "Eligibility item 1 on the official provider page (https://kotlinconf.com/contest-rules/), reviewed 2026-10-21.",
+                        "actionability": "IMMUTABLE"
+                    },
+                    {
+                        "kind": "any",
+                        "id": "kotlin-student-status",
+                        "children": [
+                            {
+                                "kind": "atomic",
+                                "id": "kotlin-enrolled",
+                                "factKey": "ENROLLED",
+                                "operator": "EQUALS",
+                                "expected": {
+                                    "kind": "boolean",
+                                    "value": true
+                                },
+                                "explanation": "Full-time undergraduate or graduate enrollment satisfies the student-status branch.",
+                                "sourceNote": "Eligibility item 2 on the official provider page (https://kotlinconf.com/contest-rules/), reviewed 2026-10-21.",
+                                "actionability": "TIME_DEPENDENT",
+                                "actionTemplateId": "kotlin-contest-valid-enrollment"
+                            },
+                            {
+                                "kind": "manual_check",
+                                "id": "kotlin-recent-graduate",
+                                "explanation": "Otherwise confirm full-time enrollment within the 12 months before the contest starts.",
+                                "sourceNote": "Eligibility item 2 on the official provider page (https://kotlinconf.com/contest-rules/), reviewed 2026-10-21."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "kotlin-submission-conditions",
+                        "explanation": "Confirm sanctions, employment, solo-entry, contest-period, KMP, repository, license, README and essay rules on the live page.",
+                        "sourceNote": "Eligibility and Submission Guidelines on the official provider page (https://kotlinconf.com/contest-rules/), reviewed 2026-10-21."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Creativity and novelty",
+                "Quality of Kotlin Multiplatform implementation",
+                "Alignment with Kotlin coding conventions"
+            ],
+            "readinessItems": [
+                "Public GitHub repository with MIT, Apache 2.0 or BSD 3-clause license",
+                "Comprehensive README and launch instructions for every declared target",
+                "Exactly 300 words of entrant and project background",
+                "Recheck sanctions and prize eligibility immediately before submission"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "kotlin-contest-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://kotlinconf.com/contest-rules/). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "erasmus-mundus-joint-masters",
+            "title": "Erasmus Mundus Joint Masters",
+            "provider": "European Union · Erasmus+",
+            "category": "SCHOLARSHIP",
+            "cycle": "Programme-specific 2027 intake",
+            "sourceUrl": "https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters",
+            "sourceSection": "When to apply; What you need",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "any",
+                "id": "erasmus-degree-status",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "erasmus-degree-complete",
+                        "factKey": "DEGREE_COMPLETED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants may apply with a completed bachelor's degree.",
+                        "sourceNote": "What you need on the official provider page (https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "erasmus-mundus-complete-degree"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "erasmus-final-year",
+                        "explanation": "Final-year applicants must confirm they will graduate before their selected master's begins.",
+                        "sourceNote": "What you need on the official provider page (https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Scholarships are awarded to the best-ranked students."
+            ],
+            "readinessItems": [
+                "Choose one consortium programme before relying on its course and language requirements",
+                "Confirm the exact programme deadline; the EU page says most applications fall between October and January"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "erasmus-mundus-complete-degree",
+                    "title": "Complete the required first degree",
+                    "targetFactKey": "DEGREE_COMPLETED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 180,
+                    "effort": "HIGH",
+                    "costBand": "MEDIUM",
+                    "completionEvidenceTypes": [
+                        "degree certificate",
+                        "official completion letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://erasmus-plus.ec.europa.eu/opportunities/individuals/students/erasmus-mundus-joint-masters). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "chevening-scholarship-2027",
+            "title": "Chevening Scholarship",
+            "provider": "UK Foreign, Commonwealth & Development Office",
+            "category": "SCHOLARSHIP",
+            "cycle": "2027–28 awards · applications closed October 2026",
+            "sourceUrl": "https://www.chevening.org/scholarships/application-timeline/",
+            "sourceSection": "Chevening eligibility criteria; Application timeline",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "chevening-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "chevening-degree",
+                        "factKey": "DEGREE_COMPLETED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants need an undergraduate degree that qualifies them for a UK master's programme.",
+                        "sourceNote": "Eligibility criteria on the official provider page (https://www.chevening.org/resource-hub/guidance/eligibility/), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "chevening-complete-degree"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "chevening-experience",
+                        "explanation": "Confirm at least 2,800 eligible post-graduation work hours under Chevening's counting rules.",
+                        "sourceNote": "Eligibility criteria and work-experience guidance on the official provider page (https://www.chevening.org/resource-hub/guidance/eligibility/), reviewed 2026-11-02."
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "chevening-context",
+                        "explanation": "Confirm eligible citizenship/residency, return commitment, degree timing, employment conflicts and course offers.",
+                        "sourceNote": "Eligibility criteria on the official provider page (https://www.chevening.org/resource-hub/guidance/eligibility/), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Leadership",
+                "Networking",
+                "A clear course and career plan"
+            ],
+            "readinessItems": [
+                "Apply to three eligible UK courses",
+                "Obtain at least one unconditional offer by the official timeline deadline",
+                "Applications for 2027–28 closed in October 2026; recheck the next published cycle on https://www.chevening.org/scholarships/application-timeline/"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "chevening-complete-degree",
+                    "title": "Complete the required first degree",
+                    "targetFactKey": "DEGREE_COMPLETED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 180,
+                    "effort": "HIGH",
+                    "costBand": "MEDIUM",
+                    "completionEvidenceTypes": [
+                        "degree certificate",
+                        "official completion letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.chevening.org/resource-hub/guidance/eligibility/). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": true
+        },
+        {
+            "id": "rhodes-scholarship",
+            "title": "Rhodes Scholarship",
+            "provider": "Rhodes Trust",
+            "category": "SCHOLARSHIP",
+            "cycle": "Constituency-specific next cycle",
+            "sourceUrl": "https://www.rhodeshouse.ox.ac.uk/scholarships/applications/",
+            "sourceSection": "Check Your Eligibility and Apply",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "manual_check",
+                "id": "rhodes-constituency-check",
+                "explanation": "Age, citizenship/residency, education, nomination and Oxford-course conditions vary by constituency and require the official eligibility checker.",
+                "sourceNote": "Check Your Eligibility and Apply on the official provider page (https://www.rhodeshouse.ox.ac.uk/scholarships/applications/), reviewed 2026-10-21."
+            },
+            "softCriteria": [
+                "Academic excellence",
+                "Energy to use talents fully",
+                "Truth, courage, service and leadership"
+            ],
+            "readinessItems": [
+                "Select the correct constituency",
+                "Verify the constituency deadline and Oxford course requirements"
+            ],
+            "actionTemplates": [],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "schwarzman-scholars-2028-2029",
+            "title": "Schwarzman Scholars",
+            "provider": "Schwarzman Scholars · Tsinghua University",
+            "category": "SCHOLARSHIP",
+            "cycle": "Class of 2028–2029",
+            "sourceUrl": "https://www.schwarzmanscholars.org/admissions/application-instructions/",
+            "sourceSection": "Next Selection Cycle; Check Your Eligibility; Language Skills",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "schwarzman-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "schwarzman-age-min",
+                        "factKey": "DATE_OF_BIRTH",
+                        "operator": "DATE_BEFORE",
+                        "expected": {
+                            "kind": "date",
+                            "value": "2010-08-02"
+                        },
+                        "explanation": "Candidates must be at least 18 as of 1 August in the enrollment year.",
+                        "sourceNote": "Check Your Eligibility on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02.",
+                        "actionability": "IMMUTABLE"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "schwarzman-age-max",
+                        "factKey": "DATE_OF_BIRTH",
+                        "operator": "DATE_AFTER",
+                        "expected": {
+                            "kind": "date",
+                            "value": "1999-08-01"
+                        },
+                        "explanation": "Candidates must not yet be 29 as of 1 August in the enrollment year.",
+                        "sourceNote": "Check Your Eligibility on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02.",
+                        "actionability": "IMMUTABLE"
+                    },
+                    {
+                        "kind": "any",
+                        "id": "schwarzman-degree-status",
+                        "children": [
+                            {
+                                "kind": "atomic",
+                                "id": "schwarzman-degree",
+                                "factKey": "DEGREE_COMPLETED",
+                                "operator": "EQUALS",
+                                "expected": {
+                                    "kind": "boolean",
+                                    "value": true
+                                },
+                                "explanation": "A completed undergraduate degree meets the degree-presence check.",
+                                "sourceNote": "Check Your Eligibility on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02.",
+                                "actionability": "TIME_DEPENDENT",
+                                "actionTemplateId": "schwarzman-complete-degree"
+                            },
+                            {
+                                "kind": "manual_check",
+                                "id": "schwarzman-degree-before-start",
+                                "explanation": "Otherwise confirm all undergraduate degree requirements will be complete before 1 August 2028.",
+                                "sourceNote": "Check Your Eligibility on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "any",
+                        "id": "schwarzman-english-route",
+                        "children": [
+                            {
+                                "kind": "atomic",
+                                "id": "schwarzman-ielts-seven",
+                                "factKey": "IELTS_SCORE",
+                                "operator": "GREATER_THAN_OR_EQUAL",
+                                "expected": {
+                                    "kind": "number",
+                                    "amount": 7.0,
+                                    "unit": "band"
+                                },
+                                "explanation": "IELTS 7.0 meets the published score for the IELTS route only.",
+                                "sourceNote": "Language Skills on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02.",
+                                "actionability": "CONTROLLABLE",
+                                "actionTemplateId": "schwarzman-ielts-7-band"
+                            },
+                            {
+                                "kind": "manual_check",
+                                "id": "schwarzman-other-english-route",
+                                "explanation": "Otherwise verify an accepted TOEFL, Duolingo or Cambridge score, or a native/English-medium exemption.",
+                                "sourceNote": "Language Skills on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "schwarzman-english-evidence",
+                        "explanation": "If using a test, confirm its report is valid; otherwise confirm exemption evidence.",
+                        "sourceNote": "Language Skills on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02."
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "schwarzman-passport-route",
+                        "explanation": "Confirm the citizenship/passport application route and all programme-specific conditions.",
+                        "sourceNote": "Personal Information and Next Selection Cycle on the official provider page (https://www.schwarzmanscholars.org/admissions/application-instructions/), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Leadership",
+                "Intellectual ability",
+                "Character and integrity"
+            ],
+            "readinessItems": [
+                "U.S./Global applications are expected April–September 2027; confirm the exact closing date when published",
+                "IELTS 7.0 is one route; accepted tests and exemptions may also satisfy the language condition"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "schwarzman-complete-degree",
+                    "title": "Complete the required first degree",
+                    "targetFactKey": "DEGREE_COMPLETED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 180,
+                    "effort": "HIGH",
+                    "costBand": "MEDIUM",
+                    "completionEvidenceTypes": [
+                        "degree certificate",
+                        "official completion letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.schwarzmanscholars.org/admissions/application-instructions/). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "schwarzman-ielts-7-band",
+                    "title": "Raise IELTS to 7.0 band",
+                    "targetFactKey": "IELTS_SCORE",
+                    "targetValue": {
+                        "kind": "number",
+                        "amount": 7.0,
+                        "unit": "band"
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "CONTROLLABLE",
+                    "minimumDurationDays": 45,
+                    "effort": "MEDIUM",
+                    "costBand": "LOW",
+                    "completionEvidenceTypes": [
+                        "official IELTS score report"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.schwarzmanscholars.org/admissions/application-instructions/). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "france-excellence-eiffel-2027",
+            "title": "France Excellence Eiffel Scholarship",
+            "provider": "French Ministry for Europe and Foreign Affairs · Campus France",
+            "category": "SCHOLARSHIP",
+            "cycle": "2027 campaign",
+            "sourceUrl": "https://www.campusfrance.org/en/the-france-excellence-eiffel-scholarship-program",
+            "sourceSection": "2027 call and regulations",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "known",
+                "date": "2027-01-08"
+            },
+            "eligibilityRule": {
+                "kind": "manual_check",
+                "id": "eiffel-official-check",
+                "explanation": "Confirm foreign-national status, age band, eligible study field and nomination by a French institution under the 2027 regulations.",
+                "sourceNote": "2027 regulations and application process on the official provider page (https://www.campusfrance.org/en/the-france-excellence-eiffel-scholarship-program), reviewed 2026-10-21."
+            },
+            "softCriteria": [
+                "Academic excellence",
+                "International profile"
+            ],
+            "readinessItems": [
+                "Students cannot submit directly; a French higher-education institution must nominate",
+                "Ask the institution for its earlier internal deadline"
+            ],
+            "actionTemplates": [],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "daad-epos-2027-2028",
+            "title": "DAAD EPOS",
+            "provider": "German Academic Exchange Service (DAAD)",
+            "category": "SCHOLARSHIP",
+            "cycle": "2027–2028 intake · course-specific",
+            "sourceUrl": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777",
+            "sourceSection": "Requirements; EPOS course list",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "daad-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "daad-degree",
+                        "factKey": "DEGREE_COMPLETED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants need an appropriate first university degree.",
+                        "sourceNote": "Requirements on the official provider page (https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "daad-epos-complete-degree"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "daad-experience-duration",
+                        "factKey": "EXPERIENCE_MONTHS",
+                        "operator": "GREATER_THAN_OR_EQUAL",
+                        "expected": {
+                            "kind": "number",
+                            "amount": 24.0,
+                            "unit": "months"
+                        },
+                        "explanation": "The general EPOS criteria require at least two years of professional experience.",
+                        "sourceNote": "Requirements on the official provider page (https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "daad-epos-experience-24-months"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "daad-experience-relevance",
+                        "explanation": "Confirm that the experience is relevant, post-degree where required, and accepted by the selected EPOS course.",
+                        "sourceNote": "Requirements and selected course page on the official provider page (https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777), reviewed 2026-11-02."
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "daad-country-course",
+                        "explanation": "Confirm developing-country scope, course fit, language requirements and the course-specific deadline.",
+                        "sourceNote": "EPOS country and course lists on the official provider page (https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Above-average academic performance",
+                "Development motivation"
+            ],
+            "readinessItems": [
+                "Apply to the selected university/course, not directly to DAAD unless instructed"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "daad-epos-complete-degree",
+                    "title": "Complete the required first degree",
+                    "targetFactKey": "DEGREE_COMPLETED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 180,
+                    "effort": "HIGH",
+                    "costBand": "MEDIUM",
+                    "completionEvidenceTypes": [
+                        "degree certificate",
+                        "official completion letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "daad-epos-experience-24-months",
+                    "title": "Reach 24 months of relevant experience",
+                    "targetFactKey": "EXPERIENCE_MONTHS",
+                    "targetValue": {
+                        "kind": "number",
+                        "amount": 24.0,
+                        "unit": "months"
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 720,
+                    "effort": "VERY_HIGH",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "employment letters",
+                        "contracts or payslips"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "jj-wbgsp-2027-window-1",
+            "title": "Joint Japan/World Bank Graduate Scholarship",
+            "provider": "World Bank",
+            "category": "SCHOLARSHIP",
+            "cycle": "2027 application window 1",
+            "sourceUrl": "https://www.worldbank.org/en/programs/scholarships/jj-wbgsp",
+            "sourceSection": "2027 Application Cycle; Who is Eligible to Apply?",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "known",
+                "date": "2027-02-26"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "jj-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "jj-degree",
+                        "factKey": "DEGREE_COMPLETED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants must hold a bachelor's degree or equivalent.",
+                        "sourceNote": "Who is Eligible to Apply? on the official provider page (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "jj-wbgsp-complete-degree"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "jj-experience-duration",
+                        "factKey": "EXPERIENCE_MONTHS",
+                        "operator": "GREATER_THAN_OR_EQUAL",
+                        "expected": {
+                            "kind": "number",
+                            "amount": 36.0,
+                            "unit": "months"
+                        },
+                        "explanation": "The broad criteria require at least three years of paid development-related employment.",
+                        "sourceNote": "Who is Eligible to Apply? on the official provider page (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "jj-wbgsp-experience-36-months"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "jj-degree-timing",
+                        "explanation": "Confirm the bachelor's degree was earned at least three years before the application deadline.",
+                        "sourceNote": "Who is Eligible to Apply? on the official provider page (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp), reviewed 2026-11-02."
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "jj-experience-timing",
+                        "explanation": "Confirm the work is eligible, paid, development-related, post-degree and within the official six-year counting window.",
+                        "sourceNote": "Who is Eligible to Apply? and application guidelines on the official provider page (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp), reviewed 2026-11-02."
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "jj-country-admission",
+                        "explanation": "Confirm nationality against the 2027 country list, no disqualifying dual citizenship, and unconditional admission to a participating programme. Viet Nam is absent from that list.",
+                        "sourceNote": "2027 Application Cycle on the official provider page (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp), reviewed 2026-11-02. 2027 country list (https://www.worldbank.org/en/brief/2026/07/15/countries-eligible-for-jjwbgsp-scholarship), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Commitment to supporting the applicant's country's development"
+            ],
+            "readinessItems": [
+                "The university must shortlist the admitted candidate before the application link is issued",
+                "The 2027 eligible-country list does not include Viet Nam; check all citizenships before planning this path"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "jj-wbgsp-complete-degree",
+                    "title": "Complete the required first degree",
+                    "targetFactKey": "DEGREE_COMPLETED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 180,
+                    "effort": "HIGH",
+                    "costBand": "MEDIUM",
+                    "completionEvidenceTypes": [
+                        "degree certificate",
+                        "official completion letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "jj-wbgsp-experience-36-months",
+                    "title": "Reach 36 months of relevant experience",
+                    "targetFactKey": "EXPERIENCE_MONTHS",
+                    "targetValue": {
+                        "kind": "number",
+                        "amount": 36.0,
+                        "unit": "months"
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 1080,
+                    "effort": "VERY_HIGH",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "employment letters",
+                        "contracts or payslips"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.worldbank.org/en/programs/scholarships/jj-wbgsp). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "oecd-internship-rolling",
+            "title": "OECD Internship Programme",
+            "provider": "Organisation for Economic Co-operation and Development",
+            "category": "INTERNSHIP",
+            "cycle": "Rolling applications",
+            "sourceUrl": "https://www.oecd.org/en/about/careers/internships.html",
+            "sourceSection": "Who can apply?; Internship duration",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "missing"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "oecd-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "oecd-enrolled",
+                        "factKey": "ENROLLED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants must remain enrolled in a full-time accredited degree for the internship.",
+                        "sourceNote": "Who can apply? on the official provider page (https://www.oecd.org/en/about/careers/internships.html), reviewed 2026-11-02.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "oecd-valid-enrollment"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "oecd-availability",
+                        "factKey": "AVAILABLE_FULL_PERIOD",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants must be available for at least one month.",
+                        "sourceNote": "Who can apply? and Internship duration on the official provider page (https://www.oecd.org/en/about/careers/internships.html), reviewed 2026-11-02.",
+                        "actionability": "CONTROLLABLE",
+                        "actionTemplateId": "oecd-full-period-availability"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "oecd-field-language",
+                        "explanation": "Confirm a relevant study field and the official-language expectations for the intended team.",
+                        "sourceNote": "Who can apply? on the official provider page (https://www.oecd.org/en/about/careers/internships.html), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Quantitative and IT skills",
+                "Drafting and communication skills"
+            ],
+            "readinessItems": [
+                "State accurate availability; OECD recruits on a rolling basis"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "oecd-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.oecd.org/en/about/careers/internships.html). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "oecd-full-period-availability",
+                    "title": "Confirm full-period availability for OECD Internship Programme",
+                    "targetFactKey": "AVAILABLE_FULL_PERIOD",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "RULE",
+                    "targetRuleId": "oecd-availability",
+                    "targetActionability": "CONTROLLABLE",
+                    "minimumDurationDays": 14,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "calendar plan",
+                        "study or employer approval"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.oecd.org/en/about/careers/internships.html). Duration, effort and cost are transparent Porta planning estimates. The 14-day confirmation lead time is a Porta assumption, not the programme duration or a provider commitment."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "unicef-internship-rolling",
+            "title": "UNICEF Internship Programme",
+            "provider": "UNICEF",
+            "category": "INTERNSHIP",
+            "cycle": "Vacancies throughout the year",
+            "sourceUrl": "https://www.unicef.org/careers/internships",
+            "sourceSection": "Requirements; How to apply",
+            "lastCheckedOn": "2026-11-02",
+            "deadline": {
+                "kind": "missing"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "unicef-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "unicef-age",
+                        "factKey": "AGE",
+                        "operator": "GREATER_THAN_OR_EQUAL",
+                        "expected": {
+                            "kind": "number",
+                            "amount": 18.0,
+                            "unit": "years"
+                        },
+                        "explanation": "Applicants must be at least 18 years old.",
+                        "sourceNote": "Requirements on the official provider page (https://www.unicef.org/careers/internships), reviewed 2026-11-02.",
+                        "actionability": "IMMUTABLE"
+                    },
+                    {
+                        "kind": "any",
+                        "id": "unicef-study-status",
+                        "children": [
+                            {
+                                "kind": "atomic",
+                                "id": "unicef-enrolled",
+                                "factKey": "ENROLLED",
+                                "operator": "EQUALS",
+                                "expected": {
+                                    "kind": "boolean",
+                                    "value": true
+                                },
+                                "explanation": "Current undergraduate, graduate or PhD enrollment satisfies the study-status branch.",
+                                "sourceNote": "Requirements on the official provider page (https://www.unicef.org/careers/internships), reviewed 2026-11-02.",
+                                "actionability": "TIME_DEPENDENT",
+                                "actionTemplateId": "unicef-valid-enrollment"
+                            },
+                            {
+                                "kind": "manual_check",
+                                "id": "unicef-recent-graduate",
+                                "explanation": "Otherwise confirm graduation within the past two years.",
+                                "sourceNote": "Requirements on the official provider page (https://www.unicef.org/careers/internships), reviewed 2026-11-02."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "unicef-language-family",
+                        "explanation": "Confirm the vacancy language requirement and UNICEF family/reporting-line conflict rules.",
+                        "sourceNote": "Requirements on the official provider page (https://www.unicef.org/careers/internships), reviewed 2026-11-02."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Strong academic performance",
+                "Motivation",
+                "Relevant professional experience"
+            ],
+            "readinessItems": [
+                "Review the requirements and deadline of the specific vacancy"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "unicef-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.unicef.org/careers/internships). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "world-bank-treasury-summer-internship-2027",
+            "title": "World Bank Treasury Summer Internship",
+            "provider": "World Bank Treasury",
+            "category": "INTERNSHIP",
+            "cycle": "2027 summer internship",
+            "sourceUrl": "https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers",
+            "sourceSection": "Internship Calendar; Eligibility",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "world-bank-treasury-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "world-bank-treasury-enrolled",
+                        "factKey": "ENROLLED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants must be enrolled in the required stage of a four-year-equivalent degree.",
+                        "sourceNote": "Eligibility on the official provider page (https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers), reviewed 2026-10-21.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "world-bank-treasury-valid-enrollment"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "world-bank-treasury-availability",
+                        "factKey": "AVAILABLE_FULL_PERIOD",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants must be available full-time for the entire internship.",
+                        "sourceNote": "Eligibility and Internship Calendar on the official provider page (https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers), reviewed 2026-10-21.",
+                        "actionability": "CONTROLLABLE",
+                        "actionTemplateId": "world-bank-treasury-full-period-availability"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "world-bank-treasury-stage",
+                        "explanation": "Confirm the exact graduation window, good standing, relevant field and absence of concurrent work or internship.",
+                        "sourceNote": "Eligibility on the official provider page (https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers), reviewed 2026-10-21."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Interest in finance, business or economics",
+                "Finance and technology strengths"
+            ],
+            "readinessItems": [
+                "Confirm the application close date on the live page"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "world-bank-treasury-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "world-bank-treasury-full-period-availability",
+                    "title": "Confirm full-period availability for World Bank Treasury Summer Internship",
+                    "targetFactKey": "AVAILABLE_FULL_PERIOD",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "RULE",
+                    "targetRuleId": "world-bank-treasury-availability",
+                    "targetActionability": "CONTROLLABLE",
+                    "minimumDurationDays": 14,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "calendar plan",
+                        "study or employer approval"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers). Duration, effort and cost are transparent Porta planning estimates. The 14-day confirmation lead time is a Porta assumption, not the programme duration or a provider commitment."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "esa-student-internships",
+            "title": "ESA Student Internships",
+            "provider": "European Space Agency",
+            "category": "INTERNSHIP",
+            "cycle": "Vacancy-specific next cycle",
+            "sourceUrl": "https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2",
+            "sourceSection": "Who can apply?",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "esa-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "esa-enrolled",
+                        "factKey": "ENROLLED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Applicants must retain university student status for the full internship.",
+                        "sourceNote": "Who can apply? on the official provider page (https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2), reviewed 2026-10-21.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "esa-valid-enrollment"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "esa-availability",
+                        "factKey": "AVAILABLE_FULL_PERIOD",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "The selected placement lasts between three and six months.",
+                        "sourceNote": "Who can apply? and placement duration on the official provider page (https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2), reviewed 2026-10-21.",
+                        "actionability": "CONTROLLABLE",
+                        "actionTemplateId": "esa-full-period-availability"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "esa-citizenship-vacancy",
+                        "explanation": "Confirm eligible citizenship and every requirement in the selected ESA vacancy.",
+                        "sourceNote": "Who can apply? on the official provider page (https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2), reviewed 2026-10-21."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Final or second-to-last year of a master's course is preferred"
+            ],
+            "readinessItems": [
+                "Use the citizenship list and deadline in the selected vacancy"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "esa-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "esa-full-period-availability",
+                    "title": "Confirm full-period availability for ESA Student Internships",
+                    "targetFactKey": "AVAILABLE_FULL_PERIOD",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "RULE",
+                    "targetRuleId": "esa-availability",
+                    "targetActionability": "CONTROLLABLE",
+                    "minimumDurationDays": 14,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "calendar plan",
+                        "study or employer approval"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2). Duration, effort and cost are transparent Porta planning estimates. The 14-day confirmation lead time is a Porta assumption, not the programme duration or a provider commitment."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "cern-openlab-summer-student-2027",
+            "title": "CERN openlab Summer Student Programme",
+            "provider": "CERN openlab",
+            "category": "ACADEMIC_PROGRAM",
+            "cycle": "Summer 2027",
+            "sourceUrl": "https://openlab.web.cern.ch/cern-openlab-summer-student-programme/",
+            "sourceSection": "Who can apply?; How and when to apply?",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "cern-openlab-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "cern-openlab-enrolled",
+                        "factKey": "ENROLLED",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "The programme is for BSc or MSc students.",
+                        "sourceNote": "Who can apply? on the official provider page (https://openlab.web.cern.ch/cern-openlab-summer-student-programme/), reviewed 2026-10-21.",
+                        "actionability": "TIME_DEPENDENT",
+                        "actionTemplateId": "cern-openlab-valid-enrollment"
+                    },
+                    {
+                        "kind": "atomic",
+                        "id": "cern-openlab-availability",
+                        "factKey": "AVAILABLE_FULL_PERIOD",
+                        "operator": "EQUALS",
+                        "expected": {
+                            "kind": "boolean",
+                            "value": true
+                        },
+                        "explanation": "Participants must be available for the nine-week June–August programme.",
+                        "sourceNote": "Who can apply? and programme duration on the official provider page (https://openlab.web.cern.ch/cern-openlab-summer-student-programme/), reviewed 2026-10-21.",
+                        "actionability": "CONTROLLABLE",
+                        "actionTemplateId": "cern-openlab-full-period-availability"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "cern-openlab-study-profile",
+                        "explanation": "Confirm three years of full-time university study by June, an accepted field and the programme's computing-profile requirement.",
+                        "sourceNote": "Who can apply? on the official provider page (https://openlab.web.cern.ch/cern-openlab-summer-student-programme/), reviewed 2026-10-21."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Strong computing profile"
+            ],
+            "readinessItems": [
+                "Prepare a CV, official transcript and academic reference letter",
+                "The official page says the 2027 call opens in November 2026; confirm the closing date then"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "cern-openlab-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://openlab.web.cern.ch/cern-openlab-summer-student-programme/). Duration, effort and cost are transparent Porta planning estimates."
+                },
+                {
+                    "id": "cern-openlab-full-period-availability",
+                    "title": "Confirm full-period availability for CERN openlab Summer Student Programme",
+                    "targetFactKey": "AVAILABLE_FULL_PERIOD",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "RULE",
+                    "targetRuleId": "cern-openlab-availability",
+                    "targetActionability": "CONTROLLABLE",
+                    "minimumDurationDays": 14,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "calendar plan",
+                        "study or employer approval"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://openlab.web.cern.ch/cern-openlab-summer-student-programme/). Duration, effort and cost are transparent Porta planning estimates. The 14-day confirmation lead time is a Porta assumption, not the programme duration or a provider commitment."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "google-summer-of-code-next-cycle",
+            "title": "Google Summer of Code",
+            "provider": "Google Open Source Programs Office",
+            "category": "ACADEMIC_PROGRAM",
+            "cycle": "Next contributor cycle · timeline to be confirmed",
+            "sourceUrl": "https://developers.google.com/open-source/gsoc/faq",
+            "sourceSection": "Eligibility; GSoC Contributor Applicants",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "tba"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "gsoc-root",
+                "children": [
+                    {
+                        "kind": "atomic",
+                        "id": "gsoc-age",
+                        "factKey": "AGE",
+                        "operator": "GREATER_THAN_OR_EQUAL",
+                        "expected": {
+                            "kind": "number",
+                            "amount": 18.0,
+                            "unit": "years"
+                        },
+                        "explanation": "Contributors must be at least 18 at registration.",
+                        "sourceNote": "Eligibility on the official provider page (https://developers.google.com/open-source/gsoc/faq), reviewed 2026-10-21.",
+                        "actionability": "IMMUTABLE"
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "gsoc-context",
+                        "explanation": "Confirm work eligibility, non-embargoed residence, beginner status, prior acceptance count and no prior mentor/admin conflict.",
+                        "sourceNote": "Eligibility on the official provider page (https://developers.google.com/open-source/gsoc/faq), reviewed 2026-10-21."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Early mentor interaction",
+                "Detailed goals, methodology and timeline"
+            ],
+            "readinessItems": [
+                "Choose a participating organization and follow its language and AI-use policies",
+                "Confirm the contributor application window on the current timeline"
+            ],
+            "actionTemplates": [],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": false
+        },
+        {
+            "id": "swift-student-challenge-2026",
+            "title": "Swift Student Challenge",
+            "provider": "Apple",
+            "category": "STUDENT_CONTEST",
+            "cycle": "2026 terms · archived",
+            "sourceUrl": "https://developer.apple.com/swift-student-challenge/policy/",
+            "sourceSection": "Deadlines; Application Eligibility Requirements; Submission Requirements",
+            "lastCheckedOn": "2026-10-21",
+            "deadline": {
+                "kind": "known",
+                "date": "2026-02-28"
+            },
+            "eligibilityRule": {
+                "kind": "all",
+                "id": "swift-challenge-root",
+                "children": [
+                    {
+                        "kind": "any",
+                        "id": "swift-challenge-education-status",
+                        "children": [
+                            {
+                                "kind": "atomic",
+                                "id": "swift-challenge-enrolled",
+                                "factKey": "ENROLLED",
+                                "operator": "EQUALS",
+                                "expected": {
+                                    "kind": "boolean",
+                                    "value": true
+                                },
+                                "explanation": "Current enrollment in an accepted education path satisfies one education-status branch.",
+                                "sourceNote": "Application Eligibility Requirements on the official provider page (https://developer.apple.com/swift-student-challenge/policy/), reviewed 2026-10-21.",
+                                "actionability": "TIME_DEPENDENT",
+                                "actionTemplateId": "swift-student-challenge-valid-enrollment"
+                            },
+                            {
+                                "kind": "manual_check",
+                                "id": "swift-challenge-other-education",
+                                "explanation": "Otherwise confirm one of Apple's recent-graduate, homeschool, academy or STEM-organization branches.",
+                                "sourceNote": "Application Eligibility Requirements on the official provider page (https://developer.apple.com/swift-student-challenge/policy/), reviewed 2026-10-21."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "swift-challenge-age-context",
+                        "explanation": "Confirm the country-specific minimum age, developer registration, employment exclusions and award-history limits.",
+                        "sourceNote": "Application Eligibility Requirements on the official provider page (https://developer.apple.com/swift-student-challenge/policy/), reviewed 2026-10-21."
+                    },
+                    {
+                        "kind": "manual_check",
+                        "id": "swift-challenge-artifact",
+                        "explanation": "Confirm the solo offline Swift Playground app and all current artifact and proof-of-enrollment requirements.",
+                        "sourceNote": "Submission Requirements on the official provider page (https://developer.apple.com/swift-student-challenge/policy/), reviewed 2026-10-21."
+                    }
+                ]
+            },
+            "softCriteria": [
+                "Technical accomplishment",
+                "Creativity",
+                "Written explanation"
+            ],
+            "readinessItems": [
+                "This archived record must not be reused for a future challenge without new terms"
+            ],
+            "actionTemplates": [
+                {
+                    "id": "swift-student-challenge-valid-enrollment",
+                    "title": "Use a cycle while eligible enrollment is active",
+                    "targetFactKey": "ENROLLED",
+                    "targetValue": {
+                        "kind": "boolean",
+                        "value": true
+                    },
+                    "targetScope": "PROFILE",
+                    "targetActionability": "TIME_DEPENDENT",
+                    "minimumDurationDays": 30,
+                    "effort": "LOW",
+                    "costBand": "FREE",
+                    "completionEvidenceTypes": [
+                        "current enrollment letter"
+                    ],
+                    "sourceNote": "The official source establishes the criterion (https://developer.apple.com/swift-student-challenge/policy/). Duration, effort and cost are transparent Porta planning estimates."
+                }
+            ],
+            "schemaVersion": 2,
+            "disclaimer": "Porta compares only the published rules encoded in this source pack. Confirm every requirement and deadline with the official provider.",
+            "archived": true
+        }
+    ]
+}

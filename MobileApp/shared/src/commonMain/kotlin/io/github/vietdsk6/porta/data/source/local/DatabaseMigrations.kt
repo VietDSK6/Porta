@@ -56,3 +56,9 @@ val MIGRATION_3_4 = Migration(3, 4) { connection ->
 val MIGRATION_4_5 = Migration(4, 5) { connection ->
     connection.execSQL("DROP TABLE IF EXISTS example")
 }
+
+/** Adds ordered route membership without changing existing one-step plans. */
+val MIGRATION_5_6 = Migration(5, 6) { connection ->
+    connection.execSQL("ALTER TABLE plan_item ADD COLUMN route_id TEXT")
+    connection.execSQL("ALTER TABLE plan_item ADD COLUMN sequence INTEGER")
+}

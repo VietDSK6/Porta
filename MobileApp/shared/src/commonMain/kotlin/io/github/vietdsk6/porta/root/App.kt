@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.vietdsk6.porta.designsystem.AllComponentsGallery
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.presentation.navigation.AppNavigation
+import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
 import io.github.vietdsk6.porta.util.UiMessage
 import io.github.vietdsk6.porta.util.extensions.ObserveFlowAsEvent
 import io.github.vietdsk6.porta.util.logging.AppLogger
@@ -27,12 +28,13 @@ import io.github.vietdsk6.porta.util.logging.logAppOpened
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.koin.compose.koinInject
 
 /** Root composable — the single entry point every platform (Android/iOS/Desktop/Web) renders. */
 @Composable
-fun App() {
+fun App(desktopCommands: Flow<DesktopCommand>? = null) {
     AppTheme {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -43,14 +45,14 @@ fun App() {
             if (isPreviewComponentsMode) {
                 AllComponentsGallery()
             } else {
-                AppScaffold()
+                AppScaffold(desktopCommands)
             }
         }
     }
 }
 
 @Composable
-private fun AppScaffold() {
+private fun AppScaffold(desktopCommands: Flow<DesktopCommand>?) {
     val snackbarHostState = remember { SnackbarHostState() }
     var uiMessage by remember { mutableStateOf<UiMessage?>(null) }
     RefreshCurrentDateEffect(koinInject())
@@ -67,7 +69,7 @@ private fun AppScaffold() {
         }
     }
     Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) {
-        AppNavigation()
+        AppNavigation(desktopCommands)
     }
 }
 

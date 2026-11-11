@@ -19,10 +19,10 @@ import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.countryForStoredValue
-import io.github.vietdsk6.porta.util.Platform
+import io.github.vietdsk6.porta.util.PlatformCapabilities
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.file.FileManager
-import io.github.vietdsk6.porta.util.getPlatform
+import io.github.vietdsk6.porta.util.getPlatformCapabilities
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +38,7 @@ class StudentProfileViewModel(
     private val profileExportCodec: ProfileExportCodec,
     private val profileImportRepository: ProfileImportRepository,
     private val fileManager: FileManager,
+    private val platformCapabilities: PlatformCapabilities = getPlatformCapabilities(),
 ) : ViewModel() {
     private val transientState = MutableStateFlow(StudentProfileTransientState())
 
@@ -194,7 +195,7 @@ class StudentProfileViewModel(
 
     private fun previewProfileImport(event: StudentProfileUiEvent.ImportProfileSelected) {
         runCatching {
-            require(getPlatform() == Platform.Desktop) { "Profile import is available on Desktop." }
+            require(platformCapabilities.supportsStudio) { "Profile import is available on Desktop." }
             require(event.encodedProfile.length <= MAX_PROFILE_IMPORT_CHARACTERS) {
                 "Profile copy is too large."
             }
@@ -372,7 +373,7 @@ class StudentProfileViewModel(
             expandedFactKey = transient.expandedFactKey,
             factPendingDelete = transient.factPendingDelete,
             pendingDataAction = transient.pendingDataAction,
-            supportsProfileImport = getPlatform() == Platform.Desktop,
+            supportsProfileImport = platformCapabilities.supportsStudio,
             pendingProfileImport = transient.pendingProfileImport?.toPreview(),
             profileImportError = transient.profileImportError,
             message = transient.message,

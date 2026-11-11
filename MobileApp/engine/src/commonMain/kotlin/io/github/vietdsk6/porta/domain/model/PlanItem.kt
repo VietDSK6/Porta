@@ -14,6 +14,8 @@ data class PlanItem(
     val costBand: CostBand,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
+    val routeId: String? = null,
+    val sequence: Int? = null,
 ) {
     val targetFactKey: FactKey
         get() = target.factKey
@@ -36,6 +38,8 @@ data class PlanItem(
         costBand: CostBand,
         createdAtEpochMillis: Long,
         updatedAtEpochMillis: Long,
+        routeId: String? = null,
+        sequence: Int? = null,
     ) : this(
         id = id,
         profileId = profileId,
@@ -53,6 +57,8 @@ data class PlanItem(
         costBand = costBand,
         createdAtEpochMillis = createdAtEpochMillis,
         updatedAtEpochMillis = updatedAtEpochMillis,
+        routeId = routeId,
+        sequence = sequence,
     )
 }
 

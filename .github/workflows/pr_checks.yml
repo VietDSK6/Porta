@@ -49,8 +49,13 @@ jobs:
       - name: Spotless check (ktlint)
         run: ./gradlew spotlessCheck
 
-      - name: Run shared module tests
-        run: ./gradlew :shared:jvmTest :shared:testAndroidHostTest
+      - name: Run engine, shared, and CLI tests
+        run: ./gradlew :engine:jvmTest :shared:jvmTest :shared:testAndroidHostTest :cli:test
+
+      - name: Validate bundled pack through CLI
+        run: |
+          ./gradlew :cli:run --args="export-bundled --out build/bundled.json"
+          ./gradlew :cli:run --args="validate build/bundled.json"
 
       - name: Upload test reports on failure
         if: failure()
@@ -58,8 +63,12 @@ jobs:
         with:
           name: test-reports
           path: |
+            MobileApp/engine/build/reports/tests/
+            MobileApp/engine/build/test-results/
             MobileApp/shared/build/reports/tests/
             MobileApp/shared/build/test-results/
+            MobileApp/cli/build/reports/tests/
+            MobileApp/cli/build/test-results/
           retention-days: 7
 
       - name: Build Android debug APK

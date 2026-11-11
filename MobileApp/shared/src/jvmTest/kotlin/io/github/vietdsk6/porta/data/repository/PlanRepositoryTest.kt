@@ -6,15 +6,22 @@ import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
+import io.github.vietdsk6.porta.domain.model.ActionTemplate
+import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
+import io.github.vietdsk6.porta.domain.model.PlannedRoute
+import io.github.vietdsk6.porta.domain.model.RouteExplanation
+import io.github.vietdsk6.porta.domain.model.RouteMetrics
+import io.github.vietdsk6.porta.domain.model.RouteStep
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -71,6 +78,48 @@ class PlanRepositoryTest {
         assertTrue(repository.clearForProfile().isSuccess)
 
         assertNull(repository.observeCurrentPlan().first())
+    }
+
+    @Test
+    fun `saving a route persists its ordered steps and replaces the prior plan`() = runTest(dispatcher) {
+        repository.replaceCurrentPlan(plan()).getOrThrow()
+        val first = ActionTemplate(
+            id = "raise-ielts",
+            title = "Raise IELTS",
+            targetFactKey = FactKey.IELTS_SCORE,
+            targetValue = FactValue.NumberValue(7.0, "band"),
+            targetActionability = Actionability.CONTROLLABLE,
+            minimumDurationDays = 30,
+            effort = EffortLevel.MEDIUM,
+            costBand = CostBand.LOW,
+        )
+        val second = ActionTemplate(
+            id = "complete-degree",
+            title = "Complete degree",
+            targetFactKey = FactKey.DEGREE_COMPLETED,
+            targetValue = FactValue.BooleanValue(true),
+            targetActionability = Actionability.CONTROLLABLE,
+            minimumDurationDays = 60,
+            effort = EffortLevel.HIGH,
+            costBand = CostBand.MEDIUM,
+        )
+        val route = PlannedRoute(
+            id = "raise-ielts/complete-degree",
+            steps = listOf(
+                RouteStep(first, LocalDate(2026, 11, 11), LocalDate(2026, 12, 11), listOf("door-a"), emptyList(), emptyList()),
+                RouteStep(second, LocalDate(2026, 12, 11), LocalDate(2027, 2, 9), listOf("door-b"), emptyList(), emptyList()),
+            ),
+            metrics = RouteMetrics(2, 0, 30, 90, 3, EffortLevel.HIGH),
+            explanation = RouteExplanation.OpensDoors(2),
+        )
+
+        repository.saveRoute(route).getOrThrow()
+
+        val plans = repository.observePlans().first().sortedBy { it.sequence }
+        assertEquals(listOf("raise-ielts", "complete-degree"), plans.map(PlanItem::actionTemplateId))
+        assertEquals(listOf(0, 1), plans.map(PlanItem::sequence))
+        assertTrue(plans.all { it.routeId == route.id })
+        assertEquals(listOf(30, 60), plans.map(PlanItem::expectedDurationDays))
     }
 
     private fun plan(

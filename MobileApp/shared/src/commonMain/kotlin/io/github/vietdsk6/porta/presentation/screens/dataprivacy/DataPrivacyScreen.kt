@@ -18,6 +18,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -34,6 +35,8 @@ import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
+import io.github.vietdsk6.porta.presentation.navigation.LocalDesktopCommand
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileDataAction
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileImportFactUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileImportPreviewUiState
@@ -78,6 +81,13 @@ fun DataPrivacyScreen(
                     viewModel.onUiEvent(StudentProfileUiEvent.ImportProfileReadFailed)
                 },
             )
+        }
+    }
+    val desktopRequest = LocalDesktopCommand.current
+    LaunchedEffect(desktopRequest?.command) {
+        if (desktopRequest?.command == DesktopCommand.ImportProfile) {
+            profilePicker.launch()
+            desktopRequest.onHandled()
         }
     }
     DataPrivacyScreen(

@@ -5,8 +5,12 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,10 +28,13 @@ import io.github.vietdsk6.porta.generated.resources.Res
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_doors
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_frontier
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_profile
+import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_route
 import io.github.vietdsk6.porta.generated.resources.ic_doors
 import io.github.vietdsk6.porta.generated.resources.ic_doors_selected
 import io.github.vietdsk6.porta.generated.resources.ic_frontier
 import io.github.vietdsk6.porta.generated.resources.ic_frontier_selected
+import io.github.vietdsk6.porta.generated.resources.ic_route
+import io.github.vietdsk6.porta.generated.resources.ic_route_selected
 import io.github.vietdsk6.porta.generated.resources.ic_student_profile
 import io.github.vietdsk6.porta.generated.resources.ic_student_profile_selected
 import io.github.vietdsk6.porta.presentation.screens.activeplan.ActivePlanScreen
@@ -50,11 +57,14 @@ import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspector
 import io.github.vietdsk6.porta.presentation.screens.packinspector.PackInspectorViewModel
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupScreen
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.ProfileSetupViewModel
+import io.github.vietdsk6.porta.presentation.screens.route.RouteScreen
+import io.github.vietdsk6.porta.presentation.screens.route.RouteViewModel
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewScreen
 import io.github.vietdsk6.porta.presentation.screens.scenariopreview.ScenarioPreviewViewModel
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileScreen
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.util.extensions.isKeyboardOpen
+import kotlinx.coroutines.flow.Flow
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -70,6 +80,11 @@ private val noAnimationMetadata =
 
 // Top-level destinations in display order. Values render either the compact bar or wide rail.
 private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMapOf(
+    RouteScreenRoute to BottomNavItem(
+        label = Res.string.bottom_nav_label_route,
+        icon = Res.drawable.ic_route,
+        selectedIcon = Res.drawable.ic_route_selected,
+    ),
     DoorsScreenRoute to BottomNavItem(
         label = Res.string.bottom_nav_label_doors,
         icon = Res.drawable.ic_doors,
@@ -87,22 +102,28 @@ private val TOP_LEVEL_ROUTES: Map<TopLevelScreenRoute, BottomNavItem> = linkedMa
     ),
 )
 
+@Preview(name = "Route selected", widthDp = 390)
+@Composable
+private fun PortaBottomNavigationRoutePreview() {
+    PortaBottomNavigationPreview(selectedIndex = 0)
+}
+
 @Preview(name = "Doors selected", widthDp = 390)
 @Composable
 private fun PortaBottomNavigationDoorsPreview() {
-    PortaBottomNavigationPreview(selectedIndex = 0)
+    PortaBottomNavigationPreview(selectedIndex = 1)
 }
 
 @Preview(name = "Next moves selected", widthDp = 390)
 @Composable
 private fun PortaBottomNavigationFrontierPreview() {
-    PortaBottomNavigationPreview(selectedIndex = 1)
+    PortaBottomNavigationPreview(selectedIndex = 2)
 }
 
 @Preview(name = "Profile selected", widthDp = 390)
 @Composable
 private fun PortaBottomNavigationProfilePreview() {
-    PortaBottomNavigationPreview(selectedIndex = 2)
+    PortaBottomNavigationPreview(selectedIndex = 3)
 }
 
 @Composable
@@ -123,14 +144,59 @@ private fun PortaBottomNavigationPreview(selectedIndex: Int) {
  * onboarding.
  */
 @Composable
-fun AppNavigation() {
+fun AppNavigation(desktopCommands: Flow<DesktopCommand>? = null) {
     val navigationState = rememberNavigationState(
         startRoute = OnBoardingScreenRoute,
         topLevelRoutes = TOP_LEVEL_ROUTES.keys,
-        primaryTopLevelRoute = DoorsScreenRoute,
+        primaryTopLevelRoute = RouteScreenRoute,
     )
     val navigator = remember(navigationState) { Navigator(navigationState) }
     val profileSaveNotice = rememberSaveable { mutableStateOf(false) }
+    val pendingDesktopAction = remember { mutableStateOf<DesktopCommand?>(null) }
+    val showAbout = remember { mutableStateOf(false) }
+
+    LaunchedEffect(desktopCommands, navigator) {
+        desktopCommands?.collect { command ->
+            when (command) {
+                DesktopCommand.NavigateRoute -> navigator.navigate(RouteScreenRoute)
+
+                DesktopCommand.NavigateDoors -> navigator.navigate(DoorsScreenRoute)
+
+                DesktopCommand.NavigateNextMoves -> navigator.navigate(FrontierScreenRoute)
+
+                DesktopCommand.NavigateProfile -> navigator.navigate(StudentProfileScreenRoute)
+
+                DesktopCommand.NavigatePacks -> navigator.navigate(PackInspectorScreenRoute)
+
+                DesktopCommand.ShowSources -> navigator.navigate(PackInspectorScreenRoute)
+
+                DesktopCommand.ShowAbout -> showAbout.value = true
+
+                DesktopCommand.FocusSearch -> {
+                    pendingDesktopAction.value = command
+                    navigator.navigate(DoorsScreenRoute)
+                }
+
+                DesktopCommand.ImportPack,
+                is DesktopCommand.ImportPackJson,
+                DesktopCommand.ExportPack,
+                -> {
+                    pendingDesktopAction.value = command
+                    navigator.navigate(PackInspectorScreenRoute)
+                }
+
+                DesktopCommand.ImportProfile -> {
+                    pendingDesktopAction.value = command
+                    navigator.navigate(DataPrivacyScreenRoute)
+                }
+
+                DesktopCommand.ExportProfile -> {
+                    pendingDesktopAction.value = command
+                    navigator.navigate(StudentProfileScreenRoute)
+                }
+            }
+        }
+    }
 
     val entryProvider = remember(navigator) { entryProvider { screens(navigator, profileSaveNotice) } }
 
@@ -140,7 +206,15 @@ fun AppNavigation() {
     val bottomNavItems = remember { TOP_LEVEL_ROUTES.values.toList() }
     val isTopLevelNavigationVisible = isAtRoot && activeTopLevel != null && !isKeyboardOpen()
 
-    CompositionLocalProvider(LocalNavigator provides navigator) {
+    val desktopRequest = pendingDesktopAction.value?.let { command ->
+        DesktopCommandRequest(command) {
+            if (pendingDesktopAction.value == command) pendingDesktopAction.value = null
+        }
+    }
+    CompositionLocalProvider(
+        LocalNavigator provides navigator,
+        LocalDesktopCommand provides desktopRequest,
+    ) {
         AdaptiveAppScaffold(
             items = bottomNavItems,
             selectedIndex = selectedTopLevelIndex,
@@ -158,6 +232,14 @@ fun AppNavigation() {
                 )
             }
         }
+        if (showAbout.value) {
+            AlertDialog(
+                onDismissRequest = { showAbout.value = false },
+                title = { Text("About Porta") },
+                text = { Text("Porta plans honest routes through published student opportunities. Check live sources before acting.") },
+                confirmButton = { TextButton(onClick = { showAbout.value = false }) { Text("Close") } },
+            )
+        }
     }
 }
 
@@ -168,6 +250,15 @@ private fun EntryProviderScope<ScreenRoute>.screens(
     profileSaveNotice: MutableState<Boolean>,
 ) {
     // ── Top-level (no animation when switching tabs) ────────────────────────────
+
+    entry<RouteScreenRoute>(metadata = noAnimationMetadata) {
+        val viewModel = koinViewModel<RouteViewModel>()
+        RouteScreen(
+            viewModel = viewModel,
+            onOpenNextMoves = { navigator.navigate(FrontierScreenRoute) },
+            onOpenActivePlan = { navigator.navigate(ActivePlanScreenRoute) },
+        )
+    }
 
     entry<DoorsScreenRoute>(metadata = noAnimationMetadata) {
         val viewModel = koinViewModel<DoorsViewModel>()
@@ -211,7 +302,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(
             onOnBoardingFinished = { completion ->
                 navigator.set(
                     when (completion.destination) {
-                        OnboardingDestination.SAMPLE_MAP -> DoorsScreenRoute
+                        OnboardingDestination.SAMPLE_MAP -> RouteScreenRoute
                         OnboardingDestination.PROFILE_SETUP -> ProfileSetupScreenRoute()
                     },
                 )
@@ -233,11 +324,11 @@ private fun EntryProviderScope<ScreenRoute>.screens(
                     }
                     navigator.goBack()
                 } else {
-                    navigator.set(DoorsScreenRoute)
+                    navigator.set(RouteScreenRoute)
                 }
             },
             onNavigateBack = {
-                if (key.returnToProfile) navigator.goBack() else navigator.set(DoorsScreenRoute)
+                if (key.returnToProfile) navigator.goBack() else navigator.set(RouteScreenRoute)
             },
         )
     }
@@ -320,7 +411,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(
         ActualProfileUpdateScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
-            onProfileUpdated = { navigator.set(DoorsScreenRoute) },
+            onProfileUpdated = { navigator.set(RouteScreenRoute) },
         )
     }
 

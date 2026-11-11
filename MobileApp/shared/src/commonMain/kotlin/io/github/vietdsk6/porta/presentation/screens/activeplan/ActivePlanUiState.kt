@@ -5,7 +5,15 @@ data class ActivePlanUiState(
     val isWorking: Boolean = false,
     val isSampleCatalog: Boolean = true,
     val plan: ActivePlanCardUiState? = null,
+    val routeSteps: List<ActiveRouteStepUiState> = emptyList(),
+    val selectedPlanId: String? = null,
     val error: String? = null,
+)
+
+data class ActiveRouteStepUiState(
+    val planId: String,
+    val sequence: Int,
+    val title: String,
 )
 
 data class ActivePlanCardUiState(
@@ -75,6 +83,7 @@ enum class ActivePlanStatusUi {
 }
 
 sealed interface ActivePlanUiEvent {
+    data class SelectStep(val planId: String) : ActivePlanUiEvent
     data object Start : ActivePlanUiEvent
     data object Pause : ActivePlanUiEvent
     data object Resume : ActivePlanUiEvent

@@ -97,7 +97,8 @@ class OpportunityDetailViewModel(
                 today = today,
             )
             val informationTasks = receipt.rules.mapNotNull { rule ->
-                if (rule.result != RuleResult.UNKNOWN || rule.factKey == null) return@mapNotNull null
+                if (rule.result != RuleResult.UNKNOWN) return@mapNotNull null
+                val factKey = rule.factKey ?: return@mapNotNull null
                 val target = rule.actionTemplateId
                     ?.let { actionId -> opportunity.actionTemplates.firstOrNull { it.id == actionId } }
                     ?.target
@@ -108,8 +109,8 @@ class OpportunityDetailViewModel(
                 }
                 InformationTaskUiState(
                     id = rule.ruleId,
-                    factKey = rule.factKey,
-                    title = rule.factKey.informationTaskTitle(),
+                    factKey = factKey,
+                    title = factKey.informationTaskTitle(),
                     question = rule.explanation,
                     sourceNote = rule.sourceNote.orEmpty(),
                     destination = destination,

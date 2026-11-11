@@ -54,7 +54,11 @@ Porta work.
 5. Report tests and static Kotlin data separately from production code.
 
 The script intentionally requires allowlist maintenance when a new product area is added. A new file is not silently
-treated as contest-owned evidence just because it appears under the Porta package.
+treated as contest-owned evidence just because it appears under the Porta package. The 2 November NCLOC snapshot
+predates the Route planner, Desktop workflow, and P3 engine/CLI extraction. Its 99.4% figure must not be presented
+as a fresh measurement of the current working tree. Moving domain files from `:shared` to `:engine` also changes
+module paths without changing their Kotlin Multiplatform common-source nature. The script's allowlist now recognizes
+the engine and CLI paths; rerun it on the frozen submission commit before quoting a new ratio.
 
 ## Exclusions
 
@@ -79,12 +83,29 @@ files when contest-period provenance is mixed with starter code.
 
 The stronger evidence is behavioral rather than numerical:
 
-- one typed rule graph and deterministic eligibility evaluator;
-- one counterfactual scenario engine and constrained Pareto Action Frontier;
+- one pure KMP `:engine` module with typed rule graph, deterministic eligibility evaluator, scenario engine,
+  constrained Action Frontier, deadline-aware Route planner, and typed pack DSL;
 - shared opportunity-pack validation, import/export, Room persistence, repositories, and reactive state;
 - shared Compose screens and ViewModels used by compact Android and wide Desktop layouts;
 - the same profile and opportunity pack producing the same receipts on both declared targets;
-- common/JVM/Android-host tests covering engines, persistence, ViewModels, and adaptive UI.
+- the JVM `:cli` terminal companion reusing the engine plus the app's pack/profile codecs;
+- engine/common/JVM/Android-host/CLI tests covering rules, persistence, ViewModels, adaptive UI, and terminal entry points.
+
+P3 moved the pure domain layer into `:engine`; `:shared` and `:cli` depend on it. The typed DSL now produces the
+15-door bundled pack. Before deleting the old catalog file, a golden comparison verified exact JSON, DTO, and
+rule-fingerprint equality, so the extraction did not quietly revise encoded rules or invalidate scoped assertions.
+The CLI can export and validate that same bundled JSON and evaluate a Porta profile export or calculate routes.
+The export/validate smoke run passed. The CLI is JVM-only and is not a third graphical contest target.
+
+Route planning evaluates ordered milestones against the shared rule graph, then saves selected steps with a stable
+route ID and sequence in the shared Room plan model. Android renders a compact timeline; wide Desktop renders a
+metro-style map from the same route state. The bundled 15-door Linh fixture is deliberately candid: the generated
+paths improve checks but open zero doors under the current encoded rules and deadlines. The golden test fixes the
+top three route IDs and asserts that result, including a door lost to a deadline.
+
+Desktop's File/View/Help menu, keyboard shortcuts, pack-JSON drop target, saved window geometry, and OS-standard
+storage paths are platform integration around the same shared command, pack preview, and persistence flows. The
+new platform files are outside the older NCLOC snapshot.
 
 The Android-to-Desktop handoff is also shared Kotlin rather than a platform-specific duplicate: Android exports the
 versioned profile JSON through the shared `StudentProfileViewModel`, Desktop previews the same decoded domain model,
@@ -122,6 +143,7 @@ The runner performs 10 untimed warm-up passes, then prints median and p95 for 30
 - eligibility evaluation across 100 opportunities;
 - scenario re-evaluation across the same 100 opportunities;
 - the complete constraint-aware Action Frontier calculation.
+- a bounded Route planner calculation over the same 100-opportunity fixture.
 
 The output is prefixed with `PORTA_PERF` and includes the OS, architecture, and JDK version. Timing is intentionally
 not a strict CI assertion: hosted-runner scheduling would make that gate flaky. The working-tree verification below
@@ -130,12 +152,24 @@ commit is frozen and replace the commit row before final delivery.
 
 | Frozen-run field | Recorded value |
 |---|---|
-| Commit | Working tree based on `b15f1fa` (final frozen-commit rerun pending) |
-| Machine / OS / architecture | macOS 27.2 / aarch64 / 10 logical processors |
+| Commit | 11 November P1/P2 working tree before P3 engine extraction (frozen-commit rerun pending) |
+| Machine / OS / architecture | macOS / aarch64 / 10 logical processors |
 | JDK | 21.0.11 |
-| Eligibility — median / p95 | 0.127 ms / 0.204 ms |
-| Scenario — median / p95 | 0.434 ms / 0.574 ms |
-| Action Frontier — median / p95 | 1.656 ms / 2.226 ms |
+| Eligibility — median / p95 | 0.104 ms / 0.143 ms |
+| Scenario — median / p95 | 0.214 ms / 0.249 ms |
+| Action Frontier — median / p95 | 1.004 ms / 1.280 ms |
+| Route planner — median / p95 | 2.105 ms / 2.512 ms |
+
+These are characterization timings from one development host, not a latency guarantee on every device or profile.
+The 100-opportunity synthetic fixture exercises the search cost; the separate bundled-pack golden test fixes the
+current product result, including its zero opened doors.
+
+The subsequent P3 scoped gate passed `spotlessCheck`, `:engine:jvmTest`, `:shared:jvmTest`,
+`:shared:testAndroidHostTest`, `:androidApp:assembleDebug`, `:desktopApp:packageDistributionForCurrentOS`, and
+`:cli:test`. The JUnit reports for that gate contain 39 engine JVM, 269 shared JVM, 78 Android-host, and 3 CLI
+tests, with zero failures/errors/skips. A separate Roborazzi record run passed 72 parameterized preview cases;
+those are not included in the scoped-gate counts. The performance table above remains an earlier characterization,
+not a new P3 timing.
 
 The ratio should therefore be used as a provenance cross-check beside the architecture and runnable demo, not as a
 substitute for them.

@@ -48,11 +48,11 @@ kotlinMultiplatform {
 
     jvm()
     wasmJs {
-        browser()
+        browser { testTask { enabled = false } }
     }
     js(IR) {
         nodejs()
-        browser()
+        browser { testTask { enabled = false } }
         binaries.library()
     }
 
