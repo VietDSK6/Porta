@@ -1,6 +1,6 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 2 November 2026
+> Last updated: 11 November 2026
 > Deadline: 7 December 2026, 23:59 CET
 > Live rules rechecked: 2 November 2026
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
@@ -123,6 +123,10 @@ Required evidence:
   preview and an explicit replace confirmation. One Room transaction replaces facts plus scoped assertions, rebases
   the source profile ID to the active local profile, rolls back on write failure, and leaves plans, saved doors,
   constraints and the catalog untouched.
+- [x] Desktop Opportunity Studio provides a form-based sourced rule draft, compiles and validates it, and exports
+  JSON. Pack Inspector separately validates an imported pack, shows its change preview, and requires approval before
+  activation. Repository, ViewModel, and Compose UI tests cover these paths; a final packaged-app exercise remains
+  in the manual QA checklist.
 - [x] Responsive/accessibility regression evidence covers a 320×640 viewport, 200% text, keyboard traversal of the
   Desktop rail, 48dp primary chips, a wide two-pane opportunity receipt with a large-text single-column fallback,
   a polite What-if live region and zero-duration motion without losing the textual outcome. Final packaged-app

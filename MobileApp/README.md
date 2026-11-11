@@ -49,7 +49,12 @@ providers, submit applications, or use AI to decide eligibility.
 6. Export profile metadata on Android, then open **Data & privacy** on Desktop to preview and import the JSON copy.
    The import replaces profile facts and scoped confirmations in one local transaction while keeping plans, saved
    doors, planning limits, and the current opportunity catalog.
-7. Use the Desktop Pack Inspector to inspect source diagnostics.
+7. Open **Pack inspector** on Desktop to inspect source diagnostics. Import a pack JSON file to see validation
+   results and an added/changed/removed preview; the active catalog changes only after explicit approval. You can
+   export the active pack or diagnostic results from the same screen.
+8. From Pack inspector, open **Opportunity Studio** to draft a sourced record with form-based `ALL`/`ANY`, atomic,
+   and manual-check rules. Resolve validation issues, export the draft JSON, then return to Pack inspector to preview
+   and approve its import. Studio does not silently activate the draft.
 
 The bundled catalog currently contains 15 independently encoded records. Its official URLs, interpretation boundary,
 and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md).
@@ -59,7 +64,8 @@ and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md
 The Porta submission promises two runnable targets:
 
 - **Android** — compact, touch-first tracking and profile updates.
-- **JVM Desktop** — wide 2–3 scenario comparison, profile handoff, inspection, and planning workspace.
+- **JVM Desktop** — wide 2–3 scenario comparison, profile handoff, pack inspection and import, sourced rule authoring,
+  and planning workspace.
 
 The repository inherits iOS and Web wrappers from the starter kit. They remain useful compatibility scaffolding, but
 they are not declared Porta contest targets and are excluded from the submission's runnable-target claim.
@@ -116,9 +122,10 @@ Compose Desktop writes the package below `desktopApp/build/compose/binaries/main
 Android launcher ─┐
                   ├─ shared Compose UI + Navigation 3
 Desktop launcher ─┘              │
-                                 ├─ profile / plan / pack repositories
+                                 ├─ profile / plan / pack repositories and import validation
                                  ├─ typed published-rule + scenario engines
                                  ├─ constrained Action Frontier
+                                 ├─ Desktop Opportunity Studio draft compiler
                                  └─ Room + bundled local opportunity pack
 ```
 

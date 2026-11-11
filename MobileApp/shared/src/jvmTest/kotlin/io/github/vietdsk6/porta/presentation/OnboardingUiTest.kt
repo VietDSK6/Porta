@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreen
-import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreenStyle
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingUiEvent
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingUiState
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingGoal
@@ -39,7 +38,6 @@ class OnboardingUiTest {
                 Box(Modifier.size(width = 320.dp, height = 640.dp)) {
                     AppTheme {
                         OnBoardingScreen(
-                            style = OnBoardingScreenStyle.STYLE1,
                             uiState = onboardingState(currentStep = 0, sampleIelts = 6.5),
                             onUiEvent = { events += it },
                         )
@@ -60,7 +58,6 @@ class OnboardingUiTest {
                 Box(Modifier.size(width = 320.dp, height = 640.dp)) {
                     AppTheme {
                         OnBoardingScreen(
-                            style = OnBoardingScreenStyle.STYLE1,
                             uiState = onboardingState(currentStep = 1, sampleIelts = 7.0),
                             onUiEvent = { events += it },
                         )
@@ -82,7 +79,6 @@ class OnboardingUiTest {
                 Box(Modifier.size(width = 320.dp, height = 640.dp)) {
                     AppTheme {
                         OnBoardingScreen(
-                            style = OnBoardingScreenStyle.STYLE1,
                             uiState = onboardingState(currentStep = 3, sampleIelts = 7.0),
                             onUiEvent = { events += it },
                         )
@@ -105,7 +101,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = OnBoardingUiState(isLoading = false),
                     onUiEvent = { events += it },
                 )
@@ -126,7 +121,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = onboardingState(currentStep = 1, sampleIelts = 6.5),
                     onUiEvent = { events += it },
                 )
@@ -153,7 +147,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = screenState.value,
                     onUiEvent = { event ->
                         if (event is OnBoardingUiEvent.SampleIeltsChanged) {
@@ -176,7 +169,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = onboardingState(
                         currentStep = 2,
                         sampleIelts = 7.0,
@@ -202,7 +194,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = onboardingState(currentStep = 1, sampleIelts = 7.0),
                     onUiEvent = { events += it },
                 )
@@ -219,7 +210,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = screenState.value,
                     onUiEvent = { event ->
                         if (event == OnBoardingUiEvent.Next) {
@@ -243,7 +233,6 @@ class OnboardingUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    style = OnBoardingScreenStyle.STYLE1,
                     uiState = onboardingState(currentStep = 3, sampleIelts = 7.0),
                     onUiEvent = { events += it },
                 )

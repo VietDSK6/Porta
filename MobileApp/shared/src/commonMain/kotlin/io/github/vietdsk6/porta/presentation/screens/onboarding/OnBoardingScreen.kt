@@ -14,15 +14,9 @@ import io.github.vietdsk6.porta.designsystem.components.LogoImage
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 
-enum class OnBoardingScreenStyle {
-    STYLE1,
-    STYLE2,
-}
-
 @Composable
 fun OnBoardingScreen(
     modifier: Modifier = Modifier,
-    style: OnBoardingScreenStyle,
     viewModel: OnBoardingViewModel,
     onOnBoardingFinished: (OnboardingCompletion) -> Unit,
 ) {
@@ -37,7 +31,6 @@ fun OnBoardingScreen(
 
     OnBoardingScreen(
         modifier = modifier,
-        style = style,
         uiState = uiState,
         onUiEvent = viewModel::onUiEvent,
     )
@@ -51,7 +44,6 @@ fun OnBoardingScreen(
 @Composable
 fun OnBoardingScreen(
     modifier: Modifier = Modifier,
-    style: OnBoardingScreenStyle,
     uiState: OnBoardingUiState,
     onUiEvent: (OnBoardingUiEvent) -> Unit,
 ) {
@@ -59,23 +51,11 @@ fun OnBoardingScreen(
         if (uiState.isLoading) {
             SplashLogo(modifier = Modifier.fillMaxSize())
         } else {
-            when (style) {
-                OnBoardingScreenStyle.STYLE1 -> {
-                    OnBoardingScreenVariation1(
-                        modifier = Modifier.fillMaxSize(),
-                        uiState = uiState,
-                        onUiEvent = onUiEvent,
-                    )
-                }
-
-                OnBoardingScreenStyle.STYLE2 -> {
-                    OnBoardingScreenVariation2(
-                        modifier = Modifier.fillMaxSize(),
-                        uiState = uiState,
-                        onUiEvent = onUiEvent,
-                    )
-                }
-            }
+            OnboardingFlow(
+                modifier = Modifier.fillMaxSize(),
+                uiState = uiState,
+                onUiEvent = onUiEvent,
+            )
         }
     }
 }
@@ -96,10 +76,9 @@ private fun SplashLogo(modifier: Modifier = Modifier) {
 
 @Preview
 @Composable
-private fun OnBoardingScreenStyle1Preview() {
+private fun OnBoardingScreenPreview() {
     AppTheme {
         OnBoardingScreen(
-            style = OnBoardingScreenStyle.STYLE1,
             uiState = OnBoardingUiState(
                 selectedGoal = OnboardingGoal.SCHOLARSHIPS,
                 demoDoors = buildOnboardingDemoDoors(
@@ -116,10 +95,9 @@ private fun OnBoardingScreenStyle1Preview() {
 
 @Preview
 @Composable
-private fun OnBoardingScreenStyle2Preview() {
+private fun OnBoardingResultPreview() {
     AppTheme {
         OnBoardingScreen(
-            style = OnBoardingScreenStyle.STYLE2,
             uiState = OnBoardingUiState(
                 currentStep = 2,
                 selectedGoal = OnboardingGoal.SCHOLARSHIPS,

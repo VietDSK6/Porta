@@ -28,6 +28,14 @@ Verifier: Codex public-clone automated gates; entrant observed packaged Desktop 
 | Desktop package | `./gradlew :desktopApp:packageDistributionForCurrentOS` | PASS | Public clone; DMG assembled in 34 s. Runtime image explicitly contains `jdk.unsupported` and `sun.misc.Unsafe`. |
 | JS/Wasm compatibility | `./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs` | PASS | Public clone; both shared targets compiled in 1 s with shared cache. |
 
+### Later local test evidence
+
+The table above is the historical **2 November public-clone run** at `5a17882`; its 236 JVM and 94 Android-host
+counts remain accurate for that snapshot. The 11 November local P0 run produced JUnit XML results with **287 JVM** and
+**104 Android-host** tests, with zero failures, errors, or skips in those result files. It also passed `spotlessCheck`
+and `:androidApp:assembleDebug`. This is not a new public-clone verification. Re-run the scoped gates on the frozen
+submission commit and record its SHA and counts here before submission.
+
 ### Startup regression note
 
 The first packaged Desktop check exposed `NoClassDefFoundError: sun/misc/Unsafe` while DataStore restored onboarding,

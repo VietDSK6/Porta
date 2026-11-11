@@ -40,7 +40,6 @@ import io.github.vietdsk6.porta.presentation.screens.doors.DoorsViewModel
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierScreen
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreen
-import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreenStyle
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailScreen
@@ -208,7 +207,6 @@ private fun EntryProviderScope<ScreenRoute>.screens(
     entry<OnBoardingScreenRoute> {
         val viewModel = koinViewModel<OnBoardingViewModel>()
         OnBoardingScreen(
-            style = OnBoardingScreenStyle.STYLE1,
             viewModel = viewModel,
             onOnBoardingFinished = { completion ->
                 navigator.set(

@@ -72,7 +72,7 @@ private const val TOTAL_STEPS = 4
 private const val MOTION_DURATION_MILLIS = 220
 
 @Composable
-fun OnBoardingScreenVariation1(
+fun OnboardingFlow(
     modifier: Modifier = Modifier,
     uiState: OnBoardingUiState,
     onUiEvent: (OnBoardingUiEvent) -> Unit,
@@ -986,7 +986,7 @@ private fun OnboardingContinueButton(
 @Composable
 private fun GoalStepPreview() {
     AppTheme(isDarkMode = true) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 0, sampleIelts = SAMPLE_IELTS_BASELINE),
             onUiEvent = {},
         )
@@ -997,7 +997,7 @@ private fun GoalStepPreview() {
 @Composable
 private fun ScenarioStepPreview() {
     AppTheme(isDarkMode = true) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 1, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
@@ -1008,7 +1008,7 @@ private fun ScenarioStepPreview() {
 @Composable
 private fun ScenarioStepLightPreview() {
     AppTheme(isDarkMode = false) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 1, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
@@ -1019,7 +1019,7 @@ private fun ScenarioStepLightPreview() {
 @Composable
 private fun ResultStepPreview() {
     AppTheme(isDarkMode = true) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 2, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
@@ -1030,7 +1030,7 @@ private fun ResultStepPreview() {
 @Composable
 private fun ResultStepLightPreview() {
     AppTheme(isDarkMode = false) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 2, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
@@ -1041,7 +1041,7 @@ private fun ResultStepLightPreview() {
 @Composable
 private fun NextMoveStepPreview() {
     AppTheme(isDarkMode = true) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 3, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
@@ -1052,7 +1052,7 @@ private fun NextMoveStepPreview() {
 @Composable
 private fun NextMoveStepLightPreview() {
     AppTheme(isDarkMode = false) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 3, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
@@ -1063,7 +1063,7 @@ private fun NextMoveStepLightPreview() {
 @Composable
 private fun ResultStepCompactAccessibilityPreview() {
     AppTheme(isDarkMode = true) {
-        OnBoardingScreenVariation1(
+        OnboardingFlow(
             uiState = previewOnboardingState(currentStep = 2, sampleIelts = SAMPLE_IELTS_TARGET),
             onUiEvent = {},
         )
