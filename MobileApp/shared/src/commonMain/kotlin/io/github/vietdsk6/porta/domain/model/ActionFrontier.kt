@@ -192,7 +192,9 @@ fun Opportunity.isFeasibleForPlanning(
  * Returns opportunities where the scenario addresses the encoded rule represented by [target].
  * Profile-wide milestones must turn a failure into a pass. A rule-scoped confirmation may also
  * turn an unknown rule into a pass because its purpose is to collect programme-specific evidence.
- * The door may still need a manual source check, so this is intentionally broader than "open".
+ * The door may still need a manual source check, so this is intentionally broader than "open". A door that remains
+ * blocked by an unaddressable requirement, or whose cycle is closed, is never counted: fixing one check there cannot
+ * make the door reachable.
  */
 fun ScenarioResult.resolvedHardGapOpportunityIds(target: ActionTarget): List<String> = baseline
     .mapNotNull { (opportunityId, beforeReceipt) ->
@@ -200,6 +202,7 @@ fun ScenarioResult.resolvedHardGapOpportunityIds(target: ActionTarget): List<Str
             return@mapNotNull null
         }
         val afterReceipt = simulated[opportunityId] ?: return@mapNotNull null
+        if (afterReceipt.state in unreachableStates) return@mapNotNull null
         val afterRules = afterReceipt.rules.associateBy(RuleReceipt::ruleId)
         val resolved = beforeReceipt.rules.any { beforeRule ->
             val targetsRule = target !is ActionTarget.OpportunityRuleTarget ||
@@ -215,3 +218,5 @@ fun ScenarioResult.resolvedHardGapOpportunityIds(target: ActionTarget): List<Str
         opportunityId.takeIf { resolved }
     }
     .sorted()
+
+private val unreachableStates = setOf(EligibilityState.NOT_ACTIONABLE, EligibilityState.CLOSED)

@@ -45,17 +45,17 @@ class ScenarioEvaluator(
         today: LocalDate,
     ): ScenarioResult {
         val opportunityById = opportunities.associateBy(Opportunity::id)
-        val scopedRules = overrides.ruleAssertions.keys.associateWith { ruleRef ->
+        val scopedRules = overrides.ruleAssertions.keys.mapNotNull { ruleRef ->
             opportunityById[ruleRef.opportunityId]
                 ?.eligibilityRule
                 ?.findAtomicRule(ruleRef.ruleId)
-                ?: error(
-                    "Scenario assertion references missing rule " +
-                        "${ruleRef.opportunityId}/${ruleRef.ruleId}.",
-                )
-        }
+                ?.let { rule -> ruleRef to rule }
+        }.toMap()
+        val applicableOverrides = overrides.copy(
+            ruleAssertions = overrides.ruleAssertions.filterKeys(scopedRules::containsKey),
+        )
         val simulatedProfile = profile.withOverrides(
-            overrides = overrides,
+            overrides = applicableOverrides,
             scopedRules = scopedRules,
         )
         val baseline = opportunities.associate { opportunity ->

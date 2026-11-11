@@ -101,6 +101,7 @@ class ActionFrontierEngine(
                     ?.takeIf { template -> template.canAddress(receipt.result) }
             }
         }
+            .filter { it.isEthicallyActionable() }
             .groupBy { it.signature() }
             .values
             .map { matching ->
@@ -111,7 +112,6 @@ class ActionFrontierEngine(
                         .thenBy(ActionTemplate::id),
                 )
             }
-            .filter { it.isEthicallyActionable() }
         val exclusions = mutableListOf<FrontierExclusion>()
         val impacted = candidates.mapNotNull { template ->
             val reasons = linkedSetOf<FrontierExclusionReason>()

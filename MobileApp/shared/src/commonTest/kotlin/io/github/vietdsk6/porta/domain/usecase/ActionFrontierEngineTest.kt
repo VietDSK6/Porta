@@ -565,6 +565,69 @@ class ActionFrontierEngineTest {
         maxCost = CostBand.UNKNOWN,
     )
 
+    @Test
+    fun `door blocked by an immutable requirement never counts as improved`() {
+        val action = template(
+            id = "raise-ielts-blocked",
+            key = FactKey.IELTS_SCORE,
+            target = FactValue.NumberValue(7.0, "band"),
+        )
+        val blocked = Opportunity(
+            id = "blocked",
+            title = "Synthetic blocked",
+            provider = "Test provider",
+            category = OpportunityCategory.SCHOLARSHIP,
+            cycle = "test-only",
+            sourceUrl = "https://example.invalid/blocked",
+            lastCheckedOn = today,
+            deadline = Deadline.Known(LocalDate(2027, 6, 1)),
+            eligibilityRule = RuleNode.All(
+                id = "blocked-all",
+                children = listOf(
+                    RuleNode.Atomic(
+                        id = "blocked-nationality",
+                        factKey = FactKey.NATIONALITY,
+                        operator = Operator.EQUALS,
+                        expected = FactValue.EnumValue("VN"),
+                        explanation = "Synthetic immutable rule.",
+                        actionability = Actionability.IMMUTABLE,
+                    ),
+                    RuleNode.Atomic(
+                        id = "blocked-ielts",
+                        factKey = FactKey.IELTS_SCORE,
+                        operator = Operator.GREATER_THAN_OR_EQUAL,
+                        expected = FactValue.NumberValue(7.0, "band"),
+                        explanation = "Synthetic controllable rule.",
+                        actionability = Actionability.CONTROLLABLE,
+                        actionTemplateId = action.id,
+                    ),
+                ),
+            ),
+            actionTemplates = listOf(action),
+        )
+        val reachable = ieltsOpportunity(id = "reachable", requiredScore = 7.0)
+        val profile = profileOf(
+            FactKey.NATIONALITY to FactValue.EnumValue("US"),
+            FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+        )
+
+        val frontier = engine.build(
+            profile = profile,
+            opportunities = listOf(blocked, reachable),
+            savedOpportunityIds = emptySet(),
+            constraints = permissiveConstraints,
+            today = today,
+        )
+
+        assertEquals(
+            EligibilityState.NOT_ACTIONABLE,
+            eligibilityEvaluator.evaluate(profile, blocked, today).state,
+        )
+        assertTrue(frontier.isNotEmpty())
+        assertTrue(frontier.none { "blocked" in it.improvedOpportunityIds })
+        assertEquals(listOf("reachable"), frontier.first().improvedOpportunityIds)
+    }
+
     private fun ieltsOpportunity(id: String, requiredScore: Double): Opportunity {
         val action = template(
             id = "raise-ielts-$id",

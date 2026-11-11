@@ -143,10 +143,51 @@ class EligibilityEvaluatorTest {
     }
 
     @Test
-    fun `actionable failure remains visible beside immutable failure`() {
+    fun `immutable failure in all group makes the door not actionable`() {
         val opportunity = opportunity(
             rule = RuleNode.All(
                 id = "mixed-failures",
+                children = listOf(
+                    atomic(
+                        id = "citizenship",
+                        key = FactKey.NATIONALITY,
+                        operator = Operator.EQUALS,
+                        expected = FactValue.TextValue("eligible-country"),
+                        actionability = Actionability.IMMUTABLE,
+                    ),
+                    atomic(
+                        id = "ielts",
+                        key = FactKey.IELTS_SCORE,
+                        operator = Operator.GREATER_THAN_OR_EQUAL,
+                        expected = FactValue.NumberValue(7.0, "band"),
+                    ),
+                ),
+            ),
+        )
+
+        val receipt = evaluator.evaluate(
+            profile = profile(
+                FactKey.NATIONALITY to FactValue.TextValue("other-country"),
+                FactKey.IELTS_SCORE to FactValue.NumberValue(6.5, "band"),
+            ),
+            opportunity = opportunity,
+            today = today,
+        )
+
+        assertEquals(RuleResult.FAIL, receipt.rootResult)
+        assertEquals(EligibilityState.NOT_ACTIONABLE, receipt.state)
+        assertEquals(
+            RuleResult.FAIL,
+            receipt.rules.single { it.ruleId == "ielts" }.result,
+            "The controllable failure stays visible even though it cannot open the door.",
+        )
+    }
+
+    @Test
+    fun `immutable failure inside any group does not block an actionable alternative`() {
+        val opportunity = opportunity(
+            rule = RuleNode.Any(
+                id = "route",
                 children = listOf(
                     atomic(
                         id = "citizenship",

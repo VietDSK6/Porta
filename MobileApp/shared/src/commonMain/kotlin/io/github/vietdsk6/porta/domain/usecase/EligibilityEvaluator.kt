@@ -49,10 +49,10 @@ class EligibilityEvaluator {
                 EligibilityState.NEEDS_INFO
             }
 
-            evaluation.receipts.any {
-                it.result == RuleResult.FAIL &&
-                    it.actionability in setOf(Actionability.CONTROLLABLE, Actionability.TIME_DEPENDENT)
-            } -> EligibilityState.HAS_GAPS
+            evaluation.receipts.any(RuleReceipt::isAddressableFailure) &&
+                bestCaseResult(opportunity.eligibilityRule, evaluation.receipts) != RuleResult.FAIL -> {
+                EligibilityState.HAS_GAPS
+            }
 
             else -> EligibilityState.NOT_ACTIONABLE
         }
@@ -253,8 +253,43 @@ class EligibilityEvaluator {
         else -> RuleResult.FAIL
     }
 
+    /**
+     * Re-aggregates [rule] as if every addressable failure in [receipts] already passed.
+     *
+     * A door is actionable only when this best case is no longer a failure. Otherwise an immutable or unavailable
+     * requirement still blocks the root, and fixing a controllable check would not make the door reachable.
+     */
+    private fun bestCaseResult(
+        rule: RuleNode,
+        receipts: List<RuleReceipt>,
+    ): RuleResult {
+        val receiptById = receipts.associateBy(RuleReceipt::ruleId)
+        return bestCaseResult(rule, receiptById)
+    }
+
+    private fun bestCaseResult(
+        rule: RuleNode,
+        receiptById: Map<String, RuleReceipt>,
+    ): RuleResult = when (rule) {
+        is RuleNode.All -> aggregateAll(rule.children.map { bestCaseResult(it, receiptById) })
+
+        is RuleNode.Any -> aggregateAny(rule.children.map { bestCaseResult(it, receiptById) })
+
+        is RuleNode.Atomic -> receiptById[rule.id]
+            ?.let { receipt -> if (receipt.isAddressableFailure()) RuleResult.PASS else receipt.result }
+            ?: RuleResult.UNKNOWN
+
+        is RuleNode.ManualCheck -> RuleResult.REVIEW
+    }
+
     private data class Evaluation(
         val result: RuleResult,
         val receipts: List<RuleReceipt>,
     )
 }
+
+private val addressableActionability = setOf(Actionability.CONTROLLABLE, Actionability.TIME_DEPENDENT)
+
+/** Returns whether this receipt is a failed check that a controllable or time-dependent milestone could address. */
+internal fun RuleReceipt.isAddressableFailure(): Boolean = result == RuleResult.FAIL &&
+    actionability in addressableActionability
