@@ -111,6 +111,27 @@ class DatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun `migration 4 to 5 removes only the starter example table`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        try {
+            connection.execSQL("CREATE TABLE example (id TEXT NOT NULL PRIMARY KEY, title TEXT)")
+            connection.execSQL("CREATE TABLE profile_fact (id TEXT NOT NULL PRIMARY KEY, value TEXT)")
+            connection.execSQL("CREATE TABLE plan_item (id TEXT NOT NULL PRIMARY KEY)")
+            connection.execSQL("INSERT INTO example VALUES ('unused', 'Starter example')")
+            connection.execSQL("INSERT INTO profile_fact VALUES ('default:gpa', '3.6')")
+            connection.execSQL("INSERT INTO plan_item VALUES ('plan-1')")
+
+            MIGRATION_4_5.migrate(connection)
+
+            assertTrue(!connection.tableExists("example"))
+            assertEquals("3.6", connection.singleText("SELECT value FROM profile_fact WHERE id = 'default:gpa'"))
+            assertEquals("plan-1", connection.singleText("SELECT id FROM plan_item"))
+        } finally {
+            connection.close()
+        }
+    }
+
     private fun androidx.sqlite.SQLiteConnection.singleText(sql: String): String = prepare(sql).use { statement ->
         check(statement.step()) { "Query returned no rows: $sql" }
         statement.getText(0)

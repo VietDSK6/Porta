@@ -1,0 +1,535 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "dee954da88f1c3a245767c4e4b84828b",
+    "entities": [
+      {
+        "tableName": "plan_item",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `profile_id` TEXT NOT NULL, `action_template_id` TEXT NOT NULL, `title` TEXT NOT NULL, `target_scope` TEXT NOT NULL DEFAULT 'PROFILE_FACT', `opportunity_id` TEXT, `rule_id` TEXT, `rule_fingerprint` TEXT, `target_fact_key` TEXT NOT NULL, `target_value_type` TEXT NOT NULL, `target_number_value` REAL, `target_text_value` TEXT, `target_boolean_value` INTEGER, `target_list_value_json` TEXT, `target_unit` TEXT, `target_duration_amount` INTEGER, `status` TEXT NOT NULL, `target_date_epoch_days` INTEGER, `note` TEXT, `expected_duration_days` INTEGER, `effort` TEXT NOT NULL, `cost_band` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionTemplateId",
+            "columnName": "action_template_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetScope",
+            "columnName": "target_scope",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'PROFILE_FACT'"
+          },
+          {
+            "fieldPath": "opportunityId",
+            "columnName": "opportunity_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ruleId",
+            "columnName": "rule_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ruleFingerprint",
+            "columnName": "rule_fingerprint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "targetFactKey",
+            "columnName": "target_fact_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetValueType",
+            "columnName": "target_value_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetNumberValue",
+            "columnName": "target_number_value",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "targetTextValue",
+            "columnName": "target_text_value",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "targetBooleanValue",
+            "columnName": "target_boolean_value",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "targetListValueJson",
+            "columnName": "target_list_value_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "targetUnit",
+            "columnName": "target_unit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "targetDurationAmount",
+            "columnName": "target_duration_amount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetDateEpochDays",
+            "columnName": "target_date_epoch_days",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "expectedDurationDays",
+            "columnName": "expected_duration_days",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "effort",
+            "columnName": "effort",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "costBand",
+            "columnName": "cost_band",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "saved_opportunity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `profile_id` TEXT NOT NULL, `opportunity_id` TEXT NOT NULL, `saved_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "opportunityId",
+            "columnName": "opportunity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "savedAtEpochMillis",
+            "columnName": "saved_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saved_opportunity_profile_id_opportunity_id",
+            "unique": true,
+            "columnNames": [
+              "profile_id",
+              "opportunity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_saved_opportunity_profile_id_opportunity_id` ON `${TABLE_NAME}` (`profile_id`, `opportunity_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "opportunity_pack",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `pack_id` TEXT NOT NULL, `name` TEXT NOT NULL, `publisher` TEXT NOT NULL, `schema_version` INTEGER NOT NULL, `pack_version` INTEGER NOT NULL, `raw_json` TEXT NOT NULL, `source_url` TEXT, `last_checked_on` TEXT NOT NULL, `imported_at` INTEGER NOT NULL, `is_active` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packId",
+            "columnName": "pack_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publisher",
+            "columnName": "publisher",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schema_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "pack_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawJson",
+            "columnName": "raw_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceUrl",
+            "columnName": "source_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastCheckedOn",
+            "columnName": "last_checked_on",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "importedAtEpochMillis",
+            "columnName": "imported_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "is_active",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "profile_fact",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `profile_id` TEXT NOT NULL, `fact_key` TEXT NOT NULL, `value_type` TEXT NOT NULL, `number_value` REAL, `text_value` TEXT, `boolean_value` INTEGER, `list_value_json` TEXT, `unit` TEXT, `duration_amount` INTEGER, `provenance` TEXT NOT NULL, `actionability` TEXT NOT NULL, `evidence_label` TEXT, `evidence_reference` TEXT, `evidence_checked_at` INTEGER, `evidence_attachment_name` TEXT, `evidence_attachment_mime_type` TEXT, `evidence_attachment_size` INTEGER, `evidence_attachment_storage_key` TEXT, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "factKey",
+            "columnName": "fact_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valueType",
+            "columnName": "value_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "numberValue",
+            "columnName": "number_value",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "textValue",
+            "columnName": "text_value",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "booleanValue",
+            "columnName": "boolean_value",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "listValueJson",
+            "columnName": "list_value_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "durationAmount",
+            "columnName": "duration_amount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "provenance",
+            "columnName": "provenance",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionability",
+            "columnName": "actionability",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evidenceLabel",
+            "columnName": "evidence_label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceReference",
+            "columnName": "evidence_reference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceCheckedAtEpochMillis",
+            "columnName": "evidence_checked_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "evidenceAttachmentName",
+            "columnName": "evidence_attachment_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceAttachmentMimeType",
+            "columnName": "evidence_attachment_mime_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceAttachmentSize",
+            "columnName": "evidence_attachment_size",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "evidenceAttachmentStorageKey",
+            "columnName": "evidence_attachment_storage_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_profile_fact_profile_id_fact_key",
+            "unique": true,
+            "columnNames": [
+              "profile_id",
+              "fact_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_profile_fact_profile_id_fact_key` ON `${TABLE_NAME}` (`profile_id`, `fact_key`)"
+          }
+        ]
+      },
+      {
+        "tableName": "rule_assertion",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`profile_id` TEXT NOT NULL, `opportunity_id` TEXT NOT NULL, `rule_id` TEXT NOT NULL, `rule_fingerprint` TEXT NOT NULL, `fact_key` TEXT NOT NULL, `value_type` TEXT NOT NULL, `number_value` REAL, `text_value` TEXT, `boolean_value` INTEGER, `list_value_json` TEXT, `unit` TEXT, `duration_amount` INTEGER, `evidence_label` TEXT, `evidence_reference` TEXT, `evidence_checked_at` INTEGER, `evidence_attachment_name` TEXT, `evidence_attachment_mime_type` TEXT, `evidence_attachment_size` INTEGER, `evidence_attachment_storage_key` TEXT, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`profile_id`, `opportunity_id`, `rule_id`))",
+        "fields": [
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "opportunityId",
+            "columnName": "opportunity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleId",
+            "columnName": "rule_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleFingerprint",
+            "columnName": "rule_fingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "factKey",
+            "columnName": "fact_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valueType",
+            "columnName": "value_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "numberValue",
+            "columnName": "number_value",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "textValue",
+            "columnName": "text_value",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "booleanValue",
+            "columnName": "boolean_value",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "listValueJson",
+            "columnName": "list_value_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "durationAmount",
+            "columnName": "duration_amount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "evidenceLabel",
+            "columnName": "evidence_label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceReference",
+            "columnName": "evidence_reference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceCheckedAtEpochMillis",
+            "columnName": "evidence_checked_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "evidenceAttachmentName",
+            "columnName": "evidence_attachment_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceAttachmentMimeType",
+            "columnName": "evidence_attachment_mime_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "evidenceAttachmentSize",
+            "columnName": "evidence_attachment_size",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "evidenceAttachmentStorageKey",
+            "columnName": "evidence_attachment_storage_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "profile_id",
+            "opportunity_id",
+            "rule_id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dee954da88f1c3a245767c4e4b84828b')"
+    ]
+  }
+}

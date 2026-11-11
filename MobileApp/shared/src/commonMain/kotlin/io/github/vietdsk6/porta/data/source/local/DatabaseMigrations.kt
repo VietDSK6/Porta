@@ -51,3 +51,8 @@ val MIGRATION_3_4 = Migration(3, 4) { connection ->
         connection.execSQL("ALTER TABLE $table ADD COLUMN evidence_attachment_storage_key TEXT")
     }
 }
+
+/** Removes the unused starter example table while preserving every Porta table. */
+val MIGRATION_4_5 = Migration(4, 5) { connection ->
+    connection.execSQL("DROP TABLE IF EXISTS example")
+}

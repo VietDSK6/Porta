@@ -4,14 +4,12 @@ import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
-import io.github.vietdsk6.porta.data.source.local.dao.ExampleDao
 import io.github.vietdsk6.porta.data.source.local.dao.OpportunityPackDao
 import io.github.vietdsk6.porta.data.source.local.dao.PlanItemDao
 import io.github.vietdsk6.porta.data.source.local.dao.ProfileFactDao
 import io.github.vietdsk6.porta.data.source.local.dao.ProfileImportDao
 import io.github.vietdsk6.porta.data.source.local.dao.RuleAssertionDao
 import io.github.vietdsk6.porta.data.source.local.dao.SavedOpportunityDao
-import io.github.vietdsk6.porta.data.source.local.entity.ExampleEntity
 import io.github.vietdsk6.porta.data.source.local.entity.OpportunityPackEntity
 import io.github.vietdsk6.porta.data.source.local.entity.PlanItemEntity
 import io.github.vietdsk6.porta.data.source.local.entity.ProfileFactEntity
@@ -21,13 +19,11 @@ import io.github.vietdsk6.porta.data.source.local.entity.SavedOpportunityEntity
 // The app's Room 3 database (lives in commonMain). Bump `version` and add a Migration whenever
 // the shipped schema changes so existing local Porta data remains readable.
 @Database(
-    entities = [PlanItemEntity::class, SavedOpportunityEntity::class, OpportunityPackEntity::class, ProfileFactEntity::class, RuleAssertionEntity::class, ExampleEntity::class],
-    version = 4,
+    entities = [PlanItemEntity::class, SavedOpportunityEntity::class, OpportunityPackEntity::class, ProfileFactEntity::class, RuleAssertionEntity::class],
+    version = 5,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun exampleDao(): ExampleDao
-
     abstract fun profileFactDao(): ProfileFactDao
     abstract fun profileImportDao(): ProfileImportDao
     abstract fun ruleAssertionDao(): RuleAssertionDao
