@@ -1,8 +1,8 @@
 # Porta shared Kotlin evidence
 
-> Snapshot date: 11 November 2026
+> Snapshot date: 12 November 2026
 > Baseline: `bd5fd5d` — the last repository commit before Porta work began in `6be9ec1`
-> Measured Kotlin head: `de44448`
+> Measured Kotlin head: `dc4e701` (P5 code commit; subsequent submission-document edits do not change the measured Kotlin)
 
 This document records an internal, reproducible view of where **new Porta-owned Kotlin** lives. It is not an
 official contest formula or a judging score. The Kotlin Student Coding Competition rules do not prescribe a shared
@@ -26,17 +26,17 @@ Snapshot output:
 
 | Category | Files | NCLOC |
 |---|---:|---:|
-| Shared production | 89 | 18,273 |
-| Platform production | 11 | 632 |
-| Kotlin data/fixtures | 2 | 1,177 |
-| Shared tests | 22 | 3,460 |
-| Platform-run tests | 37 | 7,150 |
-| Excluded added Kotlin files | 29 | — |
+| Shared production | 144 | 21,991 |
+| Platform production | 13 | 673 |
+| Kotlin data/fixtures | 2 | 1,142 |
+| Shared tests | 26 | 3,710 |
+| Platform-run tests | 38 | 7,383 |
+| Excluded added Kotlin files | 40 | — |
 
-Within this deliberately narrow production sample, the shared proportion is **18,273 / 18,905 = 96.7%**.
+Within this deliberately narrow production sample, the shared proportion is **21,991 / 22,664 = 97.0%**.
 
-That number means all but 632 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
-The measured platform files provide target integration and the JVM CLI. It does **not** mean 96.7% of the whole repository
+That number means all but 673 NCLOC of newly added, explicitly allowlisted Porta production Kotlin is currently shared.
+The measured platform files provide target integration and the JVM CLI. It does **not** mean 97.0% of the whole repository
 is shared, nor that platform code is unnecessary. Android and Desktop still use target launchers, drivers, packaging,
 and platform services inherited from the starter kit; those inherited lines are excluded rather than claimed as
 Porta work.
@@ -55,9 +55,10 @@ Porta work.
 
 The script intentionally requires allowlist maintenance when a new product area is added. A new file is not silently
 treated as contest-owned evidence just because it appears under the Porta package. This snapshot includes the Route
-planner, Desktop workflow, and P3 engine/CLI extraction at `de44448`. Moving domain files from `:shared` to `:engine`
-changes module paths without changing their Kotlin Multiplatform common-source nature. Rerun it on the frozen
-submission commit before quoting a final ratio.
+planner, Desktop workflow, P3 engine/CLI extraction, and P5 localization/refactor at `dc4e701`. Moving domain files
+from `:shared` to `:engine` changes module paths without changing their Kotlin Multiplatform common-source nature.
+The measured code commit is local and unpushed; repeat the measurement from the public submission commit after it
+becomes available.
 
 ## Exclusions
 
@@ -145,30 +146,31 @@ The runner performs 10 untimed warm-up passes, then prints median and p95 for 30
 - a bounded Route planner calculation over the same 100-opportunity fixture.
 
 The output is prefixed with `PORTA_PERF` and includes the OS, architecture, and JDK version. Timing is intentionally
-not a strict CI assertion: hosted-runner scheduling would make that gate flaky. The working-tree verification below
-demonstrates the PRD's under-100-ms target on the development machine. Repeat the same command after the submission
-commit is frozen and replace the commit row before final delivery.
+not a strict CI assertion: hosted-runner scheduling would make that gate flaky. The run below demonstrates the PRD's
+under-100-ms target on this development machine at the P5 code commit. Repeat it from the public submission commit
+if later Kotlin changes alter the workload or engine.
 
-| Frozen-run field | Recorded value |
+| Local code-commit run field | Recorded value |
 |---|---|
-| Commit | 11 November P1/P2 working tree before P3 engine extraction (frozen-commit rerun pending) |
+| Commit | `dc4e701` — local P5 Kotlin code commit, 12 November 2026 |
 | Machine / OS / architecture | macOS / aarch64 / 10 logical processors |
 | JDK | 21.0.11 |
-| Eligibility — median / p95 | 0.104 ms / 0.143 ms |
-| Scenario — median / p95 | 0.214 ms / 0.249 ms |
-| Action Frontier — median / p95 | 1.004 ms / 1.280 ms |
-| Route planner — median / p95 | 2.105 ms / 2.512 ms |
+| Eligibility — median / p95 | 0.096 ms / 0.110 ms |
+| Scenario — median / p95 | 0.182 ms / 0.230 ms |
+| Action Frontier — median / p95 | 1.037 ms / 1.174 ms |
+| Route planner — median / p95 | 1.963 ms / 2.563 ms |
 
 These are characterization timings from one development host, not a latency guarantee on every device or profile.
 The 100-opportunity synthetic fixture exercises the search cost; the separate bundled-pack golden test fixes the
 current product result, including its zero opened doors.
 
-The subsequent P3 scoped gate passed `spotlessCheck`, `:engine:jvmTest`, `:shared:jvmTest`,
+The P5 scoped gate passed `spotlessCheck`, `:engine:jvmTest`, `:shared:jvmTest`,
 `:shared:testAndroidHostTest`, `:androidApp:assembleDebug`, `:desktopApp:packageDistributionForCurrentOS`, and
-`:cli:test`. The JUnit reports for that gate contain 39 engine JVM, 269 shared JVM, 78 Android-host, and 3 CLI
-tests, with zero failures/errors/skips. A separate Roborazzi record run passed 72 parameterized preview cases;
-those are not included in the scoped-gate counts. The performance table above remains an earlier characterization,
-not a new P3 timing.
+`:cli:test`. Its JUnit reports contain 46 engine JVM, 279 shared JVM, 79 Android-host, and 3 CLI tests, with zero
+failures/errors/skips. A separate Roborazzi record run passed 66 parameterized preview cases; those are not included
+in the scoped-gate counts. Both Vietnamese Route and onboarding previews were inspected after their explicit locale
+override; the wide English Route preview was also inspected. The performance table is a subsequent run at the P5
+code commit.
 
 The ratio should therefore be used as a provenance cross-check beside the architecture and runnable demo, not as a
 substitute for them.

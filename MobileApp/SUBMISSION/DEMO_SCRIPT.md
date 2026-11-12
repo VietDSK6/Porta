@@ -1,76 +1,69 @@
-# Porta contest screencast — 4:20 target
+# Porta contest screencast — 3:30 target
 
-Record real Android and packaged JVM Desktop builds from the frozen commit. Keep the pointer visible, increase zoom
-where source receipts are small, and avoid showing notifications, personal files, API keys, or real student data.
+Record this only after the Android APK and packaged JVM Desktop app have been checked from the frozen commit. Use Linh's fictional profile and the sourced 15-door bundled catalog. Her current 180-day route improves checks but opens **zero** doors under the encoded rules and deadlines. Keep the pointer visible on Desktop and enlarge small receipts in the edit. Hide notifications, personal files and API keys. The video covers Android, Desktop and the JVM CLI; no Web build or footage is planned.
 
-## 0:00–0:25 — The problem
+## Recording setup
 
-**Shot:** A few official opportunity pages, then Porta onboarding.
+1. Start from a fresh demo profile or reset local data, complete two-step onboarding with **Show me Linh's route**, and confirm the fictional-demo badge, sourced pack and zero-open-doors message. Record the app build SHA and local date.
+2. Preselect a Route candidate and a source-linked door. Prepare a saved milestone that can be marked complete, plus a disposable actual-result entry; rehearse this flow so no personal file picker appears in the recording.
+3. For the optional Studio segment, leave the personal AI key empty so the bundled offline fixture is used. Select the **Google Summer of Code** demo excerpt, draft its age-threshold suggestion, edit the quote to words absent from the excerpt to show rejection, then restore the matching quote before accepting. Prepare a separate valid draft pack for the inspector preview; show approval only if validation actually passes.
+4. Capture the CLI export and validate commands against the same frozen commit. Do not imply a live provider call, a completed application, or a positive eligibility decision.
 
-**Narration:** Students do not only need another opportunity list. They need to understand which published checks
-pass now, which need action or verification, and which realistic milestone creates the most assessed progress under
-their constraints.
+## 0:00–0:20 — The problem
 
-**Claim boundary:** Do not say “world's first”, “guaranteed eligibility”, or “scholarships you can win”.
+**Shot:** Briefly show two official opportunity pages with their URLs, then Porta's first onboarding step. Record the source-page date separately; live pages can change.
 
-## 0:25–0:50 — Fictional actual profile
+**Narration:** “A student can find many opportunities but still not know which realistic milestone to tackle first. Porta maps published checks to an honest route through time, effort and cost.”
 
-**Shot:** Select the clearly labelled fictional sample profile on Android; show Doors counts.
+## 0:20–0:45 — First value in two steps
 
-**Narration:** The profile and catalog stay on device. Missing facts remain unknown, and Porta distinguishes assessed
-rules passed, needs action, needs information, unavailable cycles, and closed deadlines.
+**Shot:** Choose a direction, tap **Show me Linh's route**, then show the fictional-demo badge and Route hero.
 
-## 0:50–1:20 — Source-linked decision receipt
+**Narration:** “Linh is a fictional computer-science student. Her profile stays on this device. In the sourced 15-door catalog, her current route improves checks but opens zero doors. Porta does not claim an award or a fully open door.”
 
-**Shot:** Open one door with passed, failed, missing/manual, and soft sections. Expand one rule and reveal source,
-section, actual value, required value, and last-reviewed date.
+**Capture check:** Measure the time from launch to Route. Keep the clip only if the interaction takes at most 30 seconds without editing.
 
-**Narration:** Porta does not produce a match percentage. It shows the precise encoded checks, preserves conditions
-that need human review, and links back to the provider.
+## 0:45–1:25 — The route map
 
-## 1:20–2:05 — Action Frontier
+**Shot:** Show the compact timeline on Android and wide metro map on Desktop. Switch between the available Route candidates, open **Why these numbers?**, change the horizon, and show improved checks, opened doors and deadline losses. Save one route and show its ordered steps in Active plan. Keep the zero-open-doors notice visible when showing Linh's current route.
 
-**Shot:** Open Next moves. Show no more than five actions, their impact, duration, effort, cost, and earliest affected
-deadline. Change one constraint and show the deterministic reordering or exclusion reason.
+**Narration:** “The shared planner sequences up to four milestones, evaluates checks at each step's end date, and filters by the chosen time, cost and effort limits. Stations show planned check transitions, not admission predictions. Deadline uncertainty stays visible.”
 
-**Narration:** Candidate milestones come only from curated action templates. Porta evaluates each temporary scenario,
-removes deadline-infeasible impact, computes a Pareto frontier, and ranks only within it.
+## 1:25–1:55 — One move, one simulation
 
-## 2:05–2:45 — Magic What-if preview
+**Shot:** Open Next moves and one What-if receipt. Show actual versus simulated values, changed checks, remaining information or source-review checks, and the notice that the saved profile is unchanged.
 
-**Shot:** Select a milestone. Show Actual → What-if aggregate counts, changed doors, exact rule deltas, and the
-persistent statement that the saved profile is unchanged. Discard the simulation.
+**Narration:** “Every candidate comes from a curated action template. The same deterministic engine compares its encoded-rule impact and keeps the actual profile untouched.”
 
-**Narration:** This is verified marginal impact across the installed catalog, not a prediction of admission or award.
-Only conclusions supported by the encoded rules change.
+## 1:55–2:20 — Real progress requires confirmation
 
-## 2:45–3:15 — Honest growth loop
+**Shot:** Mark a saved milestone complete, then open the separate actual-result form. Show that the actual profile remains unchanged until a real achieved value is confirmed; add a fictional evidence title if the chosen result requires one. Show the official URL and last-reviewed date in a door receipt.
 
-**Shot:** Add the milestone to the plan, move it through progress, complete it, then show the separate actual-profile
-confirmation and optional evidence metadata.
+**Narration:** “Completing a task never proves a fact. The student confirms an achieved value separately. Porta stores any supporting evidence locally and keeps source-specific confirmations tied to their rule fingerprint.”
 
-**Narration:** Finishing a task changes plan status only. Porta never silently turns completion into an academic fact.
+## 2:20–3:00 — AI drafts with a human boundary
 
-## 3:15–3:55 — Desktop and shared Kotlin
+**Shot:** On Desktop, open Opportunity Studio from Pack inspector. Select the bundled Google Summer of Code excerpt and draft rules with the offline fixture. Show its highlighted matching quotation; edit the quote to unrelated words to show the rejection, then restore it and accept the grounded suggestion. Open Pack inspector with a prepared valid draft JSON and show validation, the added/changed/removed preview and the separate approval control. If the draft is invalid, show diagnostics instead of claiming approval. Do not present the offline fixture as a live Gemini call.
 
-**Shot:** Switch to the packaged Desktop app. Use the navigation rail, wide Frontier master-detail view, Actual versus
-What-if matrix, opportunity receipt, and pack inspector. Include a short keyboard-only sequence.
+**Narration:** “AI can suggest a draft from text the curator supplies. A quote must match that text, unsupported facts become manual checks, and a human accepts each rule. The validated pack still requires a separate approval. AI never decides eligibility.”
 
-**Narration:** The typed rule graph, evaluator, scenario engine, Pareto frontier, Room repositories, ViewModels, UI
-state, and most Compose UI are shared Kotlin. Android optimizes quick updates; Desktop optimizes comparison.
+## 3:00–3:20 — Shared Kotlin, different surfaces
 
-## 3:55–4:20 — Trust boundary and close
+**Shot:** Desktop menu and a keyboard shortcut; briefly show `./gradlew :cli:run --args='export-bundled --out porta-pack.json'` followed by `./gradlew :cli:run --args='validate porta-pack.json'`, then a readable module diagram. Record the terminal output from the frozen commit.
 
-**Shot:** Show a manual check, last-reviewed date, local data controls, and reset/discard affordance.
+**Narration:** “Android and Desktop share the Kotlin engine, Room-backed workflows and Compose screens. The JVM CLI calls that engine too. Desktop adds native menus and a wider planning workspace.”
 
-**Narration:** Porta does not predict a student's future. It gives them an honest, source-linked map of the next
-possibilities they can realistically create.
+## 3:20–3:30 — Close
+
+**Shot:** Return to Route's source and deadline caveat.
+
+**Narration:** “Porta is a map of assessed possibilities. The provider's live source remains the final authority.”
 
 ## Final review
 
-- Runtime is between 3 and 5 minutes.
-- Every screen comes from the frozen build; no stale mockups.
-- No personal data, credentials, private file paths, or unrelated notifications are visible.
-- Every factual claim is supported by the README, source register, tests, or frozen code.
-- Provider marks appear only incidentally when demonstrating official sources, without implying endorsement.
-- Captions are accurate and readable; music/voice/assets are owned or properly licensed.
+- Keep the finished video between 3 and 5 minutes. The planned sequence is 3:30.
+- Use the frozen build, never mockups or old screenshots; caption every small receipt. If a planned shot fails on the frozen build, remove or correct its narration.
+- Preserve the zero-open-doors truth for Linh's current sourced pack. The illustrative synthetic preview must stay visibly labelled if shown.
+- Do not show personal data, keys, private paths or unrelated notifications.
+- Every factual claim must match the frozen code, source register, README and test evidence.
+- Captions and licensed media must be readable and rights-safe; provider marks must not imply endorsement.

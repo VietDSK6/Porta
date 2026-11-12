@@ -1,8 +1,8 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 11 November 2026
+> Last updated: 12 November 2026
 > Deadline: 7 December 2026, 23:59 CET
-> Live rules rechecked: 2 November 2026
+> Live rules rechecked: 12 November 2026
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
 > Internal estimates in this file are not official judging results.
@@ -19,7 +19,7 @@
 
 | Gate | Status | Current evidence / next action |
 |---|---|---|
-| Entrant age, enrollment, residency/sanctions, employment and prize eligibility | USER CONFIRM | Confirm against the live rules before submission; do not store sensitive details here. |
+| Entrant age, full-time undergraduate/graduate enrollment or qualifying enrollment within 12 months of contest start, residency/sanctions, employment and prize eligibility | USER CONFIRM | Confirm against the live rules before submission; do not store sensitive details here. |
 | Individual submission; one entry | USER CONFIRM | User confirms solo participation and no second entry. |
 | Created specifically during the contest period | RISK | Git records the last pre-Porta baseline at `bd5fd5d` and the first Porta product commit at `6be9ec1` on 20 October 2026, within the contest period. The README now separates inherited Koko infrastructure from Porta work. Retain this risk until the entrant confirms there was no pre-period Porta product work. |
 | Substantial application, not template/Hello World/library | PASS | Porta-owned engine, Room repositories, Compose flows, pack validation/import and 15-record catalog are implemented; keep separating these changes from Koko template code in README evidence. |
@@ -100,6 +100,10 @@ Current evidence:
   judge can edit facts, save plans and exercise actual-result/evidence updates without entering personal data; the
   original non-persisted sample path remains available. The judge profile uses a 180-day horizon and three pre-saved
   sourced goals to expose degree, English and programme-verification trade-offs without claiming a perfect applicant.
+- [x] P5 reduces onboarding to two steps and leads with Route's one-statement, three-number summary. Its explanation
+  is expandable, and motion preserves the same result when reduced. System, English and Vietnamese UI selection is
+  persisted; English and Vietnamese resource files each contain 1,154 matching unique entries. The Vietnamese Route
+  and onboarding snapshots were reviewed, and the largest Kotlin presentation file is 584 lines.
 - [x] Pack identity is immutable across every stored version: a publisher change for an existing pack ID is rejected
   before persistence, including when the original version is inactive.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.
@@ -161,13 +165,11 @@ Required evidence:
 - [x] Common/JVM/Android-host tests demonstrate shared behavior, including two contrasting profiles across all 15 records.
 - [x] The 100-opportunity JVM performance characterization covers `ALL`/`ANY`, missing/manual checks, mixed deadline
   certainty, scenario overlays, the Action Frontier, and Route planning with deterministic-output assertions, warm-up,
-  and median/p95 reporting. The recorded pre-P3 working-tree Route p95 is **2.512 ms** on macOS aarch64/JDK 21; all four
-  measured p95 values are below the PRD's 100-ms target on that host. Recharacterize after the engine extraction on
-  the frozen commit; see `KMP_EVIDENCE.md` for the fixture and limits.
-- [ ] Repeat the characterization on the frozen submission commit and replace the provisional commit row in
-  `KMP_EVIDENCE.md` before final delivery.
-- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `de44448`: 18,273 NCLOC across 89
-  explicitly allowlisted shared Porta production files plus 632 NCLOC across 11 platform and CLI files; tests and Kotlin data are
+  and median/p95 reporting. The P5 code-commit `dc4e701` Route p95 is **2.563 ms** on macOS aarch64/JDK 21; all four
+  measured p95 values are below the PRD's 100-ms target on that host. See `KMP_EVIDENCE.md` for the fixture and limits.
+- [ ] Repeat the characterization from the public submission commit if later Kotlin changes alter the workload or engine.
+- [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `dc4e701`: 21,991 NCLOC across 144
+  explicitly allowlisted shared Porta production files plus 673 NCLOC across 13 platform and CLI files; tests and Kotlin data are
   reported separately, while generated/vendor/unchanged starter code, package-only renames and mixed-provenance
   integration files are excluded.
 - [x] The 11 November P3 working-tree scoped gates passed `spotlessCheck`, `:engine:jvmTest`, `:shared:jvmTest`,
@@ -177,6 +179,10 @@ Required evidence:
   the scoped-gate counts. Repeat the gates on a frozen public commit before submission.
 - [x] The 12 November P4 working-tree scoped gates passed the same tasks with 46 engine JVM, 282 shared JVM,
   82 Android-host core tests, and 3 CLI tests, all clean. A separate snapshot recording passed 72 previews.
+- [x] The 12 November P5 code-commit scoped gates passed the same tasks with 46 engine JVM, 279 shared JVM,
+  79 Android-host tests, and 3 CLI tests, all clean. Roborazzi recording separately passed 66 previews. Android APK
+  and macOS Desktop DMG assembled. Vietnamese Route/onboarding and wide English Route snapshots were visually reviewed.
+  The code is committed locally at `dc4e701`, not yet verified from a fresh public clone.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
 
@@ -204,7 +210,7 @@ A green formatter alone must never be recorded as `20/20`.
 | Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register, visible freshness policy, lifecycle handling and user-approved update diffs; complete an independent second reading before submission. |
 | README | READY LOCALLY | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and the public fresh-clone record. |
 | Essay | NEEDS ENTRANT FACTS | Body is exactly 300 words; replace the four factual placeholders without changing truth or count. |
-| Screencast | UPDATE NEEDED | `SUBMISSION/DEMO_SCRIPT.md` defines a 4:20 path through the earlier Frontier flow; revise it to show Route and its honest zero-door bundled demo result before recording. |
+| Screencast | SCRIPT READY; CAPTURE PENDING | `SUBMISSION/DEMO_SCRIPT.md` defines a Route-first 3:30 path with Linh's honest zero-open-door result; record it from the frozen Android/Desktop build. |
 | Screenshots/GIFs | TODO | Current UI only; rights-safe and readable. |
 | Submission form | TODO | Final URLs tested without private access. |
 

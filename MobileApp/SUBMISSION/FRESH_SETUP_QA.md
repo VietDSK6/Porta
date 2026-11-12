@@ -1,12 +1,15 @@
 # Fresh-clone and packaged-app verification
 
-Run from a new clone of the public repository at the frozen commit. Record failures once, fix the cause, and add
-only troubleshooting that was actually encountered. Do not repeatedly rerun a failing command without diagnosis.
+Run from a new clone of the public repository at the frozen commit. The completed evidence below records the
+**2 November 2026 public-clone snapshot**, not the current local P5 code commit. Current P5 changes are unpushed;
+the final fresh-clone, device, packaged-app, and media checks remain pending. Record failures once, fix the cause,
+and add only troubleshooting that was actually encountered. Do not repeatedly rerun a failing command without
+diagnosis.
 
-## Environment record
+## Historical public-clone environment record — 2 November 2026
 
 ```text
-Commit SHA: 5a17882 (public evidence snapshot; product Kotlin head d3d34dc)
+Commit SHA: 5a17882 (historical public evidence snapshot; not the frozen submission commit)
 Clone URL: https://github.com/VietDSK6/Porta.git, cloned with credential helper disabled
 Host OS/version: macOS 27.2 (26B123), Apple Silicon
 JDK distribution/version: JetBrains Runtime 21.0.11+10-b1163.116
@@ -18,7 +21,7 @@ Verification date/time: 2026-11-02 15:42 +07
 Verifier: Codex public-clone automated gates; entrant observed packaged Desktop launch past splash
 ```
 
-## Automated paths
+## Historical automated paths — 2 November 2026
 
 | Check | Command | Result | Evidence / note |
 |---|---|---|---|
@@ -28,8 +31,8 @@ Verifier: Codex public-clone automated gates; entrant observed packaged Desktop 
 | Desktop package | `./gradlew :desktopApp:packageDistributionForCurrentOS` | PASS | Public clone; DMG assembled in 34 s. Runtime image explicitly contains `jdk.unsupported` and `sun.misc.Unsafe`. |
 | JS/Wasm compatibility | `./gradlew :shared:compileKotlinJs :shared:compileKotlinWasmJs` | PASS | Public clone; both shared targets compiled in 1 s with shared cache. |
 
-The JS/Wasm row records only the historical shared-code compatibility check. Web build work is deferred, and Web is
-not a declared Porta submission target.
+The JS/Wasm row records only the historical shared-code compatibility check. The entrant has deferred Web build
+work; Web is not a declared Porta submission target. Do not treat this row as a Web app build result.
 
 ### Later local test evidence
 
@@ -44,6 +47,30 @@ The CLI `export-bundled` → `validate` smoke path also passed on the 15-door ca
 assembly, not the new menu, drop, and Route interactions in an installed DMG. Neither local gate is a new public-clone
 verification. Re-run the scoped gates on the frozen submission commit and record its SHA and counts here.
 
+The 12 November P5 code-commit gate passed `spotlessCheck`, `:engine:jvmTest`, `:shared:jvmTest`,
+`:shared:testAndroidHostTest`, `:androidApp:assembleDebug`, `:desktopApp:packageDistributionForCurrentOS`, and
+`:cli:test`: **46 engine JVM + 279 shared JVM + 79 Android-host + 3 CLI** tests, with zero failures, errors or skips.
+The 15-door golden pack equivalence test is included in the shared JVM run. The APK and macOS DMG assembled.
+Roborazzi recording separately passed **66** parameterized previews after an explicit Vietnamese locale override
+was added to the Route and onboarding previews; their images and the wide English Route image were visually checked.
+The P5 Kotlin code, including a follow-up fix for a leaking Compose snapshot observer in locale-driven ViewModels,
+is committed locally at `dc4e701`. The full scoped gate passed after that fix. The Roborazzi run covered the final
+preview code; it was completed before the locale-flow fix, which does not change screenshot rendering. Neither local
+run replaces a fresh public-clone check at the submission commit.
+
+### Final frozen-commit verification — pending
+
+- [x] Record the local P5 code SHA, host environment, scoped gate commands, JUnit counts, and artifact paths.
+- [ ] Publish the frozen commit, record its public SHA, and repeat the required checks from a credential-free fresh clone.
+- [ ] Complete the Android device, installed Desktop, accessibility, language, and final media checks below.
+
+Local P5 code evidence: commit `dc4e701`; macOS aarch64, 10 logical processors, JDK 21.0.11. APK:
+`androidApp/build/outputs/apk/debug/androidApp-debug.apk`. DMG:
+`desktopApp/build/compose/binaries/main/dmg/io.github.vietdsk6.porta-1.0.0.dmg`. The local gate and screenshot
+recording had no failures. The 100-opportunity characterization at `dc4e701` is in `../KMP_EVIDENCE.md`.
+The local CLI smoke exported the bundled JSON to `/tmp/porta-p6-pack.json`, then `validate` reported
+`Valid: Porta curated opportunity pack v4 (15 doors)`. The frozen public-clone CLI path remains pending.
+
 ### Startup regression note
 
 The first packaged Desktop check exposed `NoClassDefFoundError: sun/misc/Unsafe` while DataStore restored onboarding,
@@ -55,10 +82,13 @@ exercise is still intentionally unchecked below.
 ## Android manual path
 
 - [ ] Fresh install launches offline without an account or service configuration.
-- [ ] Fictional sample reaches a meaningful What-if preview in under 30 seconds; record measured time.
+- [ ] Two-step onboarding reaches Linh's fictional Route in under 30 seconds; record measured time and confirm the
+  zero-open-doors statement is visible. Then reach a meaningful What-if preview.
 - [ ] System Back returns through detail/preview/setup without losing or duplicating navigation state.
 - [ ] Portrait, landscape, and a tablet-sized viewport keep primary actions visible.
 - [ ] 200% font scaling preserves all trust disclosures and primary actions.
+- [ ] Switch System / English / Tiếng Việt in Profile. Confirm Route, Doors, Next moves, plan and profile controls
+  change language, dates use the selected format, and official source quotations remain unchanged.
 - [ ] TalkBack announces conclusion, source/freshness, What-if summary, and buttons meaningfully.
 - [ ] Pack import rejects an invalid file without partial changes and previews a valid update before activation.
 - [ ] Export warning names included sensitive categories; focused clear and full reset remove the stated scopes only.
@@ -76,6 +106,7 @@ exercise is still intentionally unchecked below.
   existing local data.
 - [ ] Narrow and 1280×800 windows preserve content, source disclosures, and primary actions.
 - [ ] 200% text or equivalent OS scaling has no clipped critical controls.
+- [ ] The in-app language selector survives relaunch and the system setting restores the OS language.
 - [ ] Screen reader announces navigation, conclusions, changed-count summary, and expanded rule details meaningfully.
 - [ ] Import/export works using files outside the project directory.
 - [ ] Relaunch preserves profile, saves, planning constraints, and the active plan.

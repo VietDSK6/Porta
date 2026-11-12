@@ -1,11 +1,11 @@
 # Porta
 
-> See which realistic next milestone creates the most assessed progress—without pretending to predict who wins.
+> Plan an honest route through student opportunities, without pretending to predict who wins.
 
-Porta is a local-first Kotlin Multiplatform planning app for students. It evaluates a bundled opportunity
-pack against the student's actual profile, explains every published-check conclusion, and builds an **Action Frontier** of
-controllable milestones ranked by assessed marginal opportunity gain, time, effort, and cost. **Route** then sequences
-up to four milestones against the student's time, cost, effort, and opportunity deadlines.
+Porta is a local-first Kotlin Multiplatform planning app for students. **Route** sequences up to four milestones
+against an opportunity pack's published checks and the student's time, cost, effort, and deadlines. The app explains
+each assessed conclusion and offers an **Action Frontier** for comparing individual next moves. It does not predict
+admission, selection, or funding.
 
 The contest build is completely free. Core profile, rule assessment, simulation, and planning work without an account,
 cloud service, API key, or network connection. Opening official sources requires the network, and a future catalog refresh
@@ -46,9 +46,10 @@ diff and import approval. AI never supplies an eligibility conclusion.
 
 ## Demo path
 
-1. Finish onboarding with **Use ready-made demo profile** for Linh, an editable fictional CS undergraduate with
-   deliberate strengths and gaps, a 180-day horizon, and Erasmus, Schwarzman, and Kotlin Contest already saved. Or
-   browse the temporary sample without saving or enter your own local facts. Demo facts remain explicitly labelled.
+1. In the two-step onboarding, choose a direction and tap **Show me Linh's route**. Linh is an editable fictional CS
+   undergraduate with a 180-day horizon and three pre-saved sourced goals. Her current 15-door route improves checks
+   but opens **zero** doors under the encoded rules and deadlines. The app labels the demo throughout. You can also
+   browse without saving a profile or enter your own local facts.
 2. Open **Doors** to see the current source-linked conclusions.
 3. Open **Route** to compare ordered milestone paths. Compact layouts show a timeline; wide Desktop layouts show a
    metro-style map. Inspect which checks improve, which doors open, and which deadlines can close along the way.
@@ -76,6 +77,10 @@ position, and maximized state are saved locally.
 
 The bundled catalog currently contains 15 independently encoded records. Its official URLs, interpretation boundary,
 and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md).
+
+The interface follows the device language by default and offers English and Vietnamese controls in Profile settings.
+Official provider quotations remain in their published language. Date and fact-value display follows the selected
+interface language; pack JSON and profile exports retain stable, language-independent values.
 
 ## Terminal companion
 
@@ -179,11 +184,11 @@ The core product documents are:
 
 ### Shared Kotlin evidence
 
-The conservative contest-period measurement at `de44448` finds 18,273 NCLOC across 89 newly added, explicitly
-allowlisted shared Porta production files, plus 632 NCLOC across 11 platform and CLI files. Static opportunity/sample data,
+The conservative contest-period measurement at the local P5 code commit `dc4e701` finds 21,991 NCLOC across 144 newly added, explicitly
+allowlisted shared Porta production files, plus 673 NCLOC across 13 platform and CLI files. Static opportunity/sample data,
 tests, integration files with mixed starter provenance, generated/build/vendor code, package-only renames, and
 unchanged scaffold are excluded or reported separately. This is an internal provenance check—not an official contest
-formula or a claim that the whole repository is 96.7% shared. Reproduce it with:
+formula or a claim that the whole repository is 97.0% shared. Reproduce it with:
 
 ```bash
 ./scripts/measure_porta_kmp_evidence.sh

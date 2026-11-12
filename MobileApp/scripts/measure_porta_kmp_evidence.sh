@@ -42,6 +42,7 @@ git -C "$REPOSITORY_ROOT" diff \
 SHARED_PRODUCTION_EXACT_PATHS=(
     "MobileApp/designsystem/src/commonMain/kotlin/io/github/vietdsk6/porta/designsystem/components/porta/PortaVisualPrimitives.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/OpportunityPackRepository.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/OpportunityStudioDraftCompiler.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/PlanRepository.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/ProfileRepository.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/repository/RuleAssertionRepository.kt"
@@ -66,11 +67,13 @@ SHARED_PRODUCTION_EXACT_PATHS=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/pack/OpportunityPackValidator.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/ManageLocalPortaDataUseCase.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/EligibilityTrustCopy.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/EligibilityCopyCode.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/SourceFreshnessCopy.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/ActionRipple.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/components/porta/EditorialVisualPrimitives.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/navigation/AdaptiveAppScaffold.kt"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/util/time/CurrentLocalDateProvider.kt"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/theme/PortaTokens.kt"
 )
 
 SHARED_PRODUCTION_PREFIXES=(
@@ -78,6 +81,7 @@ SHARED_PRODUCTION_PREFIXES=(
     "MobileApp/engine/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/usecase/"
     "MobileApp/engine/src/commonMain/kotlin/io/github/vietdsk6/porta/domain/dsl/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/local/profile/"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/scenario/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/data/source/remote/draft/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/activeplan/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/actualprofileupdate/"
@@ -89,6 +93,7 @@ SHARED_PRODUCTION_PREFIXES=(
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/route/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/scenariopreview/"
     "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/studentprofile/"
+    "MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/locale/"
 )
 
 is_shared_production_file() {
