@@ -1,6 +1,5 @@
 package io.github.vietdsk6.porta.presentation.screens.route
 
-import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
@@ -94,7 +93,7 @@ class RouteViewModel(
         constraints,
         selectedRouteId,
         saveState,
-        snapshotFlow { AppLanguageState.selected },
+        AppLanguageState.changes,
     ) { result, selectedConstraints, selectedId, save, _ ->
         val routeOptions = result.routes.map { route -> route.toUiState(result.labels) }
         RouteUiState(

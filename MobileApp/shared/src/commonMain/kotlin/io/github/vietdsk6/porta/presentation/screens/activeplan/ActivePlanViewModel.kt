@@ -1,6 +1,5 @@
 package io.github.vietdsk6.porta.presentation.screens.activeplan
 
-import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
@@ -47,7 +46,7 @@ class ActivePlanViewModel(
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
         operation,
-        combine(currentLocalDateProvider.currentDate, snapshotFlow { AppLanguageState.selected }) { today, _ -> today },
+        combine(currentLocalDateProvider.currentDate, AppLanguageState.changes) { today, _ -> today },
     ) { (plans, selectedId), profile, packResult, operation, today ->
         val activePack = packResult.getOrNull()
         val opportunities = activePack?.opportunities ?: sampleScenarioProvider.opportunities

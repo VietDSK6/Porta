@@ -1,6 +1,5 @@
 package io.github.vietdsk6.porta.presentation.screens.actualprofileupdate
 
-import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
@@ -51,7 +50,7 @@ class ActualProfileUpdateViewModel(
         planRepository.observeCurrentPlan(),
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
-        combine(formState, snapshotFlow { AppLanguageState.selected }) { form, _ -> form },
+        combine(formState, AppLanguageState.changes) { form, _ -> form },
     ) { plan, profile, packResult, form ->
         plan.toUiState(profile, packResult.getOrNull(), form)
     }.stateIn(
