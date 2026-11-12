@@ -84,6 +84,7 @@ class RouteViewModel(
                 labels = inputs.opportunities.associate { it.id to it.title },
                 canSave = !useSample,
                 isFictionalProfile = useSample || sampleScenarioProvider.isPersistedDemoProfile(inputs.profile),
+                isLoading = false,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, PlanningResult())

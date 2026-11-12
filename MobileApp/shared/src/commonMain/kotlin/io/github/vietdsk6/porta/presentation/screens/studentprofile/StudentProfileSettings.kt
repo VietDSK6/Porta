@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -105,21 +106,38 @@ internal fun AiDraftSettingsCard(
     var enteredKey by remember { mutableStateOf("") }
     Card(
         modifier = Modifier.fillMaxWidth().testTag("student-profile-ai-drafting"),
-        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
+        border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.48f)),
+        shape = RoundedCornerShape(20.dp),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(Res.string.profile_ai_title), style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = stringResource(Res.string.profile_ai_title),
+                style = AppTheme.typography.h5,
+                color = AppTheme.colors.text.primary,
+            )
+            Surface(
+                color = AppTheme.colors.surfaceContainer,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.24f)),
+            ) {
+                Text(
+                    text = if (uiState.aiKeySaved) {
+                        stringResource(Res.string.profile_ai_key_saved)
+                    } else {
+                        stringResource(Res.string.profile_ai_key_absent)
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.onAlternative,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             Text(
                 stringResource(Res.string.profile_ai_help),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.text.secondary,
-            )
-            Text(
-                if (uiState.aiKeySaved) stringResource(Res.string.profile_ai_key_saved) else stringResource(Res.string.profile_ai_key_absent),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.text.secondary,
             )
@@ -132,18 +150,20 @@ internal fun AiDraftSettingsCard(
                 singleLine = true,
                 enabled = !uiState.isWorking,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    modifier = Modifier.testTag("student-profile-ai-key-save"),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(
+                    modifier = Modifier.weight(1f).testTag("student-profile-ai-key-save"),
                     enabled = !uiState.isWorking && enteredKey.isNotBlank(),
                     onClick = {
                         val key = enteredKey
                         enteredKey = ""
                         onUiEvent(StudentProfileUiEvent.AiKeySaveRequested(key))
                     },
-                ) {
-                    Text(stringResource(Res.string.profile_ai_key_save))
-                }
+                ) { Text(stringResource(Res.string.profile_ai_key_save)) }
                 if (uiState.aiKeySaved) {
                     TextButton(
                         modifier = Modifier.testTag("student-profile-ai-key-delete"),

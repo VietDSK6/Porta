@@ -90,6 +90,7 @@ internal fun StudentProfileDataPrivacyEntryPreview() {
 internal val previewState = StudentProfileUiState(
     isLoading = false,
     hasRealProfile = true,
+    aiDraftSettingsAvailable = true,
     factCount = 9,
     catalogOpportunityCount = 15,
     dependentOpportunityCount = 9,

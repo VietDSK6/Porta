@@ -117,10 +117,15 @@ fun StudentProfileScreen(
             when {
                 uiState.isLoading -> LoadingProfile()
 
-                !uiState.hasRealProfile -> EmptyProfile(
-                    onEditProfile = onEditProfile,
-                    onOpenPackInspector = onOpenPackInspector,
-                )
+                !uiState.hasRealProfile -> {
+                    EmptyProfile(
+                        onEditProfile = onEditProfile,
+                        onOpenPackInspector = onOpenPackInspector,
+                    )
+                    if (uiState.aiDraftSettingsAvailable) {
+                        AiDraftSettingsCard(uiState = uiState, onUiEvent = onUiEvent)
+                    }
+                }
 
                 else -> ProfileContent(
                     uiState = uiState,
@@ -134,9 +139,6 @@ fun StudentProfileScreen(
             if (!uiState.isLoading) {
                 if (uiState.languageSettingsAvailable) {
                     LanguageSettingsCard(uiState = uiState, onUiEvent = onUiEvent)
-                }
-                if (uiState.aiDraftSettingsAvailable) {
-                    AiDraftSettingsCard(uiState = uiState, onUiEvent = onUiEvent)
                 }
                 DataPrivacyEntry(
                     isWorking = uiState.isWorking,
@@ -279,6 +281,10 @@ internal fun ProfileContent(
         )
     }
     ProfileIdentity(uiState = uiState)
+
+    if (uiState.aiDraftSettingsAvailable) {
+        AiDraftSettingsCard(uiState = uiState, onUiEvent = onUiEvent)
+    }
 
     if (saveNotice) {
         MessageNotice(

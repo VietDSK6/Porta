@@ -639,9 +639,9 @@
     <string name="profile_field_student">Sinh viên %1$s</string>
     <string name="profile_demo_pack">BỘ DEMO</string>
     <string name="profile_demo_pack_notice">Mức độ dùng thông tin bên dưới dựa trên bộ cơ hội hư cấu của Porta.</string>
-    <string name="profile_ai_title">Soạn nháp bằng AI (tùy chọn)</string>
-    <string name="profile_ai_key_saved">Đã lưu khóa trên thiết bị này.</string>
-    <string name="profile_ai_key_absent">Chưa lưu khóa trên thiết bị này.</string>
+    <string name="profile_ai_title">Soạn nháp bằng Gemini</string>
+    <string name="profile_ai_key_saved">Đã lưu khóa Gemini trên thiết bị này. Bạn có thể dùng khóa để soạn nháp.</string>
+    <string name="profile_ai_key_absent">Đang dùng demo ngoại tuyến. Thêm khóa Gemini để bật soạn nháp.</string>
     <string name="profile_ai_key_label">Khóa API Gemini</string>
     <string name="profile_ai_key_save">Lưu khóa</string>
     <string name="profile_ai_key_delete">Xóa khóa</string>
@@ -712,7 +712,7 @@
     <string name="studio_quote_rejected">Từ chối: không tìm thấy đoạn trích</string>
     <string name="studio_quote_checking">Đang kiểm tra đoạn trích</string>
     <string name="profile_remove_question">Xóa %1$s?</string>
-    <string name="profile_ai_help">Khi chưa có khóa, Xưởng cơ hội dùng ví dụ demo ngoại tuyến. AI chỉ đề xuất điều kiện; bạn duyệt từng điều kiện, và Porta không dùng AI để quyết định tính đủ điều kiện.</string>
+    <string name="profile_ai_help">Trong Xưởng cơ hội, Gemini đề xuất điều kiện từ đoạn nguồn. Bạn duyệt từng đề xuất; Porta không để AI quyết định tính đủ điều kiện.</string>
     <string name="profile_clear_body">Thao tác này xóa vĩnh viễn thông tin hồ sơ, xác nhận chương trình và kế hoạch. Cơ hội đã lưu, bộ cơ hội và tùy chọn lập kế hoạch vẫn ở trên thiết bị.</string>
     <string name="profile_reset_body">Thao tác này xóa vĩnh viễn hồ sơ, xác nhận chương trình, kế hoạch, cơ hội đã lưu, bộ cơ hội đã nhập và tùy chọn. Porta khôi phục bộ dữ liệu đi kèm; phần giới thiệu có thể xuất hiện khi mở lần sau.</string>
     <string name="profile_missing_single">Một điều kiện hiện tại cũng tham chiếu %1$s</string>
@@ -720,7 +720,7 @@
     <string name="profile_no_rule_uses">Chưa có điều kiện nào trong bộ hiện tại tham chiếu %1$s. Chương trình khác có thể cần thông tin này.</string>
     <string name="profile_evidence_reference">Nguồn minh chứng · %1$s</string>
     <string name="studio_ai_trust_banner">AI chỉ soạn nháp. Mỗi điều kiện phải trích nguyên văn nguồn và được bạn duyệt. Porta không dùng AI để quyết định tính đủ điều kiện.</string>
-    <string name="studio_ai_intro">Dán đoạn từ nguồn chính thức. Demo ngoại tuyến chạy không cần khóa API; khóa trong cài đặt bật tính năng soạn nháp bằng Gemini.</string>
+    <string name="studio_ai_intro">Dán đoạn từ nguồn chính thức. Demo ngoại tuyến chạy không cần khóa API. Để bật Gemini, thêm khóa tại Hồ sơ → Soạn nháp bằng Gemini.</string>
     <string name="studio_interpretation">Cần người kiểm tra ý nghĩa: %1$s</string>
     <string name="studio_after_acceptance">Sau khi chấp nhận, hãy kiểm tra thông tin, phép so sánh và giá trị ở trình tạo điều kiện bên dưới.</string>
     <string name="studio_quote_not_found">Không tìm thấy đoạn trích trong nguồn đã dán: “%1$s”</string>

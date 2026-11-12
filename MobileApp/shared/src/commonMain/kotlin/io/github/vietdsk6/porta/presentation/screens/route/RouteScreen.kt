@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.presentation.screens.route
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -100,7 +102,6 @@ fun RouteScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize().testTag("route-list"),
                 contentPadding = PaddingValues(
-                    horizontal = if (wide) PortaDimens.wideScreenInset else PortaDimens.compactScreenInset,
                     vertical = PortaDimens.sectionGap,
                 ),
                 verticalArrangement = Arrangement.spacedBy(PortaDimens.sectionGap),
@@ -121,6 +122,20 @@ fun RouteScreen(
                     }
 
                     else -> {
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    stringResource(Res.string.route_milestones),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                if (wide) {
+                                    RouteMetroMap(route = selected)
+                                } else {
+                                    RouteTimeline(steps = selected.steps)
+                                }
+                            }
+                        }
                         item {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(
@@ -143,13 +158,6 @@ fun RouteScreen(
                                         color = AppTheme.colors.text.secondary,
                                     )
                                 }
-                            }
-                        }
-                        item {
-                            if (wide) {
-                                RouteMetroMap(route = selected)
-                            } else {
-                                RouteTimeline(steps = selected.steps)
                             }
                         }
                         item { RouteControls(uiState, onUiEvent) }
@@ -219,7 +227,10 @@ private fun RouteMetric(value: String, label: String, modifier: Modifier = Modif
 private fun RouteChoices(uiState: RouteUiState, onUiEvent: (RouteUiEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(Res.string.route_choose), style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             uiState.routes.forEachIndexed { index, route ->
                 FilterChip(
                     selected = uiState.selectedRoute?.id == route.id,

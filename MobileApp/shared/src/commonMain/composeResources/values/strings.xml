@@ -656,9 +656,9 @@
     <string name="profile_field_student">%1$s student</string>
     <string name="profile_demo_pack">DEMO PACK</string>
     <string name="profile_demo_pack_notice">Door usage below comes from Porta's synthetic opportunity pack.</string>
-    <string name="profile_ai_title">AI drafting (optional)</string>
-    <string name="profile_ai_key_saved">A key is saved on this device.</string>
-    <string name="profile_ai_key_absent">No key saved on this device.</string>
+    <string name="profile_ai_title">Gemini drafting</string>
+    <string name="profile_ai_key_saved">Gemini key saved on this device. Drafting can use it.</string>
+    <string name="profile_ai_key_absent">Offline demo is active. Add a Gemini key to enable drafting.</string>
     <string name="profile_ai_key_label">Gemini API key</string>
     <string name="profile_ai_key_save">Save key</string>
     <string name="profile_ai_key_delete">Delete key</string>
@@ -729,7 +729,7 @@
     <string name="studio_quote_rejected">Rejected: quote not found</string>
     <string name="studio_quote_checking">Checking quote</string>
     <string name="profile_remove_question">Remove %1$s?</string>
-    <string name="profile_ai_help">Without a key, Opportunity Studio uses offline demo examples. AI only suggests rules; you approve each one, and Porta never uses AI to decide eligibility.</string>
+    <string name="profile_ai_help">In Opportunity Studio, Gemini suggests rules from a source passage. Review and approve every suggestion; Porta never lets AI decide eligibility.</string>
     <string name="profile_clear_body">This permanently removes profile facts, programme confirmations, and plans. Saved doors, the opportunity catalog, and planning preferences stay on this device.</string>
     <string name="profile_reset_body">This permanently removes profile facts, programme confirmations, plans, saved doors, imported opportunity catalogs, and preferences. Porta restores the bundled catalog; onboarding may appear again next launch.</string>
     <string name="profile_missing_single">A current rule also references %1$s</string>
@@ -737,7 +737,7 @@
     <string name="profile_no_rule_uses">No current pack rule references %1$s. Other programmes may use it.</string>
     <string name="profile_evidence_reference">Evidence reference · %1$s</string>
     <string name="studio_ai_trust_banner">AI drafts only. Every rule must quote the source verbatim and be approved by you. Porta never uses AI to decide eligibility.</string>
-    <string name="studio_ai_intro">Paste the official source passage. The offline demo works without an API key; a key in settings enables Gemini drafting.</string>
+    <string name="studio_ai_intro">Paste the official source passage. The offline demo works without an API key. To enable Gemini drafting, add your key in Profile → Gemini drafting.</string>
     <string name="studio_interpretation">Needs human interpretation: %1$s</string>
     <string name="studio_after_acceptance">After acceptance, review the fact, operator and value in the rule builder below.</string>
     <string name="studio_quote_not_found">Quote not found in pasted source: “%1$s”</string>

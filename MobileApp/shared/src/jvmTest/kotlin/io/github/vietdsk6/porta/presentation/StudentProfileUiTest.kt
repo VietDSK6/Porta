@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.runComposeUiTest
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -16,10 +17,32 @@ import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfi
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.UncheckedProfileFactUiState
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class StudentProfileUiTest {
+    @Test
+    fun `profile offers Gemini key setup near the summary and sends the entered key`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState.copy(aiDraftSettingsAvailable = true),
+                    onUiEvent = events::add,
+                    onEditProfile = {},
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithText("Gemini drafting").assertExists()
+        onNodeWithText("Offline demo is active. Add a Gemini key to enable drafting.").assertExists()
+        onNodeWithTag("student-profile-ai-key-input").performScrollTo().performTextInput("demo-key")
+        onNodeWithTag("student-profile-ai-key-save").performScrollTo().performClick()
+        assertEquals("demo-key", (events.single() as StudentProfileUiEvent.AiKeySaveRequested).key)
+    }
+
     @Test
     fun `real profile shows precise reference count and opens edit and data privacy`() = runComposeUiTest {
         var editRequested = false
