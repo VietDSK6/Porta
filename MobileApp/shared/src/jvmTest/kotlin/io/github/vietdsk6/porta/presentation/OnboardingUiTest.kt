@@ -6,215 +6,111 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
-import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingScreen
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingUiEvent
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingUiState
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingGoal
-import io.github.vietdsk6.porta.presentation.screens.onboarding.buildOnboardingDemoDoors
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class OnboardingUiTest {
     @Test
-    fun `primary action remains reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+    fun `direction and continue remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
         val events = mutableListOf<OnBoardingUiEvent>()
         setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
                 Box(Modifier.size(width = 320.dp, height = 640.dp)) {
                     AppTheme {
                         OnBoardingScreen(
-                            uiState = onboardingState(currentStep = 0, sampleIelts = 6.5),
-                            onUiEvent = { events += it },
+                            uiState = OnBoardingUiState(selectedGoal = OnboardingGoal.SCHOLARSHIPS, isLoading = false),
+                            onUiEvent = events::add,
                         )
                     }
                 }
             }
         }
 
+        onNodeWithTag("onboarding-goal-exchanges").performScrollTo().assertIsDisplayed()
         onNodeWithTag("onboarding-continue").assertIsDisplayed().performClick()
         assertEquals(OnBoardingUiEvent.Next, events.last())
     }
 
     @Test
-    fun `sample threshold and continue remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
+    fun `second step keeps all three paths reachable at large text`() = runComposeUiTest {
         val events = mutableListOf<OnBoardingUiEvent>()
         setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
                 Box(Modifier.size(width = 320.dp, height = 640.dp)) {
                     AppTheme {
                         OnBoardingScreen(
-                            uiState = onboardingState(currentStep = 1, sampleIelts = 7.0),
-                            onUiEvent = { events += it },
+                            uiState = OnBoardingUiState(currentStep = 1, selectedGoal = OnboardingGoal.SCHOLARSHIPS, isLoading = false),
+                            onUiEvent = events::add,
                         )
                     }
                 }
             }
         }
 
-        onNodeWithTag("onboarding-ielts-threshold").performScrollTo().assertIsDisplayed()
-        onNodeWithTag("onboarding-continue").assertIsDisplayed().performClick()
-        assertEquals(OnBoardingUiEvent.Next, events.last())
-    }
-
-    @Test
-    fun `profile choices remain reachable at 320 dp and 200 percent text`() = runComposeUiTest {
-        val events = mutableListOf<OnBoardingUiEvent>()
-        setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
-                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
-                    AppTheme {
-                        OnBoardingScreen(
-                            uiState = onboardingState(currentStep = 3, sampleIelts = 7.0),
-                            onUiEvent = { events += it },
-                        )
-                    }
-                }
-            }
-        }
-
-        onNodeWithTag("onboarding-build-profile").performScrollTo().assertIsDisplayed().performClick()
-        assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
-        onNodeWithTag("onboarding-use-demo-profile").performScrollTo().assertIsDisplayed().performClick()
+        onNodeWithTag("onboarding-use-demo-profile").performScrollTo().performClick()
         assertEquals(OnBoardingUiEvent.UseDemoProfile, events.last())
-        onNodeWithTag("onboarding-explore-sample").performScrollTo().assertIsDisplayed().performClick()
+        onNodeWithTag("onboarding-build-profile").performScrollTo().performClick()
+        assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
+        onNodeWithTag("onboarding-explore-sample").performScrollTo().performClick()
         assertEquals(OnBoardingUiEvent.ExploreSample, events.last())
     }
 
     @Test
-    fun `goal choice is explicit before the sample demo`() = runComposeUiTest {
+    fun `direction choice is explicit and can be skipped`() = runComposeUiTest {
         val events = mutableListOf<OnBoardingUiEvent>()
         setContent {
             AppTheme {
-                OnBoardingScreen(
-                    uiState = OnBoardingUiState(isLoading = false),
-                    onUiEvent = { events += it },
-                )
+                OnBoardingScreen(uiState = OnBoardingUiState(isLoading = false), onUiEvent = events::add)
             }
         }
 
         onNodeWithText("What opportunities excite you?").assertExists()
         onNodeWithTag("onboarding-goal-scholarships").performClick()
-        assertEquals(
-            OnBoardingUiEvent.GoalSelected(OnboardingGoal.SCHOLARSHIPS),
-            events.last(),
-        )
+        assertEquals(OnBoardingUiEvent.GoalSelected(OnboardingGoal.SCHOLARSHIPS), events.last())
+        onNodeWithTag("onboarding-skip").performClick()
+        assertEquals(OnBoardingUiEvent.SkipDemo, events.last())
     }
 
     @Test
-    fun `sample scenario uses one IELTS interaction without a redundant action`() = runComposeUiTest {
-        val events = mutableListOf<OnBoardingUiEvent>()
+    fun `Linh's demo claims zero doors passing checks`() = runComposeUiTest {
         setContent {
             AppTheme {
                 OnBoardingScreen(
-                    uiState = onboardingState(currentStep = 1, sampleIelts = 6.5),
-                    onUiEvent = { events += it },
-                )
-            }
-        }
-
-        onNodeWithText("INTERACTIVE DEMO · FICTIONAL DATA").assertExists()
-        onNodeWithTag("onboarding-ielts-slider").assertExists()
-        onNodeWithTag("onboarding-threshold-aurora").assertExists()
-        onNodeWithTag("onboarding-threshold-forge").assertExists()
-        onNodeWithTag("onboarding-threshold-horizon").assertExists()
-        onNodeWithTag("onboarding-threshold-spark").assertExists()
-        onNodeWithTag("onboarding-ielts-threshold").assertExists()
-        onNodeWithContentDescription("Sample IELTS check needs 7.0").assertExists()
-        onNodeWithText("Fictional examples: one IELTS ≥ 7.0 check each. Other conditions are not assessed.")
-            .assertExists()
-        onNodeWithText("Try IELTS 7.0").assertDoesNotExist()
-        onNodeWithText("Move the score to 7.0 to test 4 sample requirements").assertExists()
-    }
-
-    @Test
-    fun `changing the sample slider updates four fictional checks without promising applications`() = runComposeUiTest {
-        val screenState = mutableStateOf(onboardingState(currentStep = 1, sampleIelts = 6.5))
-        setContent {
-            AppTheme {
-                OnBoardingScreen(
-                    uiState = screenState.value,
-                    onUiEvent = { event ->
-                        if (event is OnBoardingUiEvent.SampleIeltsChanged) {
-                            screenState.value = onboardingState(currentStep = 1, sampleIelts = event.value)
-                        }
-                    },
-                )
-            }
-        }
-
-        onNodeWithText("Move the score to 7.0 to test 4 sample requirements").assertExists()
-        onNodeWithTag("onboarding-ielts-slider").performSemanticsAction(SemanticsActions.SetProgress) { it(7.0f) }
-        onNodeWithText("4 of 4 sample IELTS checks changed").assertExists()
-        onNodeWithContentDescription("Sample IELTS check met at 7.0").assertExists()
-        onNodeWithText("4 applications unlocked").assertDoesNotExist()
-    }
-
-    @Test
-    fun `result explains requirement changes without claiming acceptance`() = runComposeUiTest {
-        setContent {
-            AppTheme {
-                OnBoardingScreen(
-                    uiState = onboardingState(
-                        currentStep = 2,
-                        sampleIelts = 7.0,
-                        isReceiptExpanded = true,
-                    ),
+                    uiState = OnBoardingUiState(currentStep = 1, selectedGoal = OnboardingGoal.SCHOLARSHIPS, isLoading = false),
                     onUiEvent = {},
                 )
             }
         }
 
-        onNodeWithTag("onboarding-header").assertIsDisplayed()
-        onNodeWithTag("onboarding-progress").assertIsDisplayed()
-        onNodeWithText("4 sample IELTS checks changed").assertExists()
-        onNodeWithTag("onboarding-door-aurora").assertExists()
-        onNodeWithText(
-            "The IELTS requirement is met. Other conditions remain outside this fictional demonstration.",
-        ).assertExists()
+        onNodeWithText("FICTIONAL DEMO · SAVED ON THIS DEVICE").assertExists()
+        onNodeWithText("Linh currently has 0 doors passing every assessed check", substring = true).assertExists()
+        onNodeWithText("Show me Linh’s route").assertExists()
     }
 
     @Test
-    fun `completed demo offers a replay action`() = runComposeUiTest {
-        val events = mutableListOf<OnBoardingUiEvent>()
-        setContent {
-            AppTheme {
-                OnBoardingScreen(
-                    uiState = onboardingState(currentStep = 1, sampleIelts = 7.0),
-                    onUiEvent = { events += it },
-                )
-            }
-        }
-
-        onNodeWithTag("onboarding-reset-demo").performClick()
-        assertEquals(OnBoardingUiEvent.ResetDemo, events.last())
-    }
-
-    @Test
-    fun `moving to the next step resets the scroll position`() = runComposeUiTest {
-        val screenState = mutableStateOf(onboardingState(currentStep = 0, sampleIelts = 6.5))
+    fun `moving to the route choice resets the scroll position`() = runComposeUiTest {
+        val screenState = mutableStateOf(OnBoardingUiState(selectedGoal = OnboardingGoal.SCHOLARSHIPS, isLoading = false))
         setContent {
             AppTheme {
                 OnBoardingScreen(
                     uiState = screenState.value,
                     onUiEvent = { event ->
-                        if (event == OnBoardingUiEvent.Next) {
-                            screenState.value = screenState.value.copy(currentStep = 1)
-                        }
+                        if (event == OnBoardingUiEvent.Next) screenState.value = screenState.value.copy(currentStep = 1)
                     },
                 )
             }
@@ -222,49 +118,6 @@ class OnboardingUiTest {
 
         onNodeWithText("Exchange programs").performScrollTo()
         onNodeWithTag("onboarding-continue").performClick()
-
-        onNodeWithText("One change. More possibilities.").assertIsDisplayed()
-        onNodeWithTag("onboarding-header").assertIsDisplayed()
+        onNodeWithText("See how a route takes shape.").assertIsDisplayed()
     }
-
-    @Test
-    fun `final choice separates personal saved demo and temporary paths`() = runComposeUiTest {
-        val events = mutableListOf<OnBoardingUiEvent>()
-        setContent {
-            AppTheme {
-                OnBoardingScreen(
-                    uiState = onboardingState(currentStep = 3, sampleIelts = 7.0),
-                    onUiEvent = { events += it },
-                )
-            }
-        }
-
-        onNodeWithText("Saved profile facts stay on this device. Demo facts are fictional and clearly labelled.")
-            .assertExists()
-        onNodeWithText("Meet Linh, a fictional CS undergraduate", substring = true).assertExists()
-        onNodeWithText("programme-verification trade-offs over 180 days", substring = true).assertExists()
-        onNodeWithTag("onboarding-build-profile").performScrollTo().performClick()
-        assertEquals(OnBoardingUiEvent.BuildMyMap, events.last())
-        onNodeWithTag("onboarding-use-demo-profile").performScrollTo().performClick()
-        assertEquals(OnBoardingUiEvent.UseDemoProfile, events.last())
-        onNodeWithTag("onboarding-explore-sample").performScrollTo().performClick()
-        assertEquals(OnBoardingUiEvent.ExploreSample, events.last())
-    }
-
-    private fun onboardingState(
-        currentStep: Int,
-        sampleIelts: Double,
-        isReceiptExpanded: Boolean = false,
-    ): OnBoardingUiState = OnBoardingUiState(
-        currentStep = currentStep,
-        selectedGoal = OnboardingGoal.SCHOLARSHIPS,
-        sampleIelts = sampleIelts,
-        demoDoors = buildOnboardingDemoDoors(
-            eligibilityEvaluator = EligibilityEvaluator(),
-            sampleIelts = sampleIelts,
-            selectedGoal = OnboardingGoal.SCHOLARSHIPS,
-        ),
-        isReceiptExpanded = isReceiptExpanded,
-        isLoading = false,
-    )
 }

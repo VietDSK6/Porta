@@ -2,17 +2,19 @@ package io.github.vietdsk6.porta.root
 
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileImportRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
 import io.github.vietdsk6.porta.data.repository.RuleDraftRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
+import io.github.vietdsk6.porta.data.scenario.BundledPackSource
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
-import io.github.vietdsk6.porta.data.source.local.pack.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.data.source.preferences.PreferencesDataStoreProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
@@ -70,6 +72,8 @@ private val dataModule = module {
 
     single { OpportunityPackCodec() }
     singleOf(::BundledOpportunityPackProvider)
+    singleOf(::BundledPackSource)
+    singleOf(::SampleScenarioProvider)
     singleOf(::OpportunityPackValidator)
     singleOf(::OpportunityPackParser)
     singleOf(::OpportunityStudioDraftCompiler)
@@ -103,20 +107,22 @@ private val dataModule = module {
 }
 
 private val presentationModule = module {
-    viewModelOf(::OnBoardingViewModel)
+    viewModel { OnBoardingViewModel(get(), get(), get(), get()) }
     viewModelOf(::ProfileSetupViewModel)
-    viewModelOf(::DoorsViewModel)
+    viewModel { DoorsViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { (opportunityId: String) ->
-        OpportunityDetailViewModel(opportunityId, get(), get(), get(), get(), get())
+        OpportunityDetailViewModel(opportunityId, get(), get(), get(), get(), get(), get())
     }
-    viewModelOf(::FrontierViewModel)
-    viewModelOf(::RouteViewModel)
-    viewModel { (actionId: String) ->
-        ScenarioPreviewViewModel(actionId, get(), get(), get(), get(), get())
-    }
-    viewModelOf(::ActivePlanViewModel)
     viewModel {
-        StudentProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get())
+        FrontierViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get<CoroutineContext>())
+    }
+    viewModel { RouteViewModel(get(), get(), get(), get(), get(), get(), get<CoroutineContext>(), get()) }
+    viewModel { (actionId: String) ->
+        ScenarioPreviewViewModel(actionId, get(), get(), get(), get(), get(), get())
+    }
+    viewModel { ActivePlanViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel {
+        StudentProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     viewModelOf(::PackInspectorViewModel)
     viewModel {

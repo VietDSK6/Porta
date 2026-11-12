@@ -27,16 +27,28 @@ data class OpportunityStudioUiState(
     val aiSuggestions: List<RuleDraftSuggestion> = emptyList(),
     val acceptedAiRuleIds: Set<String> = emptySet(),
     val editingSuggestionId: String? = null,
-    val aiDraftMessage: String? = null,
-    val message: String? = null,
+    val aiDraftMessage: StudioNotice? = null,
+    val message: StudioNotice? = null,
 ) {
     val canExport: Boolean
         get() = isSupported && !isLoading && !isWorking && rawJson != null && diagnostics.isEmpty()
+}
 
-    val versionTransitionLabel: String
-        get() = basePackVersion?.let { current ->
-            nextPackVersion?.let { next -> "Pack version $current → $next" }
-        }.orEmpty()
+/** Interface messages are codes so the ViewModel does not freeze English copy into state. */
+enum class StudioNotice {
+    SOURCE_CHANGED,
+    DRAFT_UNAVAILABLE,
+    NO_RULES_SUGGESTED,
+    DRAFT_FAILED,
+    QUOTE_REQUIRED,
+    RULE_ADDED,
+    PACK_MISSING,
+    PACK_LOAD_FAILED,
+    AI_RULE_LOCKED,
+    EXPORT_UNAVAILABLE,
+    VALIDATION_REQUIRED,
+    DRAFT_EXPORTED,
+    SAVE_FAILED,
 }
 
 data class OpportunityStudioDiagnosticUiState(

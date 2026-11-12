@@ -1,23 +1,24 @@
 package io.github.vietdsk6.porta.presentation.screens.activeplan
 
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
-import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
-import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
-import io.github.vietdsk6.porta.util.extensions.asFormattedDate
+import io.github.vietdsk6.porta.presentation.locale.AppLanguageState
+import io.github.vietdsk6.porta.presentation.locale.asLocalizedDate
+import io.github.vietdsk6.porta.presentation.locale.displayValue
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +34,7 @@ class ActivePlanViewModel(
     opportunityPackRepository: OpportunityPackRepository,
     private val scenarioEvaluator: ScenarioEvaluator,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
+    private val sampleScenarioProvider: SampleScenarioProvider = SampleScenarioProvider(),
 ) : ViewModel() {
     private val operation = MutableStateFlow(OperationState())
     private val selectedPlanId = MutableStateFlow<String?>(null)
@@ -45,10 +47,10 @@ class ActivePlanViewModel(
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
         operation,
-        currentLocalDateProvider.currentDate,
+        combine(currentLocalDateProvider.currentDate, snapshotFlow { AppLanguageState.selected }) { today, _ -> today },
     ) { (plans, selectedId), profile, packResult, operation, today ->
         val activePack = packResult.getOrNull()
-        val opportunities = activePack?.opportunities ?: PortaSampleData.opportunities
+        val opportunities = activePack?.opportunities ?: sampleScenarioProvider.opportunities
         val routePlans = plans.filter { it.routeId != null && it.sequence != null }.sortedBy { it.sequence }
         val selectedPlan = routePlans.firstOrNull { it.id == selectedId }
             ?: routePlans.firstOrNull()
@@ -60,7 +62,7 @@ class ActivePlanViewModel(
             isLoading = false,
             isWorking = operation.isWorking,
             isSampleCatalog = activePack == null ||
-                activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
+                sampleScenarioProvider.isLegacySyntheticPack(activePack.metadata.id),
             plan = selectedPlan?.toUiState(profile, opportunities, today),
             routeSteps = routePlans.map { plan ->
                 ActiveRouteStepUiState(
@@ -71,6 +73,7 @@ class ActivePlanViewModel(
             },
             selectedPlanId = selectedPlan?.id,
             error = operation.error,
+            errorCode = operation.errorCode,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -102,7 +105,12 @@ class ActivePlanViewModel(
         operation.value = OperationState(isWorking = true)
         operation.value = block().fold(
             onSuccess = { OperationState() },
-            onFailure = { OperationState(error = "Porta could not update this local plan. Please try again.") },
+            onFailure = {
+                OperationState(
+                    error = "Porta could not update this local plan. Please try again.",
+                    errorCode = ActivePlanError.UPDATE_FAILED,
+                )
+            },
         )
     }
 
@@ -136,27 +144,38 @@ class ActivePlanViewModel(
                 actionMinimumDurationDays != null -> "Minimum time · $actionMinimumDurationDays days (Porta assumption)"
                 else -> "Time estimate · Unknown"
             },
-            effortLabel = "Effort · ${effort.name.lowercase().replaceFirstChar(Char::uppercaseChar)}",
-            costLabel = "Cost · ${costBand.name.lowercase().replaceFirstChar(Char::uppercaseChar)}",
+            effortLabel = "Effort · " + effort.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercaseChar),
+            costLabel = "Cost · " + costBand.name.lowercase().replaceFirstChar(Char::uppercaseChar),
             evidenceLabel = action?.completionEvidenceTypes?.joinToString()?.replaceFirstChar(Char::uppercaseChar)
                 ?: "Evidence definition needs review",
             candidateCheckChanges = candidateCheckChanges,
-            riskNote = "This milestone can address the published checks Porta can evaluate. Confirm remaining manual checks and " +
-                "live deadlines on official sources before acting.",
-            updatedLabel = "Updated ${updatedAtEpochMillis.asFormattedDate()}",
+            riskNote = "This milestone can address the published checks Porta can evaluate. Confirm remaining " +
+                "manual checks and live deadlines on official sources before acting.",
+            updatedLabel = "Updated ${updatedAtEpochMillis.asLocalizedDate()}",
             steps = listOf(
-                PlanStepUiState("Plan saved", PlanStepState.DONE),
+                PlanStepUiState("Plan saved", PlanStepState.DONE, PlanStepCopy.SAVED),
                 when (status) {
-                    PlanStatus.PLANNED -> PlanStepUiState("Start the work", PlanStepState.NEXT)
-                    PlanStatus.IN_PROGRESS -> PlanStepUiState("Work in progress", PlanStepState.IN_PROGRESS)
-                    PlanStatus.PAUSED -> PlanStepUiState("Work paused", PlanStepState.PAUSED)
-                    PlanStatus.COMPLETED -> PlanStepUiState("Work marked complete", PlanStepState.DONE)
+                    PlanStatus.PLANNED -> PlanStepUiState("Start the work", PlanStepState.NEXT, PlanStepCopy.START)
+                    PlanStatus.IN_PROGRESS -> PlanStepUiState("Work in progress", PlanStepState.IN_PROGRESS, PlanStepCopy.IN_PROGRESS)
+                    PlanStatus.PAUSED -> PlanStepUiState("Work paused", PlanStepState.PAUSED, PlanStepCopy.PAUSED)
+                    PlanStatus.COMPLETED -> PlanStepUiState("Work marked complete", PlanStepState.DONE, PlanStepCopy.COMPLETE)
                 },
                 PlanStepUiState(
                     "Confirm actual result",
                     if (status == PlanStatus.COMPLETED) PlanStepState.NEXT else PlanStepState.LATER,
+                    PlanStepCopy.CONFIRM_RESULT,
                 ),
             ),
+            durationKind = when {
+                expectedDurationDays != null -> PlanDurationKind.ESTIMATE
+                actionMinimumDurationDays != null -> PlanDurationKind.MINIMUM
+                else -> PlanDurationKind.UNKNOWN
+            },
+            durationDays = expectedDurationDays ?: actionMinimumDurationDays,
+            effortName = effort.name,
+            costName = costBand.name,
+            evidenceDefinitionMissing = action == null || action.completionEvidenceTypes.isEmpty(),
+            updatedAtEpochMillis = updatedAtEpochMillis,
         )
     }
 
@@ -177,6 +196,7 @@ class ActivePlanViewModel(
     private data class OperationState(
         val isWorking: Boolean = false,
         val error: String? = null,
+        val errorCode: ActivePlanError? = null,
     )
 }
 

@@ -18,6 +18,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.route_budget_note
+import io.github.vietdsk6.porta.generated.resources.route_controls_title
+import io.github.vietdsk6.porta.generated.resources.route_horizon
+import io.github.vietdsk6.porta.generated.resources.route_max_effort
+import io.github.vietdsk6.porta.generated.resources.route_total_budget
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 @Composable
@@ -31,9 +38,9 @@ internal fun RouteControls(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Shape your route", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(Res.string.route_controls_title), style = MaterialTheme.typography.titleMedium)
             Text(
-                "Horizon · ${uiState.horizonDays} days",
+                stringResource(Res.string.route_horizon, routeDuration(uiState.horizonDays)),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Slider(
@@ -42,7 +49,7 @@ internal fun RouteControls(
                 valueRange = 30f..365f,
                 modifier = Modifier.testTag("route-horizon-slider"),
             )
-            Text("Total budget", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.route_total_budget), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -51,12 +58,12 @@ internal fun RouteControls(
                     FilterChip(
                         selected = uiState.maxTotalCost == cost,
                         onClick = { onUiEvent(RouteUiEvent.MaxCostChanged(cost)) },
-                        label = { Text(cost.routeLabel()) },
+                        label = { Text(routeCostLabel(cost)) },
                         modifier = Modifier.testTag("route-cost-${cost.name.lowercase()}"),
                     )
                 }
             }
-            Text("Maximum effort per step", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.route_max_effort), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -65,23 +72,15 @@ internal fun RouteControls(
                     FilterChip(
                         selected = uiState.maxEffort == effort,
                         onClick = { onUiEvent(RouteUiEvent.MaxEffortChanged(effort)) },
-                        label = { Text(effort.name.lowercase().replace('_', ' ')) },
+                        label = { Text(routeEffortLabel(effort)) },
                         modifier = Modifier.testTag("route-effort-${effort.name.lowercase()}"),
                     )
                 }
             }
             Text(
-                "Budget uses Porta's estimate bands; check actual costs on the provider site.",
+                stringResource(Res.string.route_budget_note),
                 style = MaterialTheme.typography.bodySmall,
             )
         }
     }
-}
-
-private fun CostBand.routeLabel(): String = when (this) {
-    CostBand.FREE -> "Free"
-    CostBand.LOW -> "Low"
-    CostBand.MEDIUM -> "Medium"
-    CostBand.HIGH -> "High"
-    CostBand.UNKNOWN -> "Any"
 }

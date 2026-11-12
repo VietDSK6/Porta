@@ -6,13 +6,13 @@ import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.github.vietdsk6.porta.data.BackgroundExecutor
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.data.repository.RuleDraftRepository
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
-import io.github.vietdsk6.porta.data.source.local.pack.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.data.source.preferences.FakeUserPreferences
 import io.github.vietdsk6.porta.data.source.remote.draft.DraftService
 import io.github.vietdsk6.porta.domain.model.DraftExpectedValue
@@ -24,6 +24,7 @@ import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.Opportuni
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioRuleTextField
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioUiEvent
 import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.OpportunityStudioViewModel
+import io.github.vietdsk6.porta.presentation.screens.opportunitystudio.StudioNotice
 import io.github.vietdsk6.porta.util.file.FileManager
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.Dispatchers
@@ -97,7 +98,7 @@ class OpportunityStudioViewModelTest {
         assertEquals("json", fileManager.extension)
         assertEquals(candidate, fileManager.content)
         assertEquals(activeBefore, repository.exportActive().getOrThrow())
-        assertTrue(viewModel.uiState.value.message.orEmpty().contains("Pack inspector"))
+        assertEquals(StudioNotice.DRAFT_EXPORTED, viewModel.uiState.value.message)
     }
 
     @Test

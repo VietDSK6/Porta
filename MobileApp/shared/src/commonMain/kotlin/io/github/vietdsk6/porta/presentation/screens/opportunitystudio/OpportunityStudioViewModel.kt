@@ -3,8 +3,8 @@ package io.github.vietdsk6.porta.presentation.screens.opportunitystudio
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
+import io.github.vietdsk6.porta.data.repository.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.data.repository.RuleDraftRepository
-import io.github.vietdsk6.porta.data.source.local.pack.OpportunityStudioDraftCompiler
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.DraftReviewStatus
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -161,7 +161,7 @@ class OpportunityStudioViewModel(
                 acceptedAiRuleIds = emptySet(),
                 editingSuggestionId = null,
                 aiDraftMessage = if (acceptedRuleIds.isNotEmpty()) {
-                    "Previously accepted AI rules were removed because their source changed. Draft them again."
+                    StudioNotice.SOURCE_CHANGED
                 } else {
                     null
                 },
@@ -183,7 +183,7 @@ class OpportunityStudioViewModel(
         val repository = ruleDraftRepository
         if (!state.isSupported || state.draft == null || source.isBlank() || state.isDraftingRules) return
         if (repository == null) {
-            _uiState.update { it.copy(aiDraftMessage = "Rule drafting is unavailable on this device.") }
+            _uiState.update { it.copy(aiDraftMessage = StudioNotice.DRAFT_UNAVAILABLE) }
             return
         }
         viewModelScope.launch {
@@ -201,7 +201,7 @@ class OpportunityStudioViewModel(
                                 },
                                 editingSuggestionId = null,
                                 aiDraftMessage = if (suggestions.isEmpty()) {
-                                    "No sourced rules were suggested. Add a rule manually or paste a fuller excerpt."
+                                    StudioNotice.NO_RULES_SUGGESTED
                                 } else {
                                     null
                                 },
@@ -216,7 +216,7 @@ class OpportunityStudioViewModel(
                         } else {
                             current.copy(
                                 isDraftingRules = false,
-                                aiDraftMessage = "Porta could not draft rules. Check the source text or try again.",
+                                aiDraftMessage = StudioNotice.DRAFT_FAILED,
                             )
                         }
                     }
@@ -247,7 +247,7 @@ class OpportunityStudioViewModel(
         val state = _uiState.value
         val suggestion = state.aiSuggestions.firstOrNull { it.id == id } ?: return
         if (!suggestion.canAccept) {
-            _uiState.update { it.copy(aiDraftMessage = "Find the quoted words in the pasted source before accepting this rule.") }
+            _uiState.update { it.copy(aiDraftMessage = StudioNotice.QUOTE_REQUIRED) }
             return
         }
         val draft = state.draft ?: return
@@ -262,7 +262,7 @@ class OpportunityStudioViewModel(
                 },
                 acceptedAiRuleIds = current.acceptedAiRuleIds + ruleId,
                 editingSuggestionId = null,
-                aiDraftMessage = "Rule added to the editable draft. Check its source and details before export.",
+                aiDraftMessage = StudioNotice.RULE_ADDED,
             )
         }
     }
@@ -274,7 +274,7 @@ class OpportunityStudioViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            message = "No active opportunity pack is available. Restore or import a pack first.",
+                            message = StudioNotice.PACK_MISSING,
                         )
                     }
                     return@fold
@@ -301,7 +301,7 @@ class OpportunityStudioViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        message = "Porta could not load the active pack for authoring.",
+                        message = StudioNotice.PACK_LOAD_FAILED,
                     )
                 }
             },
@@ -374,7 +374,7 @@ class OpportunityStudioViewModel(
             event.field in setOf(OpportunityStudioRuleTextField.ID, OpportunityStudioRuleTextField.SOURCE_NOTE)
         ) {
             _uiState.update {
-                it.copy(aiDraftMessage = "AI rule IDs and source quotes stay locked. Remove and redraft to change either one.")
+                it.copy(aiDraftMessage = StudioNotice.AI_RULE_LOCKED)
             }
             return
         }
@@ -429,12 +429,12 @@ class OpportunityStudioViewModel(
     private fun exportDraft() {
         val state = _uiState.value
         if (!state.isSupported || !platformCapabilities.supportsStudio) {
-            _uiState.update { it.copy(message = "Opportunity Studio export is unavailable on this device.") }
+            _uiState.update { it.copy(message = StudioNotice.EXPORT_UNAVAILABLE) }
             return
         }
         val rawJson = state.rawJson
         if (!state.canExport || rawJson == null) {
-            _uiState.update { it.copy(message = "Resolve every validation issue before exporting.") }
+            _uiState.update { it.copy(message = StudioNotice.VALIDATION_REQUIRED) }
             return
         }
         viewModelScope.launch {
@@ -449,7 +449,7 @@ class OpportunityStudioViewModel(
                         it.copy(
                             isWorking = false,
                             message = if (wasSaved) {
-                                "Draft exported. Review and activate it from Pack inspector."
+                                StudioNotice.DRAFT_EXPORTED
                             } else {
                                 null
                             },
@@ -460,7 +460,7 @@ class OpportunityStudioViewModel(
                     _uiState.update {
                         it.copy(
                             isWorking = false,
-                            message = "Porta could not save the draft file.",
+                            message = StudioNotice.SAVE_FAILED,
                         )
                     }
                 },

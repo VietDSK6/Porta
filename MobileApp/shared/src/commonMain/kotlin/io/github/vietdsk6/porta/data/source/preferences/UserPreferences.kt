@@ -14,6 +14,7 @@ interface UserPreferences {
         const val KEY_FRONTIER_MAX_COST = "KEY_FRONTIER_MAX_COST"
         const val KEY_FRONTIER_PRIORITIZE_SAVED = "KEY_FRONTIER_PRIORITIZE_SAVED"
         const val KEY_AI_DRAFT_API_KEY = "KEY_AI_DRAFT_API_KEY"
+        const val KEY_APP_LANGUAGE = "KEY_APP_LANGUAGE"
     }
 
     suspend fun getString(key: String, defaultValue: String? = null): String?

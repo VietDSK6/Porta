@@ -35,6 +35,8 @@ import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.generated.resources.*
+import io.github.vietdsk6.porta.generated.resources.Res
 import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
 import io.github.vietdsk6.porta.presentation.navigation.LocalDesktopCommand
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileDataAction
@@ -46,12 +48,14 @@ import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfi
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.confirmationBody
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.confirmationButton
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.confirmationTitle
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.toText
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readString
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DataPrivacyScreen(
@@ -112,7 +116,7 @@ fun DataPrivacyScreen(
     ScreenWithToolbar(
         modifier = modifier.fillMaxSize().testTag("data-privacy-screen"),
         isScrollableContent = true,
-        title = "Data & privacy",
+        title = stringResource(Res.string.data_privacy_title),
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
@@ -122,31 +126,31 @@ fun DataPrivacyScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
-                text = if (uiState.supportsProfileImport) {
-                    "Your profile and plans are stored on this device. Inspect rules, export a profile copy, " +
-                        "or preview a copy from Android before importing it here."
-                } else {
-                    "Your profile and plans are stored on this device. You can inspect the rules, " +
-                        "export a copy of your profile metadata, or remove local data here."
-                },
+                text = stringResource(
+                    if (uiState.supportsProfileImport) {
+                        Res.string.data_privacy_intro_import
+                    } else {
+                        Res.string.data_privacy_intro_basic
+                    },
+                ),
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.text.secondary,
             )
 
-            DataSection(title = "Review and transfer") {
+            DataSection(title = stringResource(Res.string.data_privacy_review_transfer)) {
                 DataActionRow(
-                    title = "Opportunity pack",
-                    description = "See which encoded checks use your profile facts.",
-                    action = "Inspect",
+                    title = stringResource(Res.string.data_privacy_pack_title),
+                    description = stringResource(Res.string.data_privacy_pack_description),
+                    action = stringResource(Res.string.data_privacy_inspect),
                     tag = "student-profile-pack-inspector",
                     enabled = !uiState.isWorking && !uiState.isLoading,
                     onClick = onOpenPackInspector,
                 )
                 HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.24f))
                 DataActionRow(
-                    title = "Profile metadata",
-                    description = "Export facts, programme confirmations and evidence references as JSON. Evidence files are not included.",
-                    action = "Export",
+                    title = stringResource(Res.string.data_privacy_metadata_title),
+                    description = stringResource(Res.string.data_privacy_metadata_description),
+                    action = stringResource(Res.string.data_privacy_export),
                     tag = "student-profile-export",
                     enabled = uiState.hasRealProfile && !uiState.isWorking && !uiState.isLoading,
                     onClick = { onUiEvent(StudentProfileUiEvent.ExportMetadata) },
@@ -154,9 +158,9 @@ fun DataPrivacyScreen(
                 if (uiState.supportsProfileImport) {
                     HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.24f))
                     DataActionRow(
-                        title = "Profile copy from another device",
-                        description = "Preview a Porta JSON export, then replace this device's profile facts and programme confirmations.",
-                        action = "Import",
+                        title = stringResource(Res.string.data_privacy_copy_title),
+                        description = stringResource(Res.string.data_privacy_copy_description),
+                        action = stringResource(Res.string.data_privacy_import),
                         tag = "student-profile-import",
                         enabled = !uiState.isWorking && !uiState.isLoading,
                         onClick = onImportProfile,
@@ -164,11 +168,11 @@ fun DataPrivacyScreen(
                 }
             }
 
-            DataSection(title = "Remove local data") {
+            DataSection(title = stringResource(Res.string.data_privacy_remove_title)) {
                 DataActionRow(
-                    title = "Academic profile and plans",
-                    description = "Remove facts, programme confirmations and plans. Keep saved doors, catalog and preferences.",
-                    action = "Clear",
+                    title = stringResource(Res.string.data_privacy_academic_title),
+                    description = stringResource(Res.string.data_privacy_academic_description),
+                    action = stringResource(Res.string.data_privacy_clear),
                     tag = "student-profile-clear",
                     enabled = uiState.hasRealProfile && !uiState.isWorking && !uiState.isLoading,
                     actionColor = MaterialTheme.colorScheme.error,
@@ -178,9 +182,9 @@ fun DataPrivacyScreen(
                 )
                 HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.24f))
                 DataActionRow(
-                    title = "All Porta data on this device",
-                    description = "Remove profile, plans, saved doors, imported catalogs and preferences. The bundled catalog is restored.",
-                    action = "Reset",
+                    title = stringResource(Res.string.data_privacy_all_title),
+                    description = stringResource(Res.string.data_privacy_all_description),
+                    action = stringResource(Res.string.data_privacy_reset),
                     tag = "student-profile-reset-all",
                     enabled = !uiState.isWorking && !uiState.isLoading,
                     actionColor = MaterialTheme.colorScheme.error,
@@ -198,13 +202,13 @@ fun DataPrivacyScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = message,
+                            text = message.toText(),
                             modifier = Modifier.weight(1f),
                             style = AppTheme.typography.bodyMedium,
                             color = AppTheme.colors.text.primary,
                         )
                         TextButton(onClick = { onUiEvent(StudentProfileUiEvent.MessageHandled) }) {
-                            Text("Dismiss")
+                            Text(stringResource(Res.string.data_privacy_dismiss))
                         }
                     }
                 }
@@ -228,7 +232,7 @@ fun DataPrivacyScreen(
             },
             dismissButton = {
                 TextButton(onClick = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) }) {
-                    Text("Keep data")
+                    Text(stringResource(Res.string.data_privacy_keep_data))
                 }
             },
         )
@@ -238,7 +242,7 @@ fun DataPrivacyScreen(
         ProfileImportPreviewDialog(
             preview = preview,
             isWorking = uiState.isWorking,
-            error = uiState.profileImportError,
+            error = uiState.profileImportError?.let { stringResource(Res.string.data_privacy_import_failed) },
             onConfirm = { onUiEvent(StudentProfileUiEvent.ImportProfileConfirmed) },
             onCancel = { onUiEvent(StudentProfileUiEvent.ImportProfileCancelled) },
         )
@@ -256,7 +260,7 @@ private fun ProfileImportPreviewDialog(
     AlertDialog(
         modifier = Modifier.testTag("student-profile-import-preview"),
         onDismissRequest = { if (!isWorking) onCancel() },
-        title = { Text("Import this profile copy?") },
+        title = { Text(stringResource(Res.string.data_privacy_import_confirm_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -271,9 +275,12 @@ private fun ProfileImportPreviewDialog(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${preview.facts.size} profile facts · " +
-                        "${preview.ruleAssertionCount} programme confirmations · " +
-                        "${preview.evidenceMetadataCount} evidence metadata records",
+                    text = stringResource(
+                        Res.string.data_privacy_import_counts,
+                        preview.facts.size,
+                        preview.ruleAssertionCount,
+                        preview.evidenceMetadataCount,
+                    ),
                     modifier = Modifier.testTag("student-profile-import-counts"),
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.text.secondary,
@@ -287,26 +294,29 @@ private fun ProfileImportPreviewDialog(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = "This replaces every profile fact and programme confirmation on this device. It is not a merge.",
+                            text = stringResource(Res.string.data_privacy_replace_warning),
                             fontWeight = FontWeight.Bold,
                             style = AppTheme.typography.bodySmall,
                         )
                         Text(
-                            text = "Plans, saved doors, planning limits and the opportunity catalog stay unchanged.",
+                            text = stringResource(Res.string.data_privacy_unchanged_notice),
                             style = AppTheme.typography.bodySmall,
                         )
                     }
                 }
                 if (preview.sensitiveFactCount > 0 || preview.evidenceMetadataCount > 0) {
                     Text(
-                        text = "Sensitive preview: ${preview.sensitiveFactCount} identity/context facts and " +
-                            "${preview.evidenceMetadataCount} evidence labels or references. Evidence files are not included.",
+                        text = stringResource(
+                            Res.string.data_privacy_sensitive_preview,
+                            preview.sensitiveFactCount,
+                            preview.evidenceMetadataCount,
+                        ),
                         modifier = Modifier.testTag("student-profile-import-sensitive-warning"),
                         style = AppTheme.typography.bodySmall,
                         color = AppTheme.colors.status.warning,
                     )
                 }
-                Text("Facts in this copy", style = AppTheme.typography.h6)
+                Text(stringResource(Res.string.data_privacy_facts_in_copy), style = AppTheme.typography.h6)
                 preview.facts.forEach { fact ->
                     Surface(
                         modifier = Modifier
@@ -322,11 +332,13 @@ private fun ProfileImportPreviewDialog(
                             Text(fact.label, fontWeight = FontWeight.SemiBold)
                             Text(fact.value, style = AppTheme.typography.bodyMedium)
                             Text(
-                                text = buildString {
-                                    append(fact.provenanceLabel)
-                                    if (fact.hasEvidenceMetadata) append(" · evidence metadata included")
-                                    if (fact.isSensitive) append(" · sensitive context")
-                                },
+                                text = listOfNotNull(
+                                    fact.provenanceLabel,
+                                    stringResource(Res.string.data_privacy_evidence_included)
+                                        .takeIf { fact.hasEvidenceMetadata },
+                                    stringResource(Res.string.data_privacy_sensitive_context)
+                                        .takeIf { fact.isSensitive },
+                                ).joinToString(" · "),
                                 style = AppTheme.typography.bodySmall,
                                 color = AppTheme.colors.text.secondary,
                             )
@@ -334,7 +346,7 @@ private fun ProfileImportPreviewDialog(
                     }
                 }
                 Text(
-                    text = "Programme confirmations are only reused when their opportunity rule fingerprint still matches this catalog.",
+                    text = stringResource(Res.string.data_privacy_fingerprint_notice),
                     modifier = Modifier.testTag("student-profile-import-fingerprint-note"),
                     style = AppTheme.typography.bodySmall,
                     color = AppTheme.colors.text.secondary,
@@ -355,7 +367,7 @@ private fun ProfileImportPreviewDialog(
                 enabled = !isWorking,
                 onClick = onConfirm,
             ) {
-                Text(if (isWorking) "Importing…" else "Replace profile")
+                Text(stringResource(if (isWorking) Res.string.data_privacy_importing else Res.string.data_privacy_replace_profile))
             }
         },
         dismissButton = {
@@ -364,7 +376,7 @@ private fun ProfileImportPreviewDialog(
                 enabled = !isWorking,
                 onClick = onCancel,
             ) {
-                Text("Cancel")
+                Text(stringResource(Res.string.data_privacy_cancel))
             }
         },
     )

@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Deadline
@@ -19,11 +19,11 @@ import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.ScenarioImpactReceipt
 import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
-import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import io.github.vietdsk6.porta.domain.usecase.ScenarioEvaluator
 import io.github.vietdsk6.porta.presentation.components.trustLabel
+import io.github.vietdsk6.porta.presentation.locale.displayValue
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,14 +40,15 @@ class ScenarioPreviewViewModel(
     private val opportunityPackRepository: OpportunityPackRepository,
     private val planRepository: PlanRepository,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
+    private val sampleScenarioProvider: SampleScenarioProvider = SampleScenarioProvider(),
 ) : ViewModel() {
-    private var activeProfile = PortaSampleData.profile
-    private var activeOpportunities: List<Opportunity> = PortaSampleData.opportunities
+    private var activeProfile = sampleScenarioProvider.profile
+    private var activeOpportunities: List<Opportunity> = sampleScenarioProvider.opportunities
     private var activeDate = currentLocalDateProvider.today()
     private var isSampleProfile = true
     private val _uiState = MutableStateFlow(
         buildState(
-            profile = PortaSampleData.profile,
+            profile = sampleScenarioProvider.profile,
             isSampleProfile = true,
         ),
     )
@@ -62,8 +63,8 @@ class ScenarioPreviewViewModel(
             ) { profile, packResult, today -> Triple(profile, packResult.getOrNull(), today) }
                 .collect { (profile, pack, today) ->
                     isSampleProfile = profile.facts.isEmpty()
-                    activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
-                    activeOpportunities = pack?.opportunities ?: PortaSampleData.opportunities
+                    activeProfile = profile.takeUnless { isSampleProfile } ?: sampleScenarioProvider.profile
+                    activeOpportunities = pack?.opportunities ?: sampleScenarioProvider.opportunities
                     activeDate = today
                     _uiState.value = buildState(
                         profile = activeProfile,
@@ -85,6 +86,7 @@ class ScenarioPreviewViewModel(
         if (isSampleProfile) {
             _uiState.value = _uiState.value.copy(
                 saveError = "Create a real local profile before saving a milestone.",
+                saveErrorCode = ScenarioErrorCode.SAVE_NEEDS_PROFILE,
             )
             return
         }
@@ -108,7 +110,7 @@ class ScenarioPreviewViewModel(
             updatedAtEpochMillis = timestamp,
         )
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true, saveError = null)
+            _uiState.value = _uiState.value.copy(isSaving = true, saveError = null, saveErrorCode = null)
             planRepository.replaceCurrentPlan(plan).fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true)
@@ -117,6 +119,7 @@ class ScenarioPreviewViewModel(
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
                         saveError = "Porta could not save this plan locally. Please try again.",
+                        saveErrorCode = ScenarioErrorCode.SAVE_FAILED,
                     )
                 },
             )
@@ -130,7 +133,7 @@ class ScenarioPreviewViewModel(
         val action = activeOpportunities
             .flatMap { it.actionTemplates }
             .firstOrNull { it.id == actionId }
-            ?: return ScenarioPreviewUiState(error = "This action is no longer available.")
+            ?: return ScenarioPreviewUiState(error = "This action is no longer available.", errorCode = ScenarioErrorCode.ACTION_MISSING)
         val currentLabel = when (val target = action.target) {
             is ActionTarget.ProfileFactTarget -> profile.facts[target.factKey]
                 ?.value
@@ -138,6 +141,8 @@ class ScenarioPreviewViewModel(
                 ?: return ScenarioPreviewUiState(
                     isSampleProfile = isSampleProfile,
                     error = "Your profile is missing ${target.factKey.readable()}.",
+                    errorCode = ScenarioErrorCode.FACT_MISSING,
+                    errorFactKey = target.factKey,
                 )
 
             is ActionTarget.OpportunityRuleTarget -> profile.ruleAssertions[
@@ -183,6 +188,8 @@ class ScenarioPreviewViewModel(
                     title = opportunity.title,
                     stateLabel = state.trustLabel(),
                     outcome = ScenarioDoorOutcome.CHECKED_PROGRESS,
+                    actualState = state,
+                    simulatedState = state,
                     actualStateLabel = state.trustLabel(),
                     simulatedStateLabel = state.trustLabel(),
                 )
@@ -191,6 +198,7 @@ class ScenarioPreviewViewModel(
             actionId = action.id,
             title = action.title,
             beforeLabel = currentLabel,
+            beforeNotConfirmed = action.target is ActionTarget.OpportunityRuleTarget && currentLabel == "Not confirmed",
             afterLabel = action.targetValue.displayValue(),
             baselineCounts = scenario.baseline.values.toConclusionCounts(),
             simulatedCounts = scenario.simulated.values.toConclusionCounts(),
@@ -199,6 +207,7 @@ class ScenarioPreviewViewModel(
             } else {
                 null
             },
+            hasRuleScopeNotice = action.target is ActionTarget.OpportunityRuleTarget,
             affectedDoors = affectedDoors,
             unchangedDoors = unchanged,
             isSampleProfile = isSampleProfile,
@@ -238,10 +247,20 @@ class ScenarioPreviewViewModel(
 
             else -> "The value changes, but the encoded check result does not"
         }
+        val outcomeCode = when {
+            !timingFeasible -> ScenarioOutcomeCode.MISSED_DEADLINE
+            afterState == EligibilityState.OPEN && addressesCheckedRequirement -> ScenarioOutcomeCode.PASSED
+            changedToPass && afterState == EligibilityState.NEEDS_INFO -> ScenarioOutcomeCode.VERIFICATION
+            changedToPass -> ScenarioOutcomeCode.ONE_CHECK
+            else -> ScenarioOutcomeCode.NO_CHECK_CHANGE
+        }
         return ScenarioDoorUiState(
             id = opportunity.id,
             title = opportunity.title,
             stateLabel = outcome,
+            outcomeCode = outcomeCode,
+            actualState = beforeState,
+            simulatedState = afterState,
             outcome = if (afterState == EligibilityState.NEEDS_INFO) {
                 ScenarioDoorOutcome.NEEDS_VERIFICATION
             } else {
@@ -256,6 +275,10 @@ class ScenarioPreviewViewModel(
                     beforeLabel = delta.beforeActual?.displayValue() ?: "Not provided",
                     afterLabel = delta.afterActual?.displayValue() ?: "Not provided",
                     resultTransitionLabel = "${delta.beforeResult.readable()} → ${delta.afterResult.readable()}",
+                    beforeResult = delta.beforeResult,
+                    afterResult = delta.afterResult,
+                    beforeMissing = delta.beforeActual == null,
+                    afterMissing = delta.afterActual == null,
                     sourceNote = delta.sourceNote.orEmpty(),
                 )
             },
@@ -267,19 +290,25 @@ class ScenarioPreviewViewModel(
                     RuleResult.PASS -> error("Passed rules are not remaining blockers.")
                 }
             },
+            remainingBlockerDetails = remainingRules.map { rule ->
+                ScenarioRemainingBlockerUiState(rule.result, rule.explanation)
+            },
             timingLabel = when (val publishedDeadline = deadline) {
                 is Deadline.Known -> "Published deadline: ${publishedDeadline.date}"
                 Deadline.Tba -> "Deadline: TBA — verify before planning"
                 Deadline.Missing -> "No single published deadline — check the live source"
             },
+            deadline = deadline,
             timingWarning = if (timingFeasible) {
                 null
             } else {
                 "The ${action.minimumDurationDays}-day Porta estimate extends beyond the published deadline."
             },
+            timingWarningDays = action.minimumDurationDays.takeUnless { timingFeasible },
             sourceUrl = opportunity.sourceUrl,
             sourceSection = opportunity.sourceSection.orEmpty(),
             lastCheckedLabel = "Source checked ${opportunity.lastCheckedOn}",
+            lastCheckedDate = opportunity.lastCheckedOn,
         )
     }
 

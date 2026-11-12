@@ -4,6 +4,7 @@ import io.github.vietdsk6.porta.domain.model.ActionFrontierEvaluation
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
+import io.github.vietdsk6.porta.domain.model.ExplanationCode
 import io.github.vietdsk6.porta.domain.model.FrontierAction
 import io.github.vietdsk6.porta.domain.model.FrontierExclusion
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
@@ -12,7 +13,6 @@ import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleReceipt
 import io.github.vietdsk6.porta.domain.model.RuleResult
-import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
 import kotlinx.datetime.LocalDate
@@ -154,8 +154,7 @@ class ActionFrontierEngine(
                 timingUnverifiedOpportunityIds = timingUnverified,
                 earliestAffectedDeadline = earliestDeadline,
                 scenario = scenario,
-                explanation = explanationFor(
-                    template = template,
+                explanationCode = ExplanationCode.FrontierImpact(
                     improvedCount = improved.size,
                     newlyOpenCount = newlyOpen.size,
                     timingUnverifiedCount = timingUnverified.size,
@@ -231,29 +230,6 @@ class ActionFrontierEngine(
                 a.template.effort.rank < b.template.effort.rank ||
                 a.template.costBand.rank < b.template.costBand.rank
         return noWorse && strictlyBetter
-    }
-
-    private fun explanationFor(
-        template: ActionTemplate,
-        improvedCount: Int,
-        newlyOpenCount: Int,
-        timingUnverifiedCount: Int,
-    ): String {
-        val impact = buildString {
-            append("Addresses a published check in $improvedCount ")
-            append(if (improvedCount == 1) "opportunity" else "opportunities")
-            append(". ")
-            if (newlyOpenCount > 0) {
-                append("$newlyOpenCount would pass their current checks; ")
-            }
-            if (timingUnverifiedCount > 0) {
-                append("$timingUnverifiedCount still need deadline verification. ")
-            }
-        }
-        return impact +
-            "Target: ${template.targetValue.displayValue()}. " +
-            "Estimated duration: ${template.minimumDurationDays} days. " +
-            "Effort: ${template.effort.name.lowercase()}. Cost: ${template.costBand.name.lowercase()}."
     }
 
     private data class RelevantCandidate(

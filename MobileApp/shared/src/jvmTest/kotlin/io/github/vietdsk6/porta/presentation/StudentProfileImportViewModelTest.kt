@@ -23,6 +23,8 @@ import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
+import io.github.vietdsk6.porta.presentation.locale.AppLanguageState
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileNotice
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileUiEvent
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.util.file.FileManager
@@ -98,6 +100,7 @@ class StudentProfileImportViewModelTest {
     @AfterTest
     fun tearDown() {
         database.close()
+        AppLanguageState.select(null)
         Dispatchers.resetMain()
     }
 
@@ -135,7 +138,7 @@ class StudentProfileImportViewModelTest {
         assertEquals(setOf(FactKey.IELTS_SCORE), stored.facts.keys)
         assertEquals(FactValue.NumberValue(7.5, "band"), stored.facts.getValue(FactKey.IELTS_SCORE).value)
         assertNull(viewModel.uiState.value.pendingProfileImport)
-        assertTrue(viewModel.uiState.value.message.orEmpty().contains("Profile copy imported"))
+        assertEquals(ProfileNotice.IMPORTED, viewModel.uiState.value.message)
     }
 
     @Test
@@ -153,6 +156,23 @@ class StudentProfileImportViewModelTest {
 
         assertNull(preferences.getString(UserPreferences.KEY_AI_DRAFT_API_KEY))
         assertFalse(viewModel.uiState.value.aiKeySaved)
+    }
+
+    @Test
+    fun `language override persists locally and system choice clears it`() = runTest(dispatcher) {
+        viewModel.onUiEvent(StudentProfileUiEvent.LanguageChanged("vi"))
+        advanceUntilIdle()
+
+        assertEquals("vi", preferences.getString(UserPreferences.KEY_APP_LANGUAGE))
+        assertEquals("vi", viewModel.uiState.value.selectedLanguage)
+        assertEquals("vi", AppLanguageState.selected)
+
+        viewModel.onUiEvent(StudentProfileUiEvent.LanguageChanged(null))
+        advanceUntilIdle()
+
+        assertNull(preferences.getString(UserPreferences.KEY_APP_LANGUAGE))
+        assertNull(viewModel.uiState.value.selectedLanguage)
+        assertNull(AppLanguageState.selected)
     }
 
     private fun fact(

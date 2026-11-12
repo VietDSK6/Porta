@@ -42,9 +42,13 @@ import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
 import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.generated.resources.*
+import io.github.vietdsk6.porta.generated.resources.Res
 import io.github.vietdsk6.porta.presentation.components.porta.ActionImpactNodeUiState
 import io.github.vietdsk6.porta.presentation.components.porta.ActionRipple
 import io.github.vietdsk6.porta.presentation.components.porta.ImpactOutcome
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ScenarioPreviewScreen(
@@ -86,14 +90,14 @@ fun ScenarioPreviewScreen(
     ScreenWithToolbar(
         modifier = modifier.testTag("scenario-preview-screen"),
         isScrollableContent = false,
-        title = "What if?",
-        titleContent = { Text("What if?", style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
+        title = stringResource(Res.string.scenario_title),
+        titleContent = { Text(stringResource(Res.string.scenario_title), style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
     ) {
         if (uiState.error != null) {
-            ErrorState(uiState.error, onNavigateBack)
+            ErrorState(uiState.localizedError(), onNavigateBack)
             return@ScreenWithToolbar
         }
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -119,11 +123,11 @@ fun ScenarioPreviewScreen(
                     if (uiState.affectedDoors.isNotEmpty()) {
                         item {
                             TextButton(modifier = Modifier.testTag("scenario-ripple-toggle"), onClick = { showRipple = !showRipple }) {
-                                Text(if (showRipple) "Hide ripple map" else "View ripple map")
+                                Text(stringResource(if (showRipple) Res.string.scenario_hide_ripple else Res.string.scenario_view_ripple))
                             }
                         }
                         if (showRipple) item { ScenarioImpactPath(uiState) }
-                        item { Text("Results", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6) }
+                        item { Text(stringResource(Res.string.scenario_results), modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6) }
                         items(uiState.affectedDoors, key = ScenarioDoorUiState::id) { door ->
                             ScenarioResultRow(door, selectedDoorId == door.id, onSelect = {
                                 selectedDoorId = if (selectedDoorId == door.id) null else door.id
@@ -172,7 +176,7 @@ private fun DesktopScenarioContent(
             modifier = Modifier.weight(0.54f).fillMaxHeight().testTag("scenario-desktop-results"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Results", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
+            Text(stringResource(Res.string.scenario_results), modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
             LazyColumn(modifier = Modifier.weight(0.48f).testTag("scenario-desktop-result-list"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(uiState.affectedDoors, key = ScenarioDoorUiState::id) { door ->
                     ScenarioResultRow(door, selectedDoorId == door.id, onSelect = { onSelectDoor(door.id) })
@@ -202,7 +206,7 @@ private fun ScenarioActions(
         val concerns = uiState.affectedDoors.count { it.timingWarning != null }
         if (concerns > 0) {
             Text(
-                "$concerns ${if (concerns == 1) "timeline" else "timelines"} may miss a published deadline. Check the affected results before planning.",
+                pluralStringResource(Res.plurals.scenario_timing_concerns, concerns, concerns),
                 color = AppTheme.colors.status.warning,
                 style = AppTheme.typography.bodySmall,
             )
@@ -216,16 +220,16 @@ private fun ScenarioActions(
         ) {
             Text(
                 when {
-                    uiState.isSampleProfile -> "Build my profile to save"
-                    uiState.isSaving -> "Saving locally…"
-                    else -> "Add milestone to plan"
+                    uiState.isSampleProfile -> stringResource(Res.string.scenario_build_profile)
+                    uiState.isSaving -> stringResource(Res.string.scenario_saving)
+                    else -> stringResource(Res.string.scenario_add_milestone)
                 },
             )
         }
-        uiState.saveError?.let { message ->
-            Text(message, color = AppTheme.colors.status.error, style = AppTheme.typography.bodyMedium)
+        if (uiState.saveError != null || uiState.saveErrorCode != null) {
+            Text(uiState.localizedSaveError(), color = AppTheme.colors.status.error, style = AppTheme.typography.bodyMedium)
         }
-        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNavigateBack) { Text("Discard scenario") }
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onNavigateBack) { Text(stringResource(Res.string.scenario_discard)) }
     }
 }
 
@@ -233,7 +237,7 @@ private fun ScenarioActions(
 private fun UnchangedCount(uiState: ScenarioPreviewUiState) {
     if (uiState.unchangedDoors.isNotEmpty()) {
         Text(
-            "${uiState.unchangedDoors.size} other ${if (uiState.unchangedDoors.size == 1) "opportunity" else "opportunities"} unchanged.",
+            pluralStringResource(Res.plurals.scenario_unchanged, uiState.unchangedDoors.size, uiState.unchangedDoors.size),
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodySmall,
         )
@@ -242,19 +246,22 @@ private fun UnchangedCount(uiState: ScenarioPreviewUiState) {
 
 @Composable
 private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
-    val nodes = uiState.affectedDoors.map { door ->
-        door.toImpactNode(
+    val currentState = stringResource(Res.string.scenario_current_state)
+    val nodes = mutableListOf<ActionImpactNodeUiState>()
+    for (door in uiState.affectedDoors) {
+        nodes += door.toImpactNode(
             when (door.outcome) {
                 ScenarioDoorOutcome.CURRENT_CHECKS_PASSED -> ImpactOutcome.CURRENT_CHECKS_PASSED
                 ScenarioDoorOutcome.CHECKED_PROGRESS -> ImpactOutcome.CHECKED_PROGRESS
                 ScenarioDoorOutcome.NEEDS_VERIFICATION -> ImpactOutcome.NEEDS_VERIFICATION
             },
+            currentState,
         )
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        uiState.scopeNotice?.let { notice ->
+        if (uiState.scopeNotice != null || uiState.hasRuleScopeNotice) {
             Text(
-                text = notice,
+                text = uiState.localizedScopeNotice(),
                 modifier = Modifier.testTag("scenario-scope-notice"),
                 color = AppTheme.colors.primary,
                 style = AppTheme.typography.bodyMedium,
@@ -263,23 +270,28 @@ private fun ScenarioImpactPath(uiState: ScenarioPreviewUiState) {
         }
         ActionRipple(
             actionLabel = uiState.title,
-            actualLabel = uiState.beforeLabel,
+            actualLabel = uiState.localizedBefore(),
             simulatedLabel = uiState.afterLabel,
             nodes = nodes,
-            overflowDestination = "Results",
+            overflowDestination = stringResource(Res.string.scenario_results),
         )
     }
 }
 
-private fun ScenarioDoorUiState.toImpactNode(outcome: ImpactOutcome): ActionImpactNodeUiState = ActionImpactNodeUiState(
-    id = id,
-    title = title,
-    statusLabel = stateLabel,
-    transitionLabel = "${actualStateLabel.ifBlank { "Current state" }} → " +
-        simulatedStateLabel.ifBlank { stateLabel },
-    outcome = outcome,
-    timingWarning = timingWarning,
-)
+@Composable
+private fun ScenarioDoorUiState.toImpactNode(outcome: ImpactOutcome, currentState: String): ActionImpactNodeUiState {
+    val actual = localizedActualState().ifBlank { currentState }
+    val simulated = localizedSimulatedState()
+    val visibleSimulated = if (simulated.isBlank()) localizedOutcome() else simulated
+    return ActionImpactNodeUiState(
+        id = id,
+        title = title,
+        statusLabel = localizedOutcome(),
+        transitionLabel = "$actual → $visibleSimulated",
+        outcome = outcome,
+        timingWarning = if (timingWarning != null) localizedTimingWarning() else null,
+    )
+}
 
 @Composable
 private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
@@ -288,15 +300,22 @@ private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
     val needsVerification = affected.count { it.outcome == ScenarioDoorOutcome.NEEDS_VERIFICATION }
     val timingConcerns = affected.count { it.timingWarning != null }
     val headline = if (affected.isEmpty()) {
-        "No assessed checks change"
+        stringResource(Res.string.scenario_no_checks_change)
     } else {
-        "${affected.size} ${if (affected.size == 1) "opportunity" else "opportunities"} affected"
+        pluralStringResource(Res.plurals.scenario_opportunities_affected, affected.size, affected.size)
     }
-    val announcement = buildList {
-        add("$changedChecks ${if (changedChecks == 1) "check" else "checks"} could change")
-        if (needsVerification > 0) add("$needsVerification still need information or source review")
-        if (timingConcerns > 0) add("$timingConcerns timing ${if (timingConcerns == 1) "concern" else "concerns"}")
-    }.joinToString(" · ")
+    val changedAnnouncement = pluralStringResource(Res.plurals.scenario_checks_could_change, changedChecks, changedChecks)
+    val verificationAnnouncement = if (needsVerification > 0) {
+        pluralStringResource(Res.plurals.scenario_need_verification, needsVerification, needsVerification)
+    } else {
+        null
+    }
+    val timingAnnouncement = if (timingConcerns > 0) {
+        pluralStringResource(Res.plurals.scenario_timing_count, timingConcerns, timingConcerns)
+    } else {
+        null
+    }
+    val announcement = listOfNotNull(changedAnnouncement, verificationAnnouncement, timingAnnouncement).joinToString(" · ")
 
     Column(
         modifier = Modifier
@@ -311,7 +330,7 @@ private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
             style = AppTheme.typography.h5,
         )
         Text(
-            text = announcement.ifBlank { "Your saved profile stays unchanged." },
+            text = if (announcement.isBlank()) stringResource(Res.string.scenario_profile_unchanged) else announcement,
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
@@ -326,12 +345,13 @@ private fun ScenarioOutcomeSummary(uiState: ScenarioPreviewUiState) {
     }
 }
 
+@Composable
 private fun ScenarioPreviewUiState.aggregateTransitionLabel(): String = listOf(
-    "Checks passed ${baselineCounts.currentChecksPassed} → ${simulatedCounts.currentChecksPassed}",
-    "Needs action ${baselineCounts.needsAction} → ${simulatedCounts.needsAction}",
-    "Needs information ${baselineCounts.needsInformation} → ${simulatedCounts.needsInformation}",
-    "Not available ${baselineCounts.notAvailable} → ${simulatedCounts.notAvailable}",
-    "Closed ${baselineCounts.closed} → ${simulatedCounts.closed}",
+    stringResource(Res.string.scenario_aggregate_passed, baselineCounts.currentChecksPassed, simulatedCounts.currentChecksPassed),
+    stringResource(Res.string.scenario_aggregate_action, baselineCounts.needsAction, simulatedCounts.needsAction),
+    stringResource(Res.string.scenario_aggregate_info, baselineCounts.needsInformation, simulatedCounts.needsInformation),
+    stringResource(Res.string.scenario_aggregate_unavailable, baselineCounts.notAvailable, simulatedCounts.notAvailable),
+    stringResource(Res.string.scenario_aggregate_closed, baselineCounts.closed, simulatedCounts.closed),
 ).joinToString(" · ")
 
 @Composable
@@ -342,7 +362,7 @@ private fun SimulationBanner() {
         shape = RoundedCornerShape(12.dp),
     ) {
         Text(
-            text = "Simulation — your saved profile is unchanged.",
+            text = stringResource(Res.string.scenario_simulation_notice),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
             color = AppTheme.colors.onAlternative,
             fontWeight = FontWeight.SemiBold,
@@ -359,13 +379,13 @@ private fun FactTransition(uiState: ScenarioPreviewUiState) {
     ) {
         Text(uiState.title, style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            "${uiState.beforeLabel} → ${uiState.afterLabel} · hypothetical",
+            stringResource(Res.string.scenario_fact_hypothetical, uiState.localizedBefore(), uiState.afterLabel),
             color = AppTheme.colors.primary,
             style = AppTheme.typography.bodyMedium,
         )
-        uiState.scopeNotice?.let { notice ->
+        if (uiState.scopeNotice != null || uiState.hasRuleScopeNotice) {
             Text(
-                notice,
+                uiState.localizedScopeNotice(),
                 modifier = Modifier.testTag("scenario-scope-notice"),
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
@@ -391,17 +411,21 @@ private fun ScenarioResultRow(door: ScenarioDoorUiState, selected: Boolean, onSe
                     fontWeight = FontWeight.SemiBold,
                 )
                 TextButton(modifier = Modifier.testTag("scenario-details-${door.id}"), onClick = onSelect) {
-                    Text(if (selected) "Hide" else "Details")
+                    Text(stringResource(if (selected) Res.string.scenario_hide else Res.string.scenario_details))
                 }
             }
             Text(
-                "${door.actualStateLabel.ifBlank { "Current state" }} → ${door.simulatedStateLabel.ifBlank { door.stateLabel }}",
+                stringResource(
+                    Res.string.scenario_state_transition,
+                    if (door.actualStateLabel.isBlank() && door.actualState == null) stringResource(Res.string.scenario_current_state) else door.localizedActualState(),
+                    if (door.simulatedStateLabel.isBlank() && door.simulatedState == null) door.localizedOutcome() else door.localizedSimulatedState(),
+                ),
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
-            Text(door.stateLabel, color = door.outcome.color(), style = AppTheme.typography.bodySmall)
+            Text(door.localizedOutcome(), color = door.outcome.color(), style = AppTheme.typography.bodySmall)
             if (door.timingWarning != null) {
-                Text("Timing concern · estimate may exceed the deadline", color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
+                Text(stringResource(Res.string.scenario_timing_warning), color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
             }
         }
     }
@@ -415,23 +439,27 @@ private fun ScenarioSelectedDetail(door: ScenarioDoorUiState, onOpenSource: (Str
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (door.changedRules.isNotEmpty()) {
-            Text("Changed checks", style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.scenario_changed_checks), style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             door.changedRules.forEach { change ->
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(change.explanation, style = AppTheme.typography.bodyMedium)
-                    Text("${change.beforeLabel} → ${change.afterLabel}", color = AppTheme.colors.primary, style = AppTheme.typography.bodySmall)
+                    Text(stringResource(Res.string.scenario_state_transition, change.localizedBefore(), change.localizedAfter()), color = AppTheme.colors.primary, style = AppTheme.typography.bodySmall)
                 }
             }
         }
-        if (door.remainingBlockers.isNotEmpty()) {
-            Text("What remains", style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-            door.remainingBlockers.forEach { blocker -> Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall) }
+        if (door.remainingBlockers.isNotEmpty() || door.remainingBlockerDetails.isNotEmpty()) {
+            Text(stringResource(Res.string.scenario_what_remains), style = AppTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            if (door.remainingBlockerDetails.isNotEmpty()) {
+                door.remainingBlockerDetails.forEach { blocker -> Text("• ${blocker.localizedText()}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall) }
+            } else {
+                door.remainingBlockers.forEach { blocker -> Text("• $blocker", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall) }
+            }
         }
-        door.timingWarning?.let { warning ->
-            Text(warning, color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
+        if (door.timingWarning != null) {
+            Text(door.localizedTimingWarning(), color = AppTheme.colors.status.warning, style = AppTheme.typography.bodySmall)
         }
         TextButton(modifier = Modifier.testTag("scenario-evidence-toggle-${door.id}"), onClick = { showEvidence = !showEvidence }) {
-            Text(if (showEvidence) "Hide evidence" else "Review evidence")
+            Text(stringResource(if (showEvidence) Res.string.scenario_hide_evidence else Res.string.scenario_review_evidence))
         }
         if (showEvidence) ScenarioEvidence(door, onOpenSource)
     }
@@ -445,15 +473,15 @@ private fun ScenarioEvidence(door: ScenarioDoorUiState, onOpenSource: (String) -
     ) {
         HorizontalDivider(color = AppTheme.colors.outline.copy(alpha = 0.3f))
         door.changedRules.forEach { change ->
-            Text("Check result · ${change.resultTransitionLabel}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            Text(stringResource(Res.string.scenario_check_result, change.localizedResultTransition()), color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
             if (change.sourceNote.isNotBlank()) Text(change.sourceNote, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
-        if (door.timingLabel.isNotBlank()) Text("Planning timing · ${door.timingLabel}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-        if (door.lastCheckedLabel.isNotBlank()) Text(door.lastCheckedLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
-        if (door.sourceSection.isNotBlank()) Text("Section: ${door.sourceSection}", color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.timingLabel.isNotBlank() || door.deadline != null) Text(stringResource(Res.string.scenario_planning_timing, door.localizedTiming()), color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.lastCheckedLabel.isNotBlank() || door.lastCheckedDate != null) Text(door.localizedChecked(), color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        if (door.sourceSection.isNotBlank()) Text(stringResource(Res.string.scenario_section, door.sourceSection), color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         if (door.sourceUrl.startsWith("https://")) {
             TextButton(modifier = Modifier.testTag("scenario-source-${door.id}"), onClick = { onOpenSource(door.sourceUrl) }) {
-                Text("Open official source")
+                Text(stringResource(Res.string.scenario_open_source))
             }
         }
     }
@@ -478,9 +506,9 @@ private fun NoChangedDoorsCard() {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text("No assessed check changes", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(Res.string.scenario_no_check_changes), fontWeight = FontWeight.SemiBold)
             Text(
-                text = "This step may still help your profile, but it does not change any assessed requirement in the current pack.",
+                text = stringResource(Res.string.scenario_no_change_caveat),
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodyMedium,
             )
@@ -491,9 +519,9 @@ private fun NoChangedDoorsCard() {
 @Composable
 private fun ErrorState(message: String, onNavigateBack: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Scenario unavailable", style = AppTheme.typography.h5)
+        Text(stringResource(Res.string.scenario_unavailable), style = AppTheme.typography.h5)
         Text(message, color = AppTheme.colors.text.secondary)
-        OutlinedButton(onClick = onNavigateBack) { Text("Go back") }
+        OutlinedButton(onClick = onNavigateBack) { Text(stringResource(Res.string.scenario_go_back)) }
     }
 }
 

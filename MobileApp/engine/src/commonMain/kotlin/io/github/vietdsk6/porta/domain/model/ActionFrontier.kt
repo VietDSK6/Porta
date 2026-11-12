@@ -147,8 +147,17 @@ data class FrontierAction(
     val timingUnverifiedOpportunityIds: List<String>,
     val earliestAffectedDeadline: LocalDate?,
     val scenario: ScenarioResult,
-    val explanation: String,
+    val explanationCode: ExplanationCode.FrontierImpact,
 )
+
+/** Structured engine output; presentation chooses the user's language and wording. */
+sealed interface ExplanationCode {
+    data class FrontierImpact(
+        val improvedCount: Int,
+        val newlyOpenCount: Int,
+        val timingUnverifiedCount: Int,
+    ) : ExplanationCode
+}
 
 data class ActionFrontierEvaluation(
     val actions: List<FrontierAction>,

@@ -19,9 +19,11 @@ data class StudentProfileUiState(
     val supportsProfileImport: Boolean = false,
     val aiDraftSettingsAvailable: Boolean = false,
     val aiKeySaved: Boolean = false,
+    val languageSettingsAvailable: Boolean = false,
+    val selectedLanguage: String? = null,
     val pendingProfileImport: ProfileImportPreviewUiState? = null,
     val profileImportError: String? = null,
-    val message: String? = null,
+    val message: ProfileNotice? = null,
 )
 
 data class ProfileImportPreviewUiState(
@@ -72,14 +74,7 @@ data class ProfileFactUiState(
     val evidenceAttachmentName: String? = null,
     val evidenceAttachmentDetail: String? = null,
     val canOpenEvidenceAttachment: Boolean = false,
-) {
-    val usedByLabel: String
-        get() = when (dependentDoorTitles.size) {
-            0 -> "No current pack rule references this detail"
-            1 -> "Referenced by 1 opportunity"
-            else -> "Referenced by ${dependentDoorTitles.size} opportunities"
-        }
-}
+)
 
 sealed interface StudentProfileUiEvent {
     data class ToggleDependencies(val key: FactKey) : StudentProfileUiEvent
@@ -114,6 +109,8 @@ sealed interface StudentProfileUiEvent {
     class AiKeySaveRequested(val key: String) : StudentProfileUiEvent
 
     data object AiKeyDeleteRequested : StudentProfileUiEvent
+
+    data class LanguageChanged(val language: String?) : StudentProfileUiEvent
 
     data object MessageHandled : StudentProfileUiEvent
 }

@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
-import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.data.scenario.BundledPackSource
 import io.github.vietdsk6.porta.domain.model.DEFAULT_SOURCE_REVIEW_WINDOW_DAYS
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.InvalidOpportunityPackException
@@ -17,11 +17,12 @@ import io.github.vietdsk6.porta.domain.model.OpportunityPackVersionConflictExcep
 import io.github.vietdsk6.porta.domain.model.PackDiagnostic
 import io.github.vietdsk6.porta.domain.model.PackDiagnosticSeverity
 import io.github.vietdsk6.porta.domain.model.RuleNode
-import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.sourceFreshness
 import io.github.vietdsk6.porta.domain.model.staleRuleAssertionsFor
 import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
 import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
-import io.github.vietdsk6.porta.util.extensions.asFormattedDate
+import io.github.vietdsk6.porta.presentation.locale.asLocalizedDate
+import io.github.vietdsk6.porta.presentation.locale.displayValue
 import io.github.vietdsk6.porta.util.file.FileManager
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +37,7 @@ import kotlinx.datetime.LocalDate
 class PackInspectorViewModel(
     private val opportunityPackRepository: OpportunityPackRepository,
     private val profileRepository: ProfileRepository,
-    private val bundledPackProvider: BundledOpportunityPackProvider,
+    private val bundledPackSource: BundledPackSource,
     private val fileManager: FileManager,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
 ) : ViewModel() {
@@ -74,7 +75,7 @@ class PackInspectorViewModel(
             PackInspectorUiEvent.ImportPreviewConfirmed -> confirmPendingImport()
 
             PackInspectorUiEvent.ImportReadFailed -> showFailure(
-                "Porta could not read that JSON file. The active pack was not changed.",
+                PackInspectorNotice.ImportReadFailed,
             )
 
             PackInspectorUiEvent.ExportActivePack -> exportActivePack()
@@ -83,7 +84,7 @@ class PackInspectorViewModel(
 
             PackInspectorUiEvent.RestoreBundledRequested -> importPack(
                 fileName = "Porta bundled curated pack",
-                rawJson = bundledPackProvider.rawJson(),
+                rawJson = bundledPackSource.rawJson(),
             )
 
             PackInspectorUiEvent.MessageHandled -> transientState.update { it.copy(message = null) }
@@ -109,7 +110,7 @@ class PackInspectorViewModel(
                             it.copy(
                                 isWorking = false,
                                 pendingImport = null,
-                                message = "$fileName matches the active pack; nothing changed.",
+                                message = PackInspectorNotice.MatchesActive(fileName),
                             )
                         }
                         return@fold
@@ -146,15 +147,13 @@ class PackInspectorViewModel(
             opportunityPackRepository.importPack(pending.rawJson).fold(
                 onSuccess = { result ->
                     val message = when (result.status) {
-                        OpportunityPackImportStatus.IMPORTED -> buildString {
-                            append("${pending.uiState.fileName} is now active. Saved doors and profile facts remain.")
-                            if (pending.uiState.staleAssertionCount > 0) {
-                                append(" ${pending.uiState.staleAssertionCount} programme confirmation(s) must be checked again.")
-                            }
-                        }
+                        OpportunityPackImportStatus.IMPORTED -> PackInspectorNotice.Activated(
+                            pending.uiState.fileName,
+                            pending.uiState.staleAssertionCount,
+                        )
 
                         OpportunityPackImportStatus.NO_CHANGE ->
-                            "${pending.uiState.fileName} matches the active pack; nothing changed."
+                            PackInspectorNotice.MatchesActive(pending.uiState.fileName)
                     }
                     transientState.update {
                         it.copy(
@@ -191,7 +190,7 @@ class PackInspectorViewModel(
                 isWorking = false,
                 diagnostics = diagnostics,
                 pendingImport = null,
-                message = "Import rejected. The active pack is unchanged.",
+                message = PackInspectorNotice.ImportRejected,
             )
         }
     }
@@ -205,10 +204,10 @@ class PackInspectorViewModel(
                         suggestedName = "porta-opportunity-pack",
                         extension = "json",
                         content = rawJson,
-                        successMessage = "Active opportunity pack exported.",
+                        successMessage = PackInspectorNotice.ExportedPack,
                     )
                 },
-                onFailure = { showFailure("Porta could not export the active pack.") },
+                onFailure = { showFailure(PackInspectorNotice.ExportPackFailed) },
             )
         }
     }
@@ -233,7 +232,7 @@ class PackInspectorViewModel(
                 suggestedName = "porta-pack-diagnostics",
                 extension = "txt",
                 content = text,
-                successMessage = "Pack diagnostics exported.",
+                successMessage = PackInspectorNotice.ExportedDiagnostics,
             )
         }
     }
@@ -242,7 +241,7 @@ class PackInspectorViewModel(
         suggestedName: String,
         extension: String,
         content: String,
-        successMessage: String,
+        successMessage: PackInspectorNotice,
     ) {
         fileManager.saveTextByPickingUpLocation(
             suggestedName = suggestedName,
@@ -257,11 +256,11 @@ class PackInspectorViewModel(
                     )
                 }
             },
-            onFailure = { showFailure("Porta could not save that file.") },
+            onFailure = { showFailure(PackInspectorNotice.SaveFailed) },
         )
     }
 
-    private fun showFailure(message: String) {
+    private fun showFailure(message: PackInspectorNotice) {
         transientState.update { it.copy(isWorking = false, message = message) }
     }
 
@@ -282,9 +281,7 @@ class PackInspectorViewModel(
             selectedOpportunityId = selectedId,
             diagnostics = transient.diagnostics,
             pendingUpdate = transient.pendingImport?.uiState,
-            message = transient.message ?: loadError?.let {
-                "Porta could not read the active pack. Restore the bundled curated pack or import a valid pack."
-            },
+            message = transient.message ?: loadError?.let { PackInspectorNotice.LoadFailed },
         )
     }
 
@@ -310,11 +307,19 @@ class PackInspectorViewModel(
             } else {
                 "$sourceReviewDueCount records need a Porta catalog review. Confirm live sources before acting."
             },
-            importedLabel = "Imported ${metadata.importedAtEpochMillis.asFormattedDate()}",
+            importedLabel = "Imported ${metadata.importedAtEpochMillis.asLocalizedDate()}",
             sourceUrl = metadata.sourceUrl,
-            isBundledPack = metadata.id == BundledOpportunityPackProvider.PACK_ID,
+            isBundledPack = bundledPackSource.isBundled(metadata.id),
             providers = providers,
             opportunities = opportunities.map { it.toUiState(today) },
+            version = metadata.version,
+            schemaVersion = metadata.schemaVersion,
+            recordCount = opportunities.size,
+            packCheckedOn = metadata.lastCheckedOn,
+            earliestRecordCheckedOn = dates.firstOrNull(),
+            latestRecordCheckedOn = dates.lastOrNull(),
+            sourceReviewDueCount = sourceReviewDueCount,
+            importedAtEpochMillis = metadata.importedAtEpochMillis,
         )
     }
 
@@ -328,6 +333,9 @@ class PackInspectorViewModel(
         sourceSection = sourceSection,
         sourceReviewNeedsAttention = sourceReviewNeedsAttention(today),
         ruleNodes = eligibilityRule.flatten(),
+        category = category,
+        lastCheckedOn = lastCheckedOn,
+        sourceFreshness = sourceFreshness(today).status,
     )
 
     private fun OpportunityPackImportPreview.toUiState(
@@ -346,6 +354,8 @@ class PackInspectorViewModel(
         unchangedCount = diff.unchangedOpportunityIds.size,
         staleAssertionCount = staleAssertionCount,
         sourceReviewDueCount = document.opportunities.count { it.sourceReviewNeedsAttention(today) },
+        previousVersion = diff.previousVersion,
+        candidateVersion = diff.candidateVersion,
     )
 
     private fun RuleNode.flatten(depth: Int = 0): List<RuleNodeUiState> = when (this) {
@@ -355,6 +365,8 @@ class PackInspectorViewModel(
                 depth = depth,
                 typeLabel = "ALL",
                 summary = "Every one of ${children.size} child rules must match.",
+                kind = PackRuleKind.ALL,
+                childRuleCount = children.size,
             ),
         ) + children.flatMap { it.flatten(depth + 1) }
 
@@ -364,6 +376,8 @@ class PackInspectorViewModel(
                 depth = depth,
                 typeLabel = "ANY",
                 summary = "At least one of ${children.size} child rules must match.",
+                kind = PackRuleKind.ANY,
+                childRuleCount = children.size,
             ),
         ) + children.flatMap { it.flatten(depth + 1) }
 
@@ -375,6 +389,10 @@ class PackInspectorViewModel(
                     expected?.let { " ${it.displayValue()}" }.orEmpty(),
                 summary = explanation,
                 sourceNote = sourceNote,
+                kind = PackRuleKind.ATOMIC,
+                factKey = factKey,
+                operator = operator,
+                expectedDisplayValue = expected?.displayValue(),
             ),
         )
 
@@ -385,6 +403,7 @@ class PackInspectorViewModel(
                 typeLabel = "MANUAL CHECK",
                 summary = explanation,
                 sourceNote = sourceNote,
+                kind = PackRuleKind.MANUAL_CHECK,
             ),
         )
     }
@@ -419,7 +438,7 @@ class PackInspectorViewModel(
         val selectedOpportunityId: String? = null,
         val diagnostics: List<PackDiagnosticUiState> = emptyList(),
         val pendingImport: PendingPackImport? = null,
-        val message: String? = null,
+        val message: PackInspectorNotice? = null,
     )
 
     private data class PendingPackImport(

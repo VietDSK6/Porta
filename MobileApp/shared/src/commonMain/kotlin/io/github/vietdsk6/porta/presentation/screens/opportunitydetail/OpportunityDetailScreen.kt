@@ -42,6 +42,12 @@ import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.generated.resources.*
+import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.presentation.components.headlineText
+import io.github.vietdsk6.porta.presentation.components.reasonText
+import io.github.vietdsk6.porta.presentation.components.timingText
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun OpportunityDetailScreen(
@@ -81,8 +87,8 @@ fun OpportunityDetailScreen(
     ScreenWithToolbar(
         modifier = modifier.testTag("opportunity-receipt-screen"),
         isScrollableContent = false,
-        title = "Details",
-        titleContent = { Text("Details", style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
+        title = stringResource(Res.string.detail_title),
+        titleContent = { Text(stringResource(Res.string.detail_title), style = AppTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold) },
         includeBottomInsets = true,
         navigationIcon = UiRes.drawable.ic_back,
         onNavigationIconClick = onNavigateBack,
@@ -93,9 +99,9 @@ fun OpportunityDetailScreen(
                     modifier = Modifier.fillMaxWidth().widthIn(max = 720.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text("Opportunity unavailable", style = AppTheme.typography.h5)
-                    Text(uiState.error, color = AppTheme.colors.text.secondary)
-                    OutlinedButton(onClick = onNavigateBack) { Text("Go back") }
+                    Text(stringResource(Res.string.detail_unavailable), style = AppTheme.typography.h5)
+                    Text(uiState.localizedError(), color = AppTheme.colors.text.secondary)
+                    OutlinedButton(onClick = onNavigateBack) { Text(stringResource(Res.string.detail_go_back)) }
                 }
             }
             return@ScreenWithToolbar
@@ -143,7 +149,7 @@ private fun CompactOpportunityDetailContent(
         item { CurrentConclusion(uiState) }
         item { ChecksSection(uiState) }
         item {
-            if (uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
+            if (uiState.nextStepCode != null || uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
                 SuggestedNextMoveSection(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
@@ -194,7 +200,7 @@ private fun WideOpportunityDetailContent(
                 item { CurrentConclusion(uiState) }
                 item { ChecksSection(uiState) }
                 item {
-                    if (uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
+                    if (uiState.nextStepCode != null || uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
                         SuggestedNextMoveSection(
                             uiState = uiState,
                             onUiEvent = onUiEvent,
@@ -231,20 +237,20 @@ private fun ChecksSection(uiState: OpportunityDetailUiState) {
         modifier = Modifier.fillMaxWidth().testTag("opportunity-checks"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Your checks", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
+        Text(stringResource(Res.string.detail_your_checks), modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
         if (uiState.rootResult == RuleResult.PASS) {
-            CheckGroup("Met in assessed checks", uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
+            CheckGroup(stringResource(Res.string.detail_checks_met), uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
             CheckGroup(
-                "Other published routes · not needed for this result",
+                stringResource(Res.string.detail_alternative_routes),
                 uiState.rules.filter { it.result != RuleResult.PASS },
                 AppTheme.colors.text.secondary,
                 isAlternative = true,
             )
         } else {
-            CheckGroup("Needs action", uiState.rules.filter { it.result == RuleResult.FAIL }, AppTheme.colors.status.warning)
-            CheckGroup("Needs information", uiState.rules.filter { it.result == RuleResult.UNKNOWN }, AppTheme.colors.primary)
-            CheckGroup("Needs source review", uiState.rules.filter { it.result == RuleResult.REVIEW }, AppTheme.colors.primary)
-            CheckGroup("Met in assessed checks", uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
+            CheckGroup(stringResource(Res.string.detail_needs_action), uiState.rules.filter { it.result == RuleResult.FAIL }, AppTheme.colors.status.warning)
+            CheckGroup(stringResource(Res.string.detail_needs_information), uiState.rules.filter { it.result == RuleResult.UNKNOWN }, AppTheme.colors.primary)
+            CheckGroup(stringResource(Res.string.detail_needs_review), uiState.rules.filter { it.result == RuleResult.REVIEW }, AppTheme.colors.primary)
+            CheckGroup(stringResource(Res.string.detail_checks_met), uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
         }
     }
 }
@@ -265,24 +271,24 @@ private fun RequirementCheckRow(rule: RuleReceiptUiState, accent: Color, isAlter
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                rule.shortTitle.ifBlank { "Programme condition" },
+                rule.localizedShortTitle(),
                 modifier = Modifier.weight(1f),
                 color = AppTheme.colors.text.primary,
                 style = AppTheme.typography.bodyLarge,
             )
             TextButton(modifier = Modifier.testTag("requirement-toggle-${rule.id}"), onClick = { expanded = !expanded }) {
-                Text(if (expanded) "Hide" else "Details")
+                Text(stringResource(if (expanded) Res.string.detail_hide else Res.string.detail_title))
             }
         }
         Text(
             if (isAlternative) {
-                "Alternative route; no action needed for the assessed result"
+                stringResource(Res.string.detail_alternative_no_action)
             } else {
                 when (rule.result) {
-                    RuleResult.PASS -> "Current check passed"
-                    RuleResult.FAIL -> "Required: ${rule.expectedLabel}"
-                    RuleResult.UNKNOWN -> "More information needed"
-                    RuleResult.REVIEW -> "Confirm on the official source"
+                    RuleResult.PASS -> stringResource(Res.string.detail_current_check_passed)
+                    RuleResult.FAIL -> stringResource(Res.string.detail_required, rule.localizedExpected())
+                    RuleResult.UNKNOWN -> stringResource(Res.string.detail_more_information)
+                    RuleResult.REVIEW -> stringResource(Res.string.detail_confirm_official)
                 }
             },
             color = AppTheme.colors.text.secondary,
@@ -292,12 +298,12 @@ private fun RequirementCheckRow(rule: RuleReceiptUiState, accent: Color, isAlter
             Text(rule.explanation, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
             if (rule.result != RuleResult.REVIEW) {
                 Text(
-                    "Current: ${rule.actualLabel} · Required: ${rule.expectedLabel}",
+                    stringResource(Res.string.detail_current_required, rule.localizedActual(), rule.localizedExpected()),
                     color = accent,
                     style = AppTheme.typography.bodySmall,
                 )
             } else {
-                Text("Confirm with the official source; this is not a missing editable fact.", color = accent, style = AppTheme.typography.bodySmall)
+                Text(stringResource(Res.string.detail_review_not_editable), color = accent, style = AppTheme.typography.bodySmall)
             }
             if (rule.sourceNote.isNotBlank()) {
                 Text(rule.sourceNote, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
@@ -314,24 +320,24 @@ private fun EvidenceAndSources(uiState: OpportunityDetailUiState, onOpenSource: 
         modifier = Modifier.fillMaxWidth().testTag("opportunity-evidence-sources"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Evidence & sources", modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
+        Text(stringResource(Res.string.detail_evidence_sources), modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
         Text(
-            uiState.checkedLabel,
+            uiState.localizedSourceReview(),
             color = if (uiState.sourceReviewNeedsAttention) AppTheme.colors.status.warning else AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodySmall,
         )
         if (uiState.canOpenSource) {
             TextButton(modifier = Modifier.testTag("opportunity-open-source"), onClick = { onOpenSource(uiState.sourceUrl) }) {
-                Text("Open official source")
+                Text(stringResource(Res.string.detail_open_source))
             }
         }
         TextButton(modifier = Modifier.testTag("opportunity-source-toggle"), onClick = { expanded = !expanded }) {
-            Text(if (expanded) "Hide source context" else "Source context & selection factors")
+            Text(stringResource(if (expanded) Res.string.detail_hide_source else Res.string.detail_source_context))
         }
         if (expanded) {
-            if (uiState.sourceSection.isNotBlank()) Text("Section: ${uiState.sourceSection}")
+            if (uiState.sourceSection.isNotBlank()) Text(stringResource(Res.string.detail_section, uiState.sourceSection))
             Text(uiState.disclaimer, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyMedium)
-            if (uiState.isArchived) Text("Archived cycle retained for reference; excluded from current planning.")
+            if (uiState.isArchived) Text(stringResource(Res.string.detail_archived))
             if (uiState.softCriteria.isNotEmpty()) SoftSelectionFactors(uiState.softCriteria)
         }
     }
@@ -345,12 +351,12 @@ private fun SuggestedNextMoveSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = if (uiState.relatedActionId == null) "What to verify next" else "Suggested next move",
+            text = stringResource(if (uiState.relatedActionId == null) Res.string.detail_verify_next else Res.string.detail_suggested_move),
             modifier = Modifier.semantics { heading() },
             style = AppTheme.typography.h6,
         )
         Text(
-            uiState.nextStepGuidance,
+            uiState.localizedNextStep(),
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
@@ -362,7 +368,7 @@ private fun SuggestedNextMoveSection(
                     onPreviewAction(actionId)
                 },
             ) {
-                Text("Preview impact")
+                Text(stringResource(Res.string.detail_preview_impact))
             }
         }
     }
@@ -376,12 +382,12 @@ private fun InformationTasksSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "Information tasks",
+            text = stringResource(Res.string.detail_information_tasks),
             modifier = Modifier.semantics { heading() },
             style = AppTheme.typography.h6,
         )
         Text(
-            "These tasks only fill missing information. They do not improve a check until you save a real answer and Porta evaluates it.",
+            stringResource(Res.string.detail_information_caveat),
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )
@@ -395,7 +401,7 @@ private fun InformationTasksSection(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(task.title, fontWeight = FontWeight.Bold, style = AppTheme.typography.bodyLarge)
+                    Text(task.localizedTitle(), fontWeight = FontWeight.Bold, style = AppTheme.typography.bodyLarge)
                     Text(task.question, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
                     if (task.sourceNote.isNotBlank()) {
                         Text(
@@ -415,8 +421,8 @@ private fun InformationTasksSection(
                     ) {
                         Text(
                             when (task.destination) {
-                                InformationTaskDestination.ACADEMIC_PROFILE -> "Update academic profile"
-                                InformationTaskDestination.OFFICIAL_SOURCE -> "Check official source"
+                                InformationTaskDestination.ACADEMIC_PROFILE -> stringResource(Res.string.detail_update_profile)
+                                InformationTaskDestination.OFFICIAL_SOURCE -> stringResource(Res.string.detail_check_source)
                             },
                         )
                     }
@@ -431,19 +437,19 @@ private fun OpportunityHeader(uiState: OpportunityDetailUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             when {
-                uiState.isDemoProfile && uiState.isSampleCatalog -> "DEMO PROFILE · SYNTHETIC PACK"
-                uiState.isDemoProfile -> "DEMO PROFILE · SOURCED PACK"
-                uiState.isSampleProfile && uiState.isSampleCatalog -> "SAMPLE PROFILE · SYNTHETIC PACK"
-                uiState.isSampleProfile -> "SAMPLE PROFILE · SOURCED PACK"
-                uiState.isSampleCatalog -> "YOUR PROFILE · SYNTHETIC PACK"
-                else -> "YOUR PROFILE · SOURCED PACK"
+                uiState.isDemoProfile && uiState.isSampleCatalog -> stringResource(Res.string.detail_demo_synthetic)
+                uiState.isDemoProfile -> stringResource(Res.string.detail_demo_sourced)
+                uiState.isSampleProfile && uiState.isSampleCatalog -> stringResource(Res.string.detail_sample_synthetic)
+                uiState.isSampleProfile -> stringResource(Res.string.detail_sample_sourced)
+                uiState.isSampleCatalog -> stringResource(Res.string.detail_own_synthetic)
+                else -> stringResource(Res.string.detail_own_sourced)
             },
             color = AppTheme.colors.primary,
             fontWeight = FontWeight.Bold,
         )
         Text(uiState.title, style = AppTheme.typography.h4)
         Text(uiState.provider, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodyLarge)
-        Text(uiState.deadlineLabel, color = AppTheme.colors.text.secondary)
+        Text(uiState.localizedDeadline(), color = AppTheme.colors.text.secondary)
     }
 }
 
@@ -458,13 +464,13 @@ private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                uiState.stateLabel,
+                uiState.copyCode?.headlineText()?.uppercase() ?: uiState.stateLabel,
                 color = uiState.stateColor(),
                 fontWeight = FontWeight.Bold,
                 style = AppTheme.typography.bodySmall,
             )
-            Text(uiState.conclusionSummary, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
-            Text(uiState.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+            Text(uiState.copyCode?.reasonText() ?: uiState.conclusionSummary, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
+            Text(uiState.copyCode?.timingText() ?: uiState.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }
@@ -473,12 +479,12 @@ private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
 private fun SoftSelectionFactors(criteria: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "Soft selection factors",
+            text = stringResource(Res.string.detail_soft_factors),
             modifier = Modifier.semantics { heading() },
             style = AppTheme.typography.h6,
         )
         Text(
-            "These may affect selection, but Porta never treats them as pass/fail rules.",
+            stringResource(Res.string.detail_soft_caveat),
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodyMedium,
         )

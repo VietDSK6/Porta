@@ -7,13 +7,14 @@ data class RouteUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val canSave: Boolean = false,
+    val isFictionalProfile: Boolean = false,
+    val isIllustrativePreview: Boolean = false,
     val horizonDays: Int = 180,
     val maxTotalCost: CostBand = CostBand.UNKNOWN,
     val maxEffort: EffortLevel = EffortLevel.VERY_HIGH,
     val routes: List<RouteOptionUiState> = emptyList(),
     val selectedRouteId: String? = null,
-    val error: String? = null,
-    val saveNotice: String? = null,
+    val notice: RouteNotice? = null,
 ) {
     val selectedRoute: RouteOptionUiState?
         get() = routes.firstOrNull { it.id == selectedRouteId } ?: routes.firstOrNull()
@@ -27,23 +28,17 @@ data class RouteOptionUiState(
     val daysToFirstDoor: Int?,
     val totalDays: Int,
     val costRankSum: Int,
-    val explanation: String,
+    val reason: RouteReason,
 ) {
-    val summary: String
-        get() = buildString {
-            val improvedDoorCount = steps.flatMap(RouteStepUiState::doorsImproved).distinct().size
-            val lostDoorCount = steps.flatMap(RouteStepUiState::doorsLost).distinct().size
-            if (openedTotal > 0) {
-                append("$openedTotal doors would pass their assessed checks")
-                if (openedSaved > 0) append(", including $openedSaved saved")
-            } else {
-                append("No door passes every assessed check yet; checks for $improvedDoorCount doors would improve")
-            }
-            append(" across ${steps.size} steps and $totalDays days.")
-            if (lostDoorCount > 0) append(" $lostDoorCount would close before this route finishes.")
-            append(" Official requirements and deadlines still need checking.")
-        }
+    val improvedDoorCount: Int get() = steps.flatMap(RouteStepUiState::doorsImproved).distinct().size
+    val lostDoorCount: Int get() = steps.flatMap(RouteStepUiState::doorsLost).distinct().size
 }
+
+enum class RouteNotice { SAVED, SAVE_FAILED }
+
+enum class RouteReasonKind { OPENS_SAVED, OPENS, IMPROVES }
+
+data class RouteReason(val kind: RouteReasonKind, val count: Int)
 
 data class RouteStepUiState(
     val id: String,

@@ -8,7 +8,14 @@ data class ActivePlanUiState(
     val routeSteps: List<ActiveRouteStepUiState> = emptyList(),
     val selectedPlanId: String? = null,
     val error: String? = null,
+    val errorCode: ActivePlanError? = null,
 )
+
+enum class ActivePlanError { UPDATE_FAILED }
+
+enum class PlanDurationKind { ESTIMATE, MINIMUM, UNKNOWN }
+
+enum class PlanStepCopy { SAVED, START, IN_PROGRESS, PAUSED, COMPLETE, CONFIRM_RESULT }
 
 data class ActiveRouteStepUiState(
     val planId: String,
@@ -31,6 +38,12 @@ data class ActivePlanCardUiState(
     val riskNote: String,
     val updatedLabel: String,
     val steps: List<PlanStepUiState>,
+    val durationKind: PlanDurationKind? = null,
+    val durationDays: Int? = null,
+    val effortName: String? = null,
+    val costName: String? = null,
+    val evidenceDefinitionMissing: Boolean = false,
+    val updatedAtEpochMillis: Long? = null,
 ) {
     val candidateOpportunityIds: List<String>
         get() = candidateCheckChanges.map(PlanOpportunityImpactUiState::opportunityId)
@@ -65,6 +78,7 @@ enum class PlanTimingStatus(val isNotRuledOut: Boolean) {
 data class PlanStepUiState(
     val title: String,
     val state: PlanStepState,
+    val copy: PlanStepCopy? = null,
 )
 
 enum class PlanStepState {

@@ -5,21 +5,17 @@ import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileImportRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
-import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.data.source.local.profile.ProfileExportCodec
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
-import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.FactKey
-import io.github.vietdsk6.porta.domain.model.FactProvenance
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleNode
-import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ManageLocalPortaDataUseCase
+import io.github.vietdsk6.porta.presentation.locale.AppLanguageState
 import io.github.vietdsk6.porta.presentation.screens.profilesetup.GrowthEvidenceEncoding
-import io.github.vietdsk6.porta.presentation.screens.profilesetup.countryForStoredValue
 import io.github.vietdsk6.porta.util.PlatformCapabilities
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.file.FileManager
@@ -41,6 +37,7 @@ class StudentProfileViewModel(
     private val fileManager: FileManager,
     private val platformCapabilities: PlatformCapabilities = getPlatformCapabilities(),
     private val userPreferences: UserPreferences? = null,
+    private val sampleScenarioProvider: SampleScenarioProvider = SampleScenarioProvider(),
 ) : ViewModel() {
     private val transientState = MutableStateFlow(StudentProfileTransientState())
 
@@ -56,9 +53,9 @@ class StudentProfileViewModel(
         val activePack = activePackResult.getOrNull()
         buildUiState(
             profile = profile,
-            opportunities = activePack?.opportunities ?: PortaSampleData.opportunities,
+            opportunities = activePack?.opportunities ?: sampleScenarioProvider.opportunities,
             isSampleCatalog = activePack == null ||
-                activePack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
+                sampleScenarioProvider.isLegacySyntheticPack(activePack.metadata.id),
             transient = transient,
         )
     }.stateIn(
@@ -93,7 +90,7 @@ class StudentProfileViewModel(
             is StudentProfileUiEvent.ImportProfileSelected -> previewProfileImport(event)
 
             StudentProfileUiEvent.ImportProfileReadFailed -> showFailure(
-                "Porta could not read that profile copy. Your current profile is unchanged.",
+                ProfileNotice.IMPORT_READ_FAILED,
             )
 
             StudentProfileUiEvent.ImportProfileCancelled -> transientState.update {
@@ -116,6 +113,8 @@ class StudentProfileViewModel(
 
             StudentProfileUiEvent.AiKeyDeleteRequested -> deleteAiKey()
 
+            is StudentProfileUiEvent.LanguageChanged -> changeLanguage(event.language)
+
             StudentProfileUiEvent.MessageHandled -> transientState.update { it.copy(message = null) }
         }
     }
@@ -130,11 +129,11 @@ class StudentProfileViewModel(
                         it.copy(
                             isWorking = false,
                             expandedFactKey = null,
-                            message = "${fact.label} was removed. Dependent rules will now be marked unknown.",
+                            message = ProfileNotice.FACT_REMOVED,
                         )
                     }
                 }
-                .onFailure { showFailure("Porta could not remove that fact.") }
+                .onFailure { showFailure(ProfileNotice.FACT_REMOVE_FAILED) }
         }
     }
 
@@ -153,15 +152,14 @@ class StudentProfileViewModel(
                             onSuccess = { opened ->
                                 if (!opened) {
                                     showFailure(
-                                        "That evidence file is not stored on this device. " +
-                                            "Imported profile copies include its description only.",
+                                        ProfileNotice.EVIDENCE_NOT_ON_DEVICE,
                                     )
                                 }
                             },
-                            onFailure = { showFailure("Porta could not open that evidence file.") },
+                            onFailure = { showFailure(ProfileNotice.EVIDENCE_OPEN_FAILED) },
                         )
                     },
-                    onFailure = { showFailure("That evidence file is no longer available.") },
+                    onFailure = { showFailure(ProfileNotice.EVIDENCE_MISSING) },
                 )
         }
     }
@@ -176,7 +174,7 @@ class StudentProfileViewModel(
                 }
                 .fold(
                     onSuccess = { json -> saveExport(json) },
-                    onFailure = { showFailure("Porta could not export the profile metadata.") },
+                    onFailure = { showFailure(ProfileNotice.EXPORT_FAILED) },
                 )
         }
     }
@@ -192,14 +190,14 @@ class StudentProfileViewModel(
                     it.copy(
                         isWorking = false,
                         message = if (wasSaved) {
-                            "Profile metadata exported. No evidence files were included."
+                            ProfileNotice.EXPORTED
                         } else {
                             null
                         },
                     )
                 }
             },
-            onFailure = { showFailure("Porta could not export the profile metadata.") },
+            onFailure = { showFailure(ProfileNotice.EXPORT_FAILED) },
         )
     }
 
@@ -230,7 +228,7 @@ class StudentProfileViewModel(
                 }
             },
             onFailure = {
-                showFailure("That file is not a supported Porta profile copy. Your current profile is unchanged.")
+                showFailure(ProfileNotice.UNSUPPORTED_IMPORT)
             },
         )
     }
@@ -249,7 +247,7 @@ class StudentProfileViewModel(
                             pendingProfileImport = null,
                             profileImportError = null,
                             expandedFactKey = null,
-                            message = "Profile copy imported. Doors and next moves now use the imported facts.",
+                            message = ProfileNotice.IMPORTED,
                         )
                     }
                 }
@@ -283,12 +281,11 @@ class StudentProfileViewModel(
                     transientState.value = StudentProfileTransientState(
                         message = when (action) {
                             ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> {
-                                "Academic profile, programme confirmations, and plans were deleted. " +
-                                    "Saved doors and preferences were kept."
+                                ProfileNotice.CLEARED
                             }
 
                             ProfileDataAction.RESET_ALL_LOCAL_DATA -> {
-                                "Porta was reset on this device. The bundled opportunity catalog was restored."
+                                ProfileNotice.RESET
                             }
                         },
                     )
@@ -296,15 +293,15 @@ class StudentProfileViewModel(
                 .onFailure {
                     showFailure(
                         when (action) {
-                            ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> "Porta could not clear the academic profile."
-                            ProfileDataAction.RESET_ALL_LOCAL_DATA -> "Porta could not finish resetting local data."
+                            ProfileDataAction.CLEAR_PROFILE_AND_PLANS -> ProfileNotice.CLEAR_FAILED
+                            ProfileDataAction.RESET_ALL_LOCAL_DATA -> ProfileNotice.RESET_FAILED
                         },
                     )
                 }
         }
     }
 
-    private fun showFailure(message: String) {
+    private fun showFailure(message: ProfileNotice) {
         transientState.update { it.copy(isWorking = false, message = message) }
     }
 
@@ -313,9 +310,10 @@ class StudentProfileViewModel(
         viewModelScope.launch {
             try {
                 val saved = !preferences.getString(UserPreferences.KEY_AI_DRAFT_API_KEY).isNullOrBlank()
-                transientState.update { it.copy(aiKeySaved = saved) }
+                val language = preferences.getString(UserPreferences.KEY_APP_LANGUAGE)
+                transientState.update { it.copy(aiKeySaved = saved, selectedLanguage = language) }
             } catch (_: Exception) {
-                showFailure("Porta could not read AI drafting settings on this device.")
+                showFailure(ProfileNotice.AI_SETTINGS_READ_FAILED)
             }
         }
     }
@@ -324,7 +322,7 @@ class StudentProfileViewModel(
         val preferences = userPreferences ?: return
         val key = rawKey.trim()
         if (key.isEmpty() || key.length > MAX_AI_KEY_CHARACTERS) {
-            showFailure("Enter a valid AI drafting key before saving.")
+            showFailure(ProfileNotice.AI_KEY_INVALID)
             return
         }
         viewModelScope.launch {
@@ -332,10 +330,10 @@ class StudentProfileViewModel(
             try {
                 preferences.putString(UserPreferences.KEY_AI_DRAFT_API_KEY, key)
                 transientState.update {
-                    it.copy(isWorking = false, aiKeySaved = true, message = "AI drafting key saved on this device.")
+                    it.copy(isWorking = false, aiKeySaved = true, message = ProfileNotice.AI_KEY_SAVED)
                 }
             } catch (_: Exception) {
-                showFailure("Porta could not save the AI drafting key.")
+                showFailure(ProfileNotice.AI_KEY_SAVE_FAILED)
             }
         }
     }
@@ -347,10 +345,31 @@ class StudentProfileViewModel(
             try {
                 preferences.remove(UserPreferences.KEY_AI_DRAFT_API_KEY)
                 transientState.update {
-                    it.copy(isWorking = false, aiKeySaved = false, message = "AI drafting key removed from this device.")
+                    it.copy(isWorking = false, aiKeySaved = false, message = ProfileNotice.AI_KEY_REMOVED)
                 }
             } catch (_: Exception) {
-                showFailure("Porta could not remove the AI drafting key.")
+                showFailure(ProfileNotice.AI_KEY_REMOVE_FAILED)
+            }
+        }
+    }
+
+    private fun changeLanguage(language: String?) {
+        val preferences = userPreferences ?: return
+        if (language != null && language != "en" && language != "vi") return
+        val previous = transientState.value.selectedLanguage
+        transientState.update { it.copy(selectedLanguage = language) }
+        AppLanguageState.select(language)
+        viewModelScope.launch {
+            try {
+                if (language == null) {
+                    preferences.remove(UserPreferences.KEY_APP_LANGUAGE)
+                } else {
+                    preferences.putString(UserPreferences.KEY_APP_LANGUAGE, language)
+                }
+            } catch (_: Exception) {
+                AppLanguageState.select(previous)
+                transientState.update { it.copy(selectedLanguage = previous) }
+                showFailure(ProfileNotice.LANGUAGE_SAVE_FAILED)
             }
         }
     }
@@ -420,7 +439,7 @@ class StudentProfileViewModel(
             isLoading = false,
             isWorking = transient.isWorking,
             hasRealProfile = facts.isNotEmpty(),
-            isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile),
+            isDemoProfile = sampleScenarioProvider.isPersistedDemoProfile(profile),
             factCount = facts.size,
             catalogOpportunityCount = opportunities.map(Opportunity::id).distinct().size,
             dependentOpportunityCount = referencedOpportunityCount(opportunities, facts.keys),
@@ -433,6 +452,8 @@ class StudentProfileViewModel(
             supportsProfileImport = platformCapabilities.supportsStudio,
             aiDraftSettingsAvailable = userPreferences != null,
             aiKeySaved = transient.aiKeySaved,
+            languageSettingsAvailable = userPreferences != null,
+            selectedLanguage = transient.selectedLanguage,
             pendingProfileImport = transient.pendingProfileImport?.toPreview(),
             profileImportError = transient.profileImportError,
             message = transient.message,
@@ -463,82 +484,16 @@ class StudentProfileViewModel(
         )
     }
 
-    private fun RuleNode.factKeys(): Set<FactKey> = when (this) {
-        is RuleNode.All -> children.flatMapTo(mutableSetOf()) { it.factKeys() }
-        is RuleNode.Any -> children.flatMapTo(mutableSetOf()) { it.factKeys() }
-        is RuleNode.Atomic -> setOf(factKey)
-        is RuleNode.ManualCheck -> emptySet()
-    }
-
-    private fun FactValue.profileDisplayValue(key: FactKey): String = when {
-        key == FactKey.GPA && this is FactValue.NumberValue -> {
-            val scale = unit.removeSuffix(" scale").ifBlank { "4.0" }
-            "${amount.compact()} / $scale"
-        }
-
-        (key == FactKey.NATIONALITY || key == FactKey.RESIDENCY) && this is FactValue.EnumValue -> {
-            countryForStoredValue(value)?.displayName ?: value
-        }
-
-        this is FactValue.NumberValue -> "${amount.compact()} $unit".trim()
-
-        else -> displayValue()
-    }
-
-    private fun Double.compact(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
-
-    private fun Long.readableFileSize(): String = when {
-        this >= BYTES_PER_MEGABYTE -> "${(this.toDouble() / BYTES_PER_MEGABYTE).oneDecimal()} MB"
-        this >= BYTES_PER_KILOBYTE -> "${(this.toDouble() / BYTES_PER_KILOBYTE).oneDecimal()} KB"
-        else -> "$this B"
-    }
-
-    private fun Double.oneDecimal(): String {
-        val roundedTenths = (this * 10.0).toInt()
-        val whole = roundedTenths / 10
-        val fraction = roundedTenths % 10
-        return if (fraction == 0) whole.toString() else "$whole.$fraction"
-    }
-
-    private fun FactKey.label(): String = when (this) {
-        FactKey.GPA -> "GPA"
-        FactKey.STUDY_LEVEL -> "Study level"
-        FactKey.FIELD_OF_STUDY -> "Field of study"
-        FactKey.NATIONALITY -> "Nationality"
-        FactKey.RESIDENCY -> "Residency"
-        FactKey.IELTS_SCORE -> "IELTS score"
-        FactKey.EXPERIENCE_MONTHS -> "Experience"
-        FactKey.COMMUNITY_PROJECT -> "Community project"
-        FactKey.LEADERSHIP -> "Leadership"
-        FactKey.ENROLLED -> "Currently enrolled"
-        FactKey.AGE -> "Age"
-        FactKey.DATE_OF_BIRTH -> "Date of birth"
-        FactKey.DEGREE_COMPLETED -> "Degree completed"
-        FactKey.AVAILABLE_FULL_PERIOD -> "Available for full period"
-    }
-
-    private fun FactProvenance.label(): String = when (this) {
-        FactProvenance.SELF_REPORTED -> "Self-reported"
-        FactProvenance.EVIDENCE_BACKED -> "Evidence-backed"
-    }
-
-    private fun Actionability.label(): String = when (this) {
-        Actionability.CONTROLLABLE -> "Can change"
-        Actionability.TIME_DEPENDENT -> "Changes with time"
-        Actionability.CONTEXT_ONLY -> "Context only"
-        Actionability.IMMUTABLE -> "Not an action target"
-        Actionability.UNKNOWN -> "Actionability unknown"
-    }
-
     private data class StudentProfileTransientState(
         val isWorking: Boolean = false,
         val aiKeySaved: Boolean = false,
+        val selectedLanguage: String? = null,
         val expandedFactKey: FactKey? = null,
         val factPendingDelete: ProfileFactUiState? = null,
         val pendingDataAction: ProfileDataAction? = null,
         val pendingProfileImport: PendingProfileImport? = null,
         val profileImportError: String? = null,
-        val message: String? = null,
+        val message: ProfileNotice? = null,
     )
 
     private data class PendingProfileImport(
@@ -557,8 +512,6 @@ class StudentProfileViewModel(
         private const val MAX_PROFILE_IMPORT_ASSERTIONS = 1_000
         private const val MAX_PROFILE_IMPORT_FILE_NAME_CHARACTERS = 120
         private const val MAX_AI_KEY_CHARACTERS = 512
-        private const val BYTES_PER_KILOBYTE = 1_024L
-        private const val BYTES_PER_MEGABYTE = 1_024L * 1_024L
         private val SENSITIVE_PROFILE_FACTS = setOf(
             FactKey.NATIONALITY,
             FactKey.RESIDENCY,

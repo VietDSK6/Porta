@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -12,7 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.LogoImage
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
-import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.presentation.locale.LocalAppLocale
 
 @Composable
 fun OnBoardingScreen(
@@ -81,11 +82,6 @@ private fun OnBoardingScreenPreview() {
         OnBoardingScreen(
             uiState = OnBoardingUiState(
                 selectedGoal = OnboardingGoal.SCHOLARSHIPS,
-                demoDoors = buildOnboardingDemoDoors(
-                    eligibilityEvaluator = EligibilityEvaluator(),
-                    sampleIelts = SAMPLE_IELTS_BASELINE,
-                    selectedGoal = OnboardingGoal.SCHOLARSHIPS,
-                ),
                 isLoading = false,
             ),
             onUiEvent = {},
@@ -95,22 +91,32 @@ private fun OnBoardingScreenPreview() {
 
 @Preview
 @Composable
-private fun OnBoardingResultPreview() {
+private fun OnBoardingRoutePreview() {
     AppTheme {
         OnBoardingScreen(
             uiState = OnBoardingUiState(
-                currentStep = 2,
+                currentStep = 1,
                 selectedGoal = OnboardingGoal.SCHOLARSHIPS,
-                sampleIelts = 7.0,
-                demoDoors = buildOnboardingDemoDoors(
-                    eligibilityEvaluator = EligibilityEvaluator(),
-                    sampleIelts = SAMPLE_IELTS_TARGET,
-                    selectedGoal = OnboardingGoal.SCHOLARSHIPS,
-                ),
-                isReceiptExpanded = true,
                 isLoading = false,
             ),
             onUiEvent = {},
         )
+    }
+}
+
+@Preview(name = "Onboarding route Vietnamese", locale = "vi")
+@Composable
+private fun OnBoardingRouteVietnamesePreview() {
+    CompositionLocalProvider(LocalAppLocale provides "vi") {
+        AppTheme {
+            OnBoardingScreen(
+                uiState = OnBoardingUiState(
+                    currentStep = 1,
+                    selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                    isLoading = false,
+                ),
+                onUiEvent = {},
+            )
+        }
     }
 }

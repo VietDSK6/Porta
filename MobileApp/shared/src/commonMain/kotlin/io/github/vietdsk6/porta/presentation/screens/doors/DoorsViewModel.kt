@@ -5,8 +5,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
-import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.Opportunity
@@ -14,7 +13,9 @@ import io.github.vietdsk6.porta.domain.model.OpportunityCategory
 import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.sourceFreshness
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.presentation.components.displayCode
 import io.github.vietdsk6.porta.presentation.components.displayCopy
 import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
 import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
@@ -35,6 +36,7 @@ class DoorsViewModel(
     private val opportunityPackRepository: OpportunityPackRepository,
     private val savedOpportunityRepository: SavedOpportunityRepository,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
+    private val sampleScenarioProvider: SampleScenarioProvider = SampleScenarioProvider(),
 ) : ViewModel() {
     private var persistedSavedIds: Set<String> = emptySet()
     private val pendingSavedStates = mutableMapOf<String, Boolean>()
@@ -42,8 +44,8 @@ class DoorsViewModel(
     private var isSampleProfile = true
     private var isDemoProfile = false
     private var isSampleCatalog = true
-    private var activeProfile = PortaSampleData.profile
-    private var activeOpportunities = PortaSampleData.opportunities
+    private var activeProfile = sampleScenarioProvider.profile
+    private var activeOpportunities = sampleScenarioProvider.opportunities
     private var activeDate = currentLocalDateProvider.today()
     private var allDoors = evaluateDoors()
     private var lastObservedProfile: ProfileSnapshot? = null
@@ -73,13 +75,13 @@ class DoorsViewModel(
                     (opportunityId in savedIds) == isSaved
                 }
                 isSampleProfile = profile.facts.isEmpty()
-                isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile)
-                activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
+                isDemoProfile = sampleScenarioProvider.isPersistedDemoProfile(profile)
+                activeProfile = profile.takeUnless { isSampleProfile } ?: sampleScenarioProvider.profile
                 activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
-                    ?: PortaSampleData.opportunities
+                    ?: sampleScenarioProvider.opportunities
                 activeDate = observed.today
                 isSampleCatalog = pack == null ||
-                    pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
+                    sampleScenarioProvider.isLegacySyntheticPack(pack.metadata.id)
                 allDoors = evaluateDoors()
                 highlightedDoorIds = when {
                     previousProfile == null -> emptySet()
@@ -169,6 +171,9 @@ class DoorsViewModel(
                 opportunity.deadline is Deadline.Known -> DoorDeadlineBucket.UPCOMING
                 else -> DoorDeadlineBucket.TBA_OR_MISSING
             },
+            copyCode = receipt.displayCode(),
+            sourceFreshness = opportunity.sourceFreshness(activeDate).status,
+            sourceCheckedOn = opportunity.lastCheckedOn,
         )
     }
 
@@ -190,6 +195,7 @@ class DoorsViewModel(
                 door.title,
                 door.provider,
                 door.categoryLabel,
+                door.category.searchTerms(),
             ).any { searchable -> searchable.contains(current.searchQuery.trim(), ignoreCase = true) }
             val matchesCategory = current.selectedCategory == null || door.category == current.selectedCategory
             val matchesDeadline = when (current.selectedDeadlineFilter) {
@@ -240,6 +246,14 @@ class DoorsViewModel(
         OpportunityCategory.ACADEMIC_PROGRAM -> "Academic programme"
         OpportunityCategory.STUDENT_CONTEST -> "Student contest"
         OpportunityCategory.FELLOWSHIP -> "Fellowship"
+    }
+
+    private fun OpportunityCategory.searchTerms(): String = when (this) {
+        OpportunityCategory.SCHOLARSHIP -> "scholarship học bổng"
+        OpportunityCategory.INTERNSHIP -> "internship thực tập"
+        OpportunityCategory.ACADEMIC_PROGRAM -> "academic programme chương trình học"
+        OpportunityCategory.STUDENT_CONTEST -> "student contest cuộc thi sinh viên"
+        OpportunityCategory.FELLOWSHIP -> "fellowship chương trình tài trợ"
     }
 
     private data class ObservedDoorsData(

@@ -17,8 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.designsystem.AllComponentsGallery
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.presentation.locale.AppLanguageState
+import io.github.vietdsk6.porta.presentation.locale.AppLocaleEnvironment
 import io.github.vietdsk6.porta.presentation.navigation.AppNavigation
 import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
 import io.github.vietdsk6.porta.util.UiMessage
@@ -35,17 +38,23 @@ import org.koin.compose.koinInject
 /** Root composable — the single entry point every platform (Android/iOS/Desktop/Web) renders. */
 @Composable
 fun App(desktopCommands: Flow<DesktopCommand>? = null) {
-    AppTheme {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Set this to true for showing app, or false for ui components gallery
-            val isPreviewComponentsMode = false
-            if (isPreviewComponentsMode) {
-                AllComponentsGallery()
-            } else {
-                AppScaffold(desktopCommands)
+    val preferences = koinInject<UserPreferences>()
+    LaunchedEffect(preferences) {
+        AppLanguageState.select(preferences.getString(UserPreferences.KEY_APP_LANGUAGE))
+    }
+    AppLocaleEnvironment {
+        AppTheme {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Set this to true for showing app, or false for ui components gallery
+                val isPreviewComponentsMode = false
+                if (isPreviewComponentsMode) {
+                    AllComponentsGallery()
+                } else {
+                    AppScaffold(desktopCommands)
+                }
             }
         }
     }

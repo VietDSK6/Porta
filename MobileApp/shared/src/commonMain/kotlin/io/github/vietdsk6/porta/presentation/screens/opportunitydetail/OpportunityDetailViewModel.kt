@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
-import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -13,12 +12,14 @@ import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityCycleStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleResult
-import io.github.vietdsk6.porta.domain.model.displayValue
+import io.github.vietdsk6.porta.domain.model.sourceFreshness
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.domain.usecase.EligibilityEvaluator
+import io.github.vietdsk6.porta.presentation.components.displayCode
 import io.github.vietdsk6.porta.presentation.components.displayCopy
 import io.github.vietdsk6.porta.presentation.components.sourceReviewLabel
 import io.github.vietdsk6.porta.presentation.components.sourceReviewNeedsAttention
+import io.github.vietdsk6.porta.presentation.locale.displayValue
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +35,12 @@ class OpportunityDetailViewModel(
     private val profileRepository: ProfileRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
+    private val sampleScenarioProvider: SampleScenarioProvider = SampleScenarioProvider(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         buildState(
-            profile = PortaSampleData.profile,
-            opportunities = PortaSampleData.opportunities,
+            profile = sampleScenarioProvider.profile,
+            opportunities = sampleScenarioProvider.opportunities,
             isSampleProfile = true,
             isDemoProfile = false,
             isSampleCatalog = true,
@@ -57,12 +59,12 @@ class OpportunityDetailViewModel(
                 .collect { (profile, pack, today) ->
                     val isSampleProfile = profile.facts.isEmpty()
                     _uiState.value = buildState(
-                        profile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile,
-                        opportunities = pack?.opportunities ?: PortaSampleData.opportunities,
+                        profile = profile.takeUnless { isSampleProfile } ?: sampleScenarioProvider.profile,
+                        opportunities = pack?.opportunities ?: sampleScenarioProvider.opportunities,
                         isSampleProfile = isSampleProfile,
-                        isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile),
+                        isDemoProfile = sampleScenarioProvider.isPersistedDemoProfile(profile),
                         isSampleCatalog = pack == null ||
-                            pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID,
+                            sampleScenarioProvider.isLegacySyntheticPack(pack.metadata.id),
                         today = today,
                     )
                 }
@@ -114,6 +116,7 @@ class OpportunityDetailViewModel(
                     question = rule.explanation,
                     sourceNote = rule.sourceNote.orEmpty(),
                     destination = destination,
+                    titleFactKey = factKey,
                 )
             }
             OpportunityDetailUiState(
@@ -122,11 +125,20 @@ class OpportunityDetailViewModel(
                 provider = opportunity.provider,
                 state = receipt.state,
                 rootResult = receipt.rootResult,
+                copyCode = receipt.displayCode(),
                 stateLabel = displayCopy.statusLabel.uppercase(),
                 conclusionSummary = displayCopy.shortReason,
                 timingLabel = displayCopy.timingLabel,
                 deadlineLabel = opportunity.deadline.label(),
+                deadlineDate = (opportunity.deadline as? Deadline.Known)?.date,
+                deadlineKind = when (opportunity.deadline) {
+                    is Deadline.Known -> DeadlineKind.KNOWN
+                    Deadline.Missing -> DeadlineKind.MISSING
+                    Deadline.Tba -> DeadlineKind.TBA
+                },
                 checkedLabel = opportunity.sourceReviewLabel(today),
+                sourceFreshness = opportunity.sourceFreshness(today).status,
+                sourceCheckedOn = opportunity.lastCheckedOn,
                 sourceReviewNeedsAttention = opportunity.sourceReviewNeedsAttention(today),
                 isArchived = receipt.cycleStatus == OpportunityCycleStatus.ARCHIVED,
                 sourceUrl = opportunity.sourceUrl,
@@ -142,6 +154,9 @@ class OpportunityDetailViewModel(
                         sourceNote = rule.sourceNote.orEmpty(),
                         shortTitle = rule.factKey?.let { "${it.name.lowercase().replace('_', ' ')} check" }
                             ?: "Programme condition",
+                        titleFactKey = rule.factKey,
+                        actualMissing = rule.actual == null,
+                        expectedManualReview = rule.expected == null,
                     )
                 },
                 softCriteria = opportunity.softCriteria,
@@ -163,13 +178,23 @@ class OpportunityDetailViewModel(
 
                     else -> "Porta has no evidence-backed profile change to suggest for this door."
                 },
+                nextStepCode = when {
+                    relatedAction != null -> NextStepCode.LINKED_ACTION
+                    informationTasks.isNotEmpty() -> NextStepCode.MISSING_FACTS
+                    receipt.rules.any { it.result == RuleResult.FAIL && it.actionTemplateId != null } -> NextStepCode.TIMING_MISMATCH
+                    receipt.rules.any { it.result == RuleResult.UNKNOWN || it.result == RuleResult.REVIEW } -> NextStepCode.VERIFY_SOURCE
+                    else -> NextStepCode.NO_CHANGE
+                },
                 informationTasks = informationTasks,
                 canOpenSource = opportunity.sourceUrl.startsWith("https://"),
                 isSampleProfile = isSampleProfile,
                 isDemoProfile = isDemoProfile,
                 isSampleCatalog = isSampleCatalog,
             )
-        } ?: OpportunityDetailUiState(error = "This opportunity is no longer in the active opportunity pack.")
+        } ?: OpportunityDetailUiState(
+        error = "This opportunity is no longer in the active opportunity pack.",
+        errorCode = DetailErrorCode.OPPORTUNITY_MISSING,
+    )
 
     private fun Deadline.label(): String = when (this) {
         is Deadline.Known -> "Deadline $date"

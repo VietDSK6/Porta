@@ -1,15 +1,25 @@
 package io.github.vietdsk6.porta.presentation.screens.route
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.tooling.preview.Preview
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.presentation.locale.LocalAppLocale
 
 @Preview(name = "Route compact", widthDp = 390, heightDp = 840)
 @Composable
 private fun RouteCompactPreview() {
     AppTheme { PreviewRouteScreen() }
+}
+
+@Preview(name = "Route compact Vietnamese", widthDp = 390, heightDp = 840, locale = "vi")
+@Composable
+private fun RouteVietnamesePreview() {
+    CompositionLocalProvider(LocalAppLocale provides "vi") {
+        AppTheme { PreviewRouteScreen() }
+    }
 }
 
 @Preview(name = "Route metro wide", device = "spec:width=1200dp,height=800dp,dpi=160")
@@ -43,6 +53,8 @@ private fun PreviewRouteScreen() {
 private val previewState = RouteUiState(
     isLoading = false,
     canSave = true,
+    isFictionalProfile = true,
+    isIllustrativePreview = true,
     routes = listOf(
         RouteOptionUiState(
             id = "english-then-experience",
@@ -77,7 +89,7 @@ private val previewState = RouteUiState(
             daysToFirstDoor = 60,
             totalDays = 180,
             costRankSum = 1,
-            explanation = "Opens 2 saved doors first.",
+            reason = RouteReason(RouteReasonKind.OPENS_SAVED, 2),
         ),
         RouteOptionUiState(
             id = "experience-first",
@@ -100,7 +112,7 @@ private val previewState = RouteUiState(
             daysToFirstDoor = 120,
             totalDays = 120,
             costRankSum = 0,
-            explanation = "Opens 1 door on the assessed rules.",
+            reason = RouteReason(RouteReasonKind.OPENS, 1),
         ),
     ),
 )

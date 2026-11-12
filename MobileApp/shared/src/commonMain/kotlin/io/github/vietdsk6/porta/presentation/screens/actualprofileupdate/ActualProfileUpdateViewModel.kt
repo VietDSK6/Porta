@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.presentation.screens.actualprofileupdate
 
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
@@ -8,7 +9,6 @@ import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.RuleAssertionRepository
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
-import io.github.vietdsk6.porta.domain.model.DurationUnit
 import io.github.vietdsk6.porta.domain.model.EvidenceAttachmentMetadata
 import io.github.vietdsk6.porta.domain.model.EvidenceMetadata
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -21,9 +21,10 @@ import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
 import io.github.vietdsk6.porta.domain.model.RuleRef
-import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.model.findAtomicRule
 import io.github.vietdsk6.porta.domain.model.fingerprint
+import io.github.vietdsk6.porta.presentation.locale.AppLanguageState
+import io.github.vietdsk6.porta.presentation.locale.displayValue
 import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.file.EvidenceAttachmentPolicy
 import io.github.vietdsk6.porta.util.file.FileManager
@@ -36,7 +37,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
 
 class ActualProfileUpdateViewModel(
     private val planRepository: PlanRepository,
@@ -51,7 +51,7 @@ class ActualProfileUpdateViewModel(
         planRepository.observeCurrentPlan(),
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
-        formState,
+        combine(formState, snapshotFlow { AppLanguageState.selected }) { form, _ -> form },
     ) { plan, profile, packResult, form ->
         plan.toUiState(profile, packResult.getOrNull(), form)
     }.stateIn(
@@ -113,7 +113,7 @@ class ActualProfileUpdateViewModel(
             is ActualProfileUpdateUiEvent.EvidenceFileSelected -> selectEvidenceFile(event.file)
 
             is ActualProfileUpdateUiEvent.EvidenceFileSelectionFailed -> formState.update {
-                it.copy(evidenceAttachmentError = event.message, error = null)
+                it.copy(evidenceAttachmentError = event.message, evidenceAttachmentErrorCode = ActualCopyCode.FILE_SELECTION_FAILED, error = null)
             }
 
             ActualProfileUpdateUiEvent.RemoveEvidenceAttachment -> formState.update {
@@ -121,6 +121,7 @@ class ActualProfileUpdateViewModel(
                     pendingAttachment = null,
                     evidenceAttachment = null,
                     evidenceAttachmentError = null,
+                    evidenceAttachmentErrorCode = null,
                     error = null,
                 )
             }
@@ -152,6 +153,7 @@ class ActualProfileUpdateViewModel(
                     it.copy(
                         isSaving = false,
                         error = "This plan changed. Return to the active plan and review it again.",
+                        errorCode = ActualCopyCode.PLAN_CHANGED,
                     )
                 }
                 return@launch
@@ -162,6 +164,7 @@ class ActualProfileUpdateViewModel(
                     it.copy(
                         isSaving = false,
                         error = "This programme check changed. Review the current source before confirming a result.",
+                        errorCode = ActualCopyCode.RULE_CHANGED,
                     )
                 }
                 return@launch
@@ -171,7 +174,7 @@ class ActualProfileUpdateViewModel(
             val value = form.toFactValue(plan.targetValue)
             if (value == null || form.validationError(plan.targetFactKey, plan.targetValue) != null) {
                 formState.update {
-                    it.copy(isSaving = false, error = "Enter a valid achieved value.")
+                    it.copy(isSaving = false, error = "Enter a valid achieved value.", errorCode = ActualCopyCode.INVALID_VALUE)
                 }
                 return@launch
             }
@@ -181,6 +184,7 @@ class ActualProfileUpdateViewModel(
                     it.copy(
                         isSaving = false,
                         error = "Porta could not read your local profile. Please try again.",
+                        errorCode = ActualCopyCode.PROFILE_READ_FAILED,
                     )
                 }
                 return@launch
@@ -194,6 +198,7 @@ class ActualProfileUpdateViewModel(
                             it.copy(
                                 isSaving = false,
                                 evidenceAttachmentError = "Porta could not copy this file into local storage.",
+                                evidenceAttachmentErrorCode = ActualCopyCode.FILE_COPY_FAILED,
                             )
                         }
                         return@launch
@@ -232,6 +237,7 @@ class ActualProfileUpdateViewModel(
                         it.copy(
                             isSaving = false,
                             error = "Porta could not update this fact locally. Please try again.",
+                            errorCode = ActualCopyCode.FACT_SAVE_FAILED,
                         )
                     }
                 }
@@ -242,7 +248,7 @@ class ActualProfileUpdateViewModel(
         val validationError = file.validationError()
         formState.update { form ->
             if (validationError != null) {
-                form.copy(evidenceAttachmentError = validationError, error = null)
+                form.copy(evidenceAttachmentError = validationError, evidenceAttachmentErrorCode = validationError.fileValidationCode(), error = null)
             } else {
                 form.copy(
                     includeEvidence = true,
@@ -253,6 +259,7 @@ class ActualProfileUpdateViewModel(
                     evidenceAttachment = file.toMetadata(),
                     pendingAttachment = file,
                     evidenceAttachmentError = null,
+                    evidenceAttachmentErrorCode = null,
                     error = null,
                 )
             }
@@ -270,13 +277,14 @@ class ActualProfileUpdateViewModel(
                             it.copy(
                                 evidenceAttachmentError =
                                 "That evidence file is no longer stored on this device.",
+                                evidenceAttachmentErrorCode = ActualCopyCode.FILE_MISSING,
                             )
                         }
                     }
                 },
                 onFailure = {
                     formState.update {
-                        it.copy(evidenceAttachmentError = "Porta could not open this evidence file.")
+                        it.copy(evidenceAttachmentError = "Porta could not open this evidence file.", evidenceAttachmentErrorCode = ActualCopyCode.FILE_OPEN_FAILED)
                     }
                 },
             )
@@ -356,6 +364,7 @@ class ActualProfileUpdateViewModel(
                 RuleRef(actionTarget.opportunityId, actionTarget.ruleId),
             ]?.takeIf { it.ruleFingerprint == actionTarget.ruleFingerprint }?.value
         }
+        val valueError = form.validationError(targetFactKey, targetValue)
         return ActualProfileUpdateUiState(
             isLoading = false,
             hasCompletedPlan = status == PlanStatus.COMPLETED,
@@ -393,6 +402,7 @@ class ActualProfileUpdateViewModel(
                 )
             },
             evidenceAttachmentError = form.evidenceAttachmentError,
+            evidenceAttachmentErrorCode = form.evidenceAttachmentErrorCode,
             showEvidenceLabelError = (form.evidenceLabelTouched || form.submitted) &&
                 form.includeEvidence &&
                 (!isProgrammeSpecific || evidenceRequiredForValue) &&
@@ -401,7 +411,17 @@ class ActualProfileUpdateViewModel(
             isSaving = form.isSaving,
             isSaved = form.isSaved,
             error = form.error,
-            achievedValueError = form.validationError(targetFactKey, targetValue),
+            errorCode = form.errorCode,
+            achievedValueError = valueError,
+            achievedValueErrorCode = valueError.actualValidationCode(),
+            validationScale = (targetValue as? FactValue.NumberValue)?.unit?.removeSuffix(" scale"),
+            factKey = targetFactKey,
+            isProgrammeSpecific = isProgrammeSpecific,
+            currentValueMissing = currentValue == null,
+            scopeWarningCode = if (scopeIsCurrent) null else ActualCopyCode.SCOPE_CHANGED,
+            scopeProgrammeName = scopedOpportunity?.title,
+            scopeRequirement = scopedRule?.explanation,
+            scopeRequirementMissing = scopedRule == null,
         )
     }
 
@@ -553,91 +573,4 @@ class ActualProfileUpdateViewModel(
         FactKey.LEADERSHIP,
         -> Actionability.UNKNOWN
     }
-
-    private data class FormState(
-        val planId: String? = null,
-        val inputKind: ActualValueInputKind = ActualValueInputKind.NUMBER,
-        val achievedValue: String = "",
-        val achievedBoolean: Boolean? = null,
-        val includeEvidence: Boolean = false,
-        val evidenceLabel: String = "",
-        val evidenceReference: String = "",
-        val evidenceAttachment: EvidenceAttachmentMetadata? = null,
-        val pendingAttachment: SelectedEvidenceFile? = null,
-        val evidenceAttachmentError: String? = null,
-        val evidenceLabelTouched: Boolean = false,
-        val submitted: Boolean = false,
-        val isSaving: Boolean = false,
-        val isSaved: Boolean = false,
-        val error: String? = null,
-    ) {
-        companion object {
-            fun from(
-                plan: PlanItem,
-                existingEvidence: EvidenceMetadata?,
-            ): FormState = FormState(
-                planId = plan.id,
-                inputKind = when (plan.targetValue) {
-                    is FactValue.BooleanValue -> ActualValueInputKind.BOOLEAN
-                    is FactValue.NumberValue -> ActualValueInputKind.NUMBER
-                    is FactValue.EnumValue -> ActualValueInputKind.ENUM
-                    is FactValue.EnumListValue -> ActualValueInputKind.ENUM_LIST
-                    is FactValue.TextValue -> ActualValueInputKind.TEXT
-                    is FactValue.DateValue -> ActualValueInputKind.DATE
-                    is FactValue.DurationValue -> ActualValueInputKind.DURATION
-                },
-                includeEvidence = plan.target is ActionTarget.OpportunityRuleTarget || existingEvidence != null,
-                evidenceLabel = existingEvidence?.label.orEmpty(),
-                evidenceReference = existingEvidence?.reference.orEmpty(),
-                evidenceAttachment = existingEvidence?.attachment,
-            )
-        }
-    }
 }
-
-private fun ProfileSnapshot.evidenceFor(target: ActionTarget): EvidenceMetadata? = when (target) {
-    is ActionTarget.ProfileFactTarget -> facts[target.factKey]?.evidence
-
-    is ActionTarget.OpportunityRuleTarget -> ruleAssertions[
-        RuleRef(target.opportunityId, target.ruleId),
-    ]?.takeIf { it.ruleFingerprint == target.ruleFingerprint }?.evidence
-}
-
-private fun SelectedEvidenceFile.toMetadata() = EvidenceAttachmentMetadata(
-    displayName = EvidenceAttachmentPolicy.normalizedDisplayName(displayName),
-    mimeType = mimeType,
-    byteSize = bytes.size.toLong(),
-    storageKey = null,
-)
-
-private fun SelectedEvidenceFile.validationError(): String? = EvidenceAttachmentPolicy.validate(this).exceptionOrNull()?.message
-
-private fun Double.toInputText(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
-
-private fun String.toFiniteDoubleOrNull(): Double? = trim().toDoubleOrNull()?.takeIf { it.isFinite() }
-
-private fun String.toLocalDateOrNull(): LocalDate? {
-    val value = trim()
-    if (!ISO_LOCAL_DATE.matches(value)) return null
-    return runCatching { LocalDate.parse(value) }.getOrNull()
-}
-
-private fun String.toEnumValuesOrNull(): Set<String>? {
-    val commaSeparated = split(',')
-    if (commaSeparated.isEmpty() || commaSeparated.any(String::isBlank)) return null
-    return commaSeparated
-        .flatMap { value -> value.lines() }
-        .mapNotNull { value -> value.trim().takeIf(String::isNotEmpty) }
-        .toCollection(linkedSetOf())
-        .takeIf { it.isNotEmpty() }
-}
-
-private fun FactValue.inputUnitLabel(): String = when (this) {
-    is FactValue.NumberValue -> unit
-    is FactValue.DurationValue -> unit.toInputLabel()
-    else -> ""
-}
-
-private fun DurationUnit.toInputLabel(): String = name.lowercase()
-
-private val ISO_LOCAL_DATE = Regex("\\d{4}-\\d{2}-\\d{2}")

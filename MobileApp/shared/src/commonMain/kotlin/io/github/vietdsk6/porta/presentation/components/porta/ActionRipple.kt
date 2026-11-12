@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.components.porta.PortaConnectorPath
 import io.github.vietdsk6.porta.designsystem.components.porta.PortaConnectorPosition
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.generated.resources.*
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 enum class ImpactOutcome {
     CURRENT_CHECKS_PASSED,
@@ -78,7 +81,7 @@ fun ActionRipple(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = if (nodes.size == 1) "ACTION RIPPLE · 1 OPPORTUNITY" else "ACTION RIPPLE · ${nodes.size} OPPORTUNITIES",
+                text = pluralStringResource(Res.plurals.ripple_opportunity_count, nodes.size, nodes.size),
                 modifier = Modifier.fillMaxWidth(),
                 color = AppTheme.colors.primary,
                 style = AppTheme.typography.bodySmall,
@@ -112,14 +115,14 @@ fun ActionRipple(
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = "Scenario only · saved profile unchanged",
+                        text = stringResource(Res.string.ripple_scenario_only),
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodySmall,
                     )
                 }
             }
             PortaActionPathGlyph(
-                semanticLabel = "Action connects to ${nodes.size} assessed opportunities",
+                semanticLabel = pluralStringResource(Res.plurals.ripple_connects_count, nodes.size, nodes.size),
                 color = AppTheme.colors.outline,
                 modifier = Modifier.size(width = 24.dp, height = 18.dp),
             )
@@ -139,7 +142,7 @@ fun ActionRipple(
             }
             if (overflowCount > 0) {
                 Text(
-                    text = "+$overflowCount more in $overflowDestination",
+                    text = stringResource(Res.string.ripple_overflow, overflowCount, overflowDestination),
                     modifier = Modifier.fillMaxWidth().testTag("action-ripple-overflow"),
                     color = AppTheme.colors.text.secondary,
                     style = AppTheme.typography.bodySmall,

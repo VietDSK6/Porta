@@ -146,29 +146,3 @@ data class EvidenceAttachmentMetadata(
     val byteSize: Long,
     val storageKey: String? = null,
 )
-
-fun FactValue.displayValue(): String = when (this) {
-    is FactValue.BooleanValue -> if (value) "Yes" else "No"
-
-    is FactValue.DateValue -> value.toString()
-
-    is FactValue.DurationValue -> "$amount ${unit.name.lowercase()}"
-
-    is FactValue.EnumListValue -> values.sorted().joinToString()
-
-    is FactValue.EnumValue -> value
-
-    is FactValue.NumberValue -> if (unit.endsWith(" scale")) {
-        "${amount.displayNumber(unit)} / ${unit.removeSuffix(" scale")}"
-    } else {
-        "${amount.displayNumber(unit)} $unit".trim()
-    }
-
-    is FactValue.TextValue -> value
-}
-
-private fun Double.displayNumber(unit: String): String = when {
-    unit == "band" -> toString()
-    toLong().toDouble() == this -> toLong().toString()
-    else -> toString()
-}

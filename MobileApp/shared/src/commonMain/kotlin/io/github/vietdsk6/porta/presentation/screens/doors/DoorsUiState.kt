@@ -2,6 +2,9 @@ package io.github.vietdsk6.porta.presentation.screens.doors
 
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.OpportunityCategory
+import io.github.vietdsk6.porta.domain.model.SourceFreshness
+import io.github.vietdsk6.porta.presentation.components.EligibilityCopyCode
+import kotlinx.datetime.LocalDate
 
 data class DoorsUiState(
     val isSampleMode: Boolean = true,
@@ -38,6 +41,9 @@ data class DoorCardUiState(
     val isSaved: Boolean,
     val primaryReason: String,
     val deadlineBucket: DoorDeadlineBucket = DoorDeadlineBucket.UPCOMING,
+    val copyCode: EligibilityCopyCode? = null,
+    val sourceFreshness: SourceFreshness? = null,
+    val sourceCheckedOn: LocalDate? = null,
 )
 
 enum class DoorFilter(val label: String) {

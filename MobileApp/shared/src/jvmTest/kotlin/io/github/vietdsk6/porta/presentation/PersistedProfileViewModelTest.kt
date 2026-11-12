@@ -10,6 +10,7 @@ import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
 import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
@@ -39,6 +40,7 @@ import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierUiEvent
 import io.github.vietdsk6.porta.presentation.screens.frontier.FrontierViewModel
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingUiEvent
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnBoardingViewModel
+import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingDemoError
 import io.github.vietdsk6.porta.presentation.screens.onboarding.OnboardingDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.InformationTaskDestination
 import io.github.vietdsk6.porta.presentation.screens.opportunitydetail.OpportunityDetailViewModel
@@ -116,7 +118,6 @@ class PersistedProfileViewModelTest {
     fun `ready made demo profile is persisted labelled and fully interactive`() = runTest(dispatcher) {
         val onboarding = OnBoardingViewModel(
             userPreferences = userPreferences,
-            eligibilityEvaluator = eligibilityEvaluator,
             profileRepository = repository,
             savedOpportunityRepository = savedOpportunityRepository,
         )
@@ -190,7 +191,6 @@ class PersistedProfileViewModelTest {
         saveIelts(7.0)
         val onboarding = OnBoardingViewModel(
             userPreferences = userPreferences,
-            eligibilityEvaluator = eligibilityEvaluator,
             profileRepository = repository,
         )
         advanceUntilIdle()
@@ -203,7 +203,7 @@ class PersistedProfileViewModelTest {
         assertFalse(PortaSampleData.isPersistedDemoProfile(profile))
         assertNull(onboarding.uiState.value.completion)
         assertEquals(
-            "A local profile already exists, so Porta left it unchanged.",
+            OnboardingDemoError.EXISTING_PROFILE,
             onboarding.uiState.value.demoProfileError,
         )
     }
@@ -335,6 +335,8 @@ class PersistedProfileViewModelTest {
             userPreferences = userPreferences,
             planRepository = planRepository,
             currentLocalDateProvider = currentLocalDateProvider,
+            sampleScenarioProvider = SampleScenarioProvider(),
+            calculationDispatcher = dispatcher,
         )
         advanceUntilIdle()
 
@@ -543,6 +545,8 @@ class PersistedProfileViewModelTest {
             userPreferences = userPreferences,
             planRepository = planRepository,
             currentLocalDateProvider = tooLateForSampleActions,
+            sampleScenarioProvider = SampleScenarioProvider(),
+            calculationDispatcher = dispatcher,
         )
         val scenario = ScenarioPreviewViewModel(
             actionId = "raise-ielts-aurora",
@@ -671,6 +675,25 @@ class PersistedProfileViewModelTest {
     }
 
     @Test
+    fun `changing horizon recomputes frontier from the latest constraint`() = runTest(dispatcher) {
+        saveIelts(6.5)
+        val frontier = createFrontierViewModel()
+        advanceUntilIdle()
+        assertTrue(frontier.uiState.value.actions.isNotEmpty())
+
+        frontier.onUiEvent(FrontierUiEvent.HorizonChanged(30))
+        advanceUntilIdle()
+        assertEquals(30, frontier.uiState.value.horizonDays)
+        assertTrue(frontier.uiState.value.actions.isEmpty())
+        assertTrue(frontier.uiState.value.exclusions.isNotEmpty())
+
+        frontier.onUiEvent(FrontierUiEvent.HorizonChanged(90))
+        advanceUntilIdle()
+        assertEquals(90, frontier.uiState.value.horizonDays)
+        assertTrue(frontier.uiState.value.actions.isNotEmpty())
+    }
+
+    @Test
     fun `real profile scenario saves one local plan`() = runTest(dispatcher) {
         saveIelts(6.5)
         val scenario = ScenarioPreviewViewModel(
@@ -698,6 +721,8 @@ class PersistedProfileViewModelTest {
         userPreferences = userPreferences,
         planRepository = planRepository,
         currentLocalDateProvider = currentLocalDateProvider,
+        sampleScenarioProvider = SampleScenarioProvider(),
+        calculationDispatcher = dispatcher,
     )
 
     private suspend fun saveIelts(value: Double) {

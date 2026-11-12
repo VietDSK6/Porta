@@ -25,10 +25,13 @@ import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavItem
 import io.github.vietdsk6.porta.designsystem.components.bottomnav.BottomNavigationBar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.about_porta_body
+import io.github.vietdsk6.porta.generated.resources.about_porta_title
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_doors
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_frontier
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_profile
 import io.github.vietdsk6.porta.generated.resources.bottom_nav_label_route
+import io.github.vietdsk6.porta.generated.resources.common_close
 import io.github.vietdsk6.porta.generated.resources.ic_doors
 import io.github.vietdsk6.porta.generated.resources.ic_doors_selected
 import io.github.vietdsk6.porta.generated.resources.ic_frontier
@@ -65,6 +68,7 @@ import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfi
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileViewModel
 import io.github.vietdsk6.porta.util.extensions.isKeyboardOpen
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -235,9 +239,11 @@ fun AppNavigation(desktopCommands: Flow<DesktopCommand>? = null) {
         if (showAbout.value) {
             AlertDialog(
                 onDismissRequest = { showAbout.value = false },
-                title = { Text("About Porta") },
-                text = { Text("Porta plans honest routes through published student opportunities. Check live sources before acting.") },
-                confirmButton = { TextButton(onClick = { showAbout.value = false }) { Text("Close") } },
+                title = { Text(stringResource(Res.string.about_porta_title)) },
+                text = { Text(stringResource(Res.string.about_porta_body)) },
+                confirmButton = {
+                    TextButton(onClick = { showAbout.value = false }) { Text(stringResource(Res.string.common_close)) }
+                },
             )
         }
     }

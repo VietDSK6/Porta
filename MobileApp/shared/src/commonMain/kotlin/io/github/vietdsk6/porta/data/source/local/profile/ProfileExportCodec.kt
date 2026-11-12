@@ -11,7 +11,6 @@ import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleAssertion
 import io.github.vietdsk6.porta.domain.model.RuleRef
-import io.github.vietdsk6.porta.domain.model.displayValue
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -34,7 +33,7 @@ class ProfileExportCodec(
                 .map { fact ->
                     ProfileFactExport(
                         key = fact.key.name,
-                        value = fact.value.displayValue(),
+                        value = fact.value.exportValue(),
                         valueType = fact.value.exportType(),
                         structuredValue = fact.value.toExportValue(),
                         provenance = fact.provenance.name,
@@ -60,7 +59,7 @@ class ProfileExportCodec(
                         ruleId = assertion.ruleRef.ruleId,
                         ruleFingerprint = assertion.ruleFingerprint,
                         factKey = assertion.factKey.name,
-                        value = assertion.value.displayValue(),
+                        value = assertion.value.exportValue(),
                         valueType = assertion.value.exportType(),
                         structuredValue = assertion.value.toExportValue(),
                         evidenceLabel = assertion.evidence?.label,

@@ -32,10 +32,31 @@ import io.github.vietdsk6.porta.domain.model.DraftReviewStatus
 import io.github.vietdsk6.porta.domain.model.DraftRuleKind
 import io.github.vietdsk6.porta.domain.model.RuleDraftSuggestion
 import io.github.vietdsk6.porta.domain.model.SourceTextRange
-
-private const val TRUST_BANNER =
-    "AI drafts only. Every rule must quote the source verbatim and be approved by you. " +
-        "Porta never uses AI to decide eligibility."
+import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.profile_edit
+import io.github.vietdsk6.porta.generated.resources.studio_accept
+import io.github.vietdsk6.porta.generated.resources.studio_accepted_grounded
+import io.github.vietdsk6.porta.generated.resources.studio_after_acceptance
+import io.github.vietdsk6.porta.generated.resources.studio_ai_intro
+import io.github.vietdsk6.porta.generated.resources.studio_ai_trust_banner
+import io.github.vietdsk6.porta.generated.resources.studio_assessed_badge
+import io.github.vietdsk6.porta.generated.resources.studio_demo_source
+import io.github.vietdsk6.porta.generated.resources.studio_draft_rules
+import io.github.vietdsk6.porta.generated.resources.studio_draft_title
+import io.github.vietdsk6.porta.generated.resources.studio_drafting
+import io.github.vietdsk6.porta.generated.resources.studio_edit_done
+import io.github.vietdsk6.porta.generated.resources.studio_grounded
+import io.github.vietdsk6.porta.generated.resources.studio_interpretation
+import io.github.vietdsk6.porta.generated.resources.studio_manual_badge
+import io.github.vietdsk6.porta.generated.resources.studio_official_text
+import io.github.vietdsk6.porta.generated.resources.studio_quote_checking
+import io.github.vietdsk6.porta.generated.resources.studio_quote_not_found
+import io.github.vietdsk6.porta.generated.resources.studio_quote_rejected
+import io.github.vietdsk6.porta.generated.resources.studio_quote_words
+import io.github.vietdsk6.porta.generated.resources.studio_reject
+import io.github.vietdsk6.porta.generated.resources.studio_rejected_curator
+import io.github.vietdsk6.porta.generated.resources.studio_rule_explanation
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AiDraftPanel(
@@ -52,26 +73,25 @@ fun AiDraftPanel(
             modifier = Modifier.fillMaxWidth().padding(AppTheme.spacing.cardContentSpacing),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Draft sourced rules", style = AppTheme.typography.h5, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.studio_draft_title), style = AppTheme.typography.h5, fontWeight = FontWeight.Bold)
             Surface(
                 color = AppTheme.colors.alternative,
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, AppTheme.colors.primary.copy(alpha = 0.35f)),
             ) {
                 Text(
-                    TRUST_BANNER,
+                    stringResource(Res.string.studio_ai_trust_banner),
                     modifier = Modifier.fillMaxWidth().padding(12.dp).testTag("opportunity-studio-ai-trust"),
                     style = AppTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                 )
             }
             Text(
-                "Paste the official source passage. The offline demo works without an API key; a key in settings " +
-                    "enables Gemini drafting.",
+                stringResource(Res.string.studio_ai_intro),
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
-            Text("Try a demo source", style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.studio_demo_source), style = AppTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DraftDemoFixtures.all.forEachIndexed { index, fixture ->
                     OutlinedButton(
@@ -86,7 +106,7 @@ fun AiDraftPanel(
                 value = uiState.pastedSourceText,
                 onValueChange = { onUiEvent(OpportunityStudioUiEvent.PastedSourceChanged(it)) },
                 modifier = Modifier.fillMaxWidth().testTag("opportunity-studio-ai-source"),
-                label = { Text("Official source text") },
+                label = { Text(stringResource(Res.string.studio_official_text)) },
                 minLines = 5,
                 maxLines = 12,
             )
@@ -98,10 +118,10 @@ fun AiDraftPanel(
                 if (uiState.isDraftingRules) {
                     CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
                 }
-                Text(if (uiState.isDraftingRules) "Drafting…" else "Draft rules")
+                Text(if (uiState.isDraftingRules) stringResource(Res.string.studio_drafting) else stringResource(Res.string.studio_draft_rules))
             }
             uiState.aiDraftMessage?.let { message ->
-                Text(message, style = AppTheme.typography.bodySmall, color = AppTheme.colors.text.secondary)
+                Text(message.toText(), style = AppTheme.typography.bodySmall, color = AppTheme.colors.text.secondary)
             }
             uiState.aiSuggestions.forEach { suggestion ->
                 SuggestionCard(
@@ -131,7 +151,7 @@ private fun SuggestionCard(
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    if (suggestion.kind == DraftRuleKind.ATOMIC) "ASSESSED RULE" else "MANUAL CHECK",
+                    if (suggestion.kind == DraftRuleKind.ATOMIC) stringResource(Res.string.studio_assessed_badge) else stringResource(Res.string.studio_manual_badge),
                     style = AppTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = AppTheme.colors.primary,
@@ -156,7 +176,7 @@ private fun SuggestionCard(
             }
             Text(suggestion.rationale, style = AppTheme.typography.bodyMedium)
             suggestion.manualFallbackReason?.let { reason ->
-                Text("Needs human interpretation: $reason", style = AppTheme.typography.bodySmall)
+                Text(stringResource(Res.string.studio_interpretation, reason), style = AppTheme.typography.bodySmall)
             }
             HighlightedSourceQuote(sourceText, suggestion.sourceRange, suggestion.quote, suggestion.id)
             if (isEditing && suggestion.reviewStatus == DraftReviewStatus.PENDING) {
@@ -164,18 +184,18 @@ private fun SuggestionCard(
                     value = suggestion.quote,
                     onValueChange = { onUiEvent(OpportunityStudioUiEvent.SuggestionQuoteChanged(suggestion.id, it)) },
                     modifier = Modifier.fillMaxWidth().testTag("opportunity-studio-ai-edit-quote"),
-                    label = { Text("Quoted source words") },
+                    label = { Text(stringResource(Res.string.studio_quote_words)) },
                     minLines = 2,
                 )
                 OutlinedTextField(
                     value = suggestion.rationale,
                     onValueChange = { onUiEvent(OpportunityStudioUiEvent.SuggestionRationaleChanged(suggestion.id, it)) },
                     modifier = Modifier.fillMaxWidth().testTag("opportunity-studio-ai-edit-rationale"),
-                    label = { Text("Rule explanation") },
+                    label = { Text(stringResource(Res.string.studio_rule_explanation)) },
                     minLines = 2,
                 )
                 Text(
-                    "After acceptance, review the fact, operator and value in the rule builder below.",
+                    stringResource(Res.string.studio_after_acceptance),
                     style = AppTheme.typography.bodySmall,
                     color = AppTheme.colors.text.secondary,
                 )
@@ -186,15 +206,15 @@ private fun SuggestionCard(
                         onClick = { onUiEvent(OpportunityStudioUiEvent.SuggestionAccepted(suggestion.id)) },
                         enabled = suggestion.canAccept,
                         modifier = Modifier.testTag("opportunity-studio-ai-accept-${suggestion.id}"),
-                    ) { Text("Accept") }
+                    ) { Text(stringResource(Res.string.studio_accept)) }
                     OutlinedButton(
                         onClick = { onUiEvent(OpportunityStudioUiEvent.SuggestionEditRequested(suggestion.id)) },
                         modifier = Modifier.testTag("opportunity-studio-ai-edit-${suggestion.id}"),
-                    ) { Text(if (isEditing) "Done editing" else "Edit") }
+                    ) { Text(if (isEditing) stringResource(Res.string.studio_edit_done) else stringResource(Res.string.profile_edit)) }
                     TextButton(
                         onClick = { onUiEvent(OpportunityStudioUiEvent.SuggestionRejected(suggestion.id)) },
                         modifier = Modifier.testTag("opportunity-studio-ai-reject-${suggestion.id}"),
-                    ) { Text("Reject") }
+                    ) { Text(stringResource(Res.string.studio_reject)) }
                 }
             }
         }
@@ -212,7 +232,7 @@ private fun HighlightedSourceQuote(
     val end = range?.endExclusive ?: -1
     if (start < 0 || end <= start || end > sourceText.length) {
         Text(
-            "Quote not found in pasted source: “$quote”",
+            stringResource(Res.string.studio_quote_not_found, quote),
             modifier = Modifier.testTag("opportunity-studio-ai-quote-$suggestionId"),
             style = AppTheme.typography.bodySmall,
             color = AppTheme.colors.status.warning,
@@ -237,14 +257,15 @@ private fun HighlightedSourceQuote(
     )
 }
 
+@Composable
 private fun RuleDraftSuggestion.statusLabel(): String = when (reviewStatus) {
-    DraftReviewStatus.ACCEPTED -> "Accepted · grounded"
+    DraftReviewStatus.ACCEPTED -> stringResource(Res.string.studio_accepted_grounded)
 
-    DraftReviewStatus.REJECTED -> "Rejected by curator"
+    DraftReviewStatus.REJECTED -> stringResource(Res.string.studio_rejected_curator)
 
     DraftReviewStatus.PENDING -> when (groundingStatus) {
-        DraftGroundingStatus.GROUNDED -> "Grounded · quote found"
-        DraftGroundingStatus.REJECTED_UNGROUNDED -> "Rejected: quote not found"
-        DraftGroundingStatus.UNCHECKED -> "Checking quote"
+        DraftGroundingStatus.GROUNDED -> stringResource(Res.string.studio_grounded)
+        DraftGroundingStatus.REJECTED_UNGROUNDED -> stringResource(Res.string.studio_quote_rejected)
+        DraftGroundingStatus.UNCHECKED -> stringResource(Res.string.studio_quote_checking)
     }
 }

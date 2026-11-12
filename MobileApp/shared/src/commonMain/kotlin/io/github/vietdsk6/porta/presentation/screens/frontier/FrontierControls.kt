@@ -29,6 +29,34 @@ import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.frontier_adjust
+import io.github.vietdsk6.porta.generated.resources.frontier_ceiling_any
+import io.github.vietdsk6.porta.generated.resources.frontier_cost_description
+import io.github.vietdsk6.porta.generated.resources.frontier_cost_free
+import io.github.vietdsk6.porta.generated.resources.frontier_cost_high
+import io.github.vietdsk6.porta.generated.resources.frontier_cost_low
+import io.github.vietdsk6.porta.generated.resources.frontier_cost_medium
+import io.github.vietdsk6.porta.generated.resources.frontier_days
+import io.github.vietdsk6.porta.generated.resources.frontier_done
+import io.github.vietdsk6.porta.generated.resources.frontier_effort_description
+import io.github.vietdsk6.porta.generated.resources.frontier_effort_high
+import io.github.vietdsk6.porta.generated.resources.frontier_effort_low
+import io.github.vietdsk6.porta.generated.resources.frontier_effort_medium
+import io.github.vietdsk6.porta.generated.resources.frontier_effort_very_low
+import io.github.vietdsk6.porta.generated.resources.frontier_horizon_description
+import io.github.vietdsk6.porta.generated.resources.frontier_limits_adjust
+import io.github.vietdsk6.porta.generated.resources.frontier_limits_collapse
+import io.github.vietdsk6.porta.generated.resources.frontier_limits_summary
+import io.github.vietdsk6.porta.generated.resources.frontier_max_cost
+import io.github.vietdsk6.porta.generated.resources.frontier_max_effort
+import io.github.vietdsk6.porta.generated.resources.frontier_one_year
+import io.github.vietdsk6.porta.generated.resources.frontier_prioritize_saved
+import io.github.vietdsk6.porta.generated.resources.frontier_saved_priority_help
+import io.github.vietdsk6.porta.generated.resources.frontier_time_available
+import io.github.vietdsk6.porta.generated.resources.frontier_your_limits
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun FrontierControls(
@@ -54,7 +82,7 @@ internal fun FrontierControls(
                         if (collapsible) {
                             Modifier.clickable(
                                 role = Role.Button,
-                                onClickLabel = if (expanded) "Collapse your limits" else "Adjust your limits",
+                                onClickLabel = if (expanded) stringResource(Res.string.frontier_limits_collapse) else stringResource(Res.string.frontier_limits_adjust),
                             ) { expanded = !expanded }
                         } else {
                             Modifier
@@ -64,17 +92,16 @@ internal fun FrontierControls(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Your limits", style = AppTheme.typography.h6)
+                    Text(stringResource(Res.string.frontier_your_limits), style = AppTheme.typography.h6)
                     Text(
-                        text = "${uiState.horizonDays} days · ${uiState.maxEffort.ceilingLabel()} effort · " +
-                            "${uiState.maxCost.ceilingLabel()} cost",
+                        text = stringResource(Res.string.frontier_limits_summary, uiState.horizonDays, uiState.maxEffort.ceilingLabel(), uiState.maxCost.ceilingLabel()),
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodySmall,
                     )
                 }
                 if (collapsible) {
                     Text(
-                        text = if (expanded) "Done" else "Adjust",
+                        text = if (expanded) stringResource(Res.string.frontier_done) else stringResource(Res.string.frontier_adjust),
                         color = AppTheme.colors.primary,
                         fontWeight = FontWeight.Bold,
                     )
@@ -83,8 +110,8 @@ internal fun FrontierControls(
 
             if (expanded) {
                 ConstraintLabel(
-                    title = "Time available",
-                    description = "Milestones longer than this stay visible below with a reason.",
+                    title = stringResource(Res.string.frontier_time_available),
+                    description = stringResource(Res.string.frontier_horizon_description),
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -97,14 +124,14 @@ internal fun FrontierControls(
                                 .testTag("frontier-horizon-$days"),
                             selected = uiState.horizonDays == days,
                             onClick = { onUiEvent(FrontierUiEvent.HorizonChanged(days)) },
-                            label = { Text(if (days == 365) "1 year" else "$days days") },
+                            label = { Text(if (days == 365) stringResource(Res.string.frontier_one_year) else pluralStringResource(Res.plurals.frontier_days, days, days)) },
                         )
                     }
                 }
 
                 ConstraintLabel(
-                    title = "Maximum effort",
-                    description = "The most demanding milestone you can realistically take on.",
+                    title = stringResource(Res.string.frontier_max_effort),
+                    description = stringResource(Res.string.frontier_effort_description),
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -123,8 +150,8 @@ internal fun FrontierControls(
                 }
 
                 ConstraintLabel(
-                    title = "Maximum cost",
-                    description = "Choose Any to keep actions whose cost estimate is unavailable.",
+                    title = stringResource(Res.string.frontier_max_cost),
+                    description = stringResource(Res.string.frontier_cost_description),
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -159,10 +186,9 @@ internal fun FrontierControls(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Prioritize saved doors", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(Res.string.frontier_prioritize_saved), fontWeight = FontWeight.SemiBold)
                         Text(
-                            text = "Saved-door priority can change which moves reach the frontier, not only " +
-                                "their order.",
+                            text = stringResource(Res.string.frontier_saved_priority_help),
                             color = AppTheme.colors.text.secondary,
                             style = AppTheme.typography.bodySmall,
                         )
@@ -186,20 +212,26 @@ private fun ConstraintLabel(title: String, description: String) {
     }
 }
 
-private fun EffortLevel.ceilingLabel(): String = if (this == EffortLevel.VERY_HIGH) {
-    "Any"
-} else {
-    name.readableEnumName()
-}
+@Composable
+private fun EffortLevel.ceilingLabel(): String = stringResource(
+    when (this) {
+        EffortLevel.VERY_LOW -> Res.string.frontier_effort_very_low
+        EffortLevel.LOW -> Res.string.frontier_effort_low
+        EffortLevel.MEDIUM -> Res.string.frontier_effort_medium
+        EffortLevel.HIGH -> Res.string.frontier_effort_high
+        EffortLevel.VERY_HIGH -> Res.string.frontier_ceiling_any
+    },
+)
 
-private fun CostBand.ceilingLabel(): String = if (this == CostBand.UNKNOWN) {
-    "Any"
-} else {
-    name.readableEnumName()
-}
-
-private fun String.readableEnumName(): String = lowercase()
-    .replace('_', ' ')
-    .replaceFirstChar(Char::uppercaseChar)
+@Composable
+private fun CostBand.ceilingLabel(): String = stringResource(
+    when (this) {
+        CostBand.FREE -> Res.string.frontier_cost_free
+        CostBand.LOW -> Res.string.frontier_cost_low
+        CostBand.MEDIUM -> Res.string.frontier_cost_medium
+        CostBand.HIGH -> Res.string.frontier_cost_high
+        CostBand.UNKNOWN -> Res.string.frontier_ceiling_any
+    },
+)
 
 private val ALLOWED_HORIZONS = listOf(30, 90, 180, 365)

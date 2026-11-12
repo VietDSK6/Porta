@@ -205,7 +205,7 @@ class PortaVerticalSliceUiTest {
         onNodeWithTag("frontier-effort-MEDIUM").performScrollTo().performClick()
         onNodeWithTag("frontier-cost-LOW").performScrollTo().performClick()
         onNodeWithTag("frontier-prioritize-saved").performScrollTo().performClick()
-        onNodeWithText("Saved-door priority can change which moves reach the frontier", substring = true)
+        onNodeWithText("Moves that help saved opportunities may rank higher and appear here.")
             .assertExists()
 
         assertTrue(events.contains(FrontierUiEvent.MaxEffortChanged(EffortLevel.MEDIUM)))

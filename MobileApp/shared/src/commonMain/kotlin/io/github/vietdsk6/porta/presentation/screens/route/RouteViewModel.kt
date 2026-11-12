@@ -1,12 +1,13 @@
 package io.github.vietdsk6.porta.presentation.screens.route
 
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.Opportunity
@@ -15,6 +16,8 @@ import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RouteConstraints
 import io.github.vietdsk6.porta.domain.model.RouteExplanation
 import io.github.vietdsk6.porta.domain.usecase.RoutePlanner
+import io.github.vietdsk6.porta.presentation.locale.AppLanguageState
+import io.github.vietdsk6.porta.presentation.locale.formatLocalDate
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -39,6 +42,7 @@ class RouteViewModel(
     private val planRepository: PlanRepository,
     currentLocalDateProvider: CurrentLocalDateProvider,
     private val plannerContext: CoroutineContext,
+    private val sampleScenarioProvider: SampleScenarioProvider,
 ) : ViewModel() {
     private val constraints = MutableStateFlow(
         RouteConstraints(
@@ -60,7 +64,7 @@ class RouteViewModel(
         PlanningInputs(
             profile = profile,
             opportunities = packResult.getOrNull()?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
-                ?: PortaSampleData.opportunities,
+                ?: sampleScenarioProvider.opportunities,
             savedIds = savedIds,
             today = today,
             constraints = selectedConstraints,
@@ -68,7 +72,7 @@ class RouteViewModel(
     }.debounce(150).mapLatest { inputs ->
         withContext(plannerContext) {
             val useSample = inputs.profile.facts.isEmpty()
-            val profile = inputs.profile.takeUnless { useSample } ?: PortaSampleData.profile
+            val profile = inputs.profile.takeUnless { useSample } ?: sampleScenarioProvider.profile
             val routes = routePlanner.plan(
                 profile = profile,
                 opportunities = inputs.opportunities,
@@ -80,6 +84,7 @@ class RouteViewModel(
                 routes = routes,
                 labels = inputs.opportunities.associate { it.id to it.title },
                 canSave = !useSample,
+                isFictionalProfile = useSample || sampleScenarioProvider.isPersistedDemoProfile(inputs.profile),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, PlanningResult())
@@ -89,20 +94,21 @@ class RouteViewModel(
         constraints,
         selectedRouteId,
         saveState,
-    ) { result, selectedConstraints, selectedId, save ->
+        snapshotFlow { AppLanguageState.selected },
+    ) { result, selectedConstraints, selectedId, save, _ ->
         val routeOptions = result.routes.map { route -> route.toUiState(result.labels) }
         RouteUiState(
             isLoading = result.isLoading,
             isSaving = save.isSaving,
             canSave = result.canSave,
+            isFictionalProfile = result.isFictionalProfile,
             horizonDays = selectedConstraints.horizonDays,
             maxTotalCost = selectedConstraints.maxTotalCost,
             maxEffort = selectedConstraints.maxEffort,
             routes = routeOptions,
             selectedRouteId = selectedId?.takeIf { id -> routeOptions.any { it.id == id } }
                 ?: routeOptions.firstOrNull()?.id,
-            error = save.error,
-            saveNotice = save.notice,
+            notice = save.notice,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, RouteUiState())
 
@@ -131,8 +137,8 @@ class RouteViewModel(
         viewModelScope.launch {
             saveState.value = SaveState(isSaving = true)
             saveState.value = planRepository.saveRoute(route).fold(
-                onSuccess = { SaveState(notice = "Route saved to your active plan.") },
-                onFailure = { SaveState(error = "Porta could not save this route. Please try again.") },
+                onSuccess = { SaveState(notice = RouteNotice.SAVED) },
+                onFailure = { SaveState(notice = RouteNotice.SAVE_FAILED) },
             )
         }
     }
@@ -143,8 +149,8 @@ class RouteViewModel(
             RouteStepUiState(
                 id = step.template.id,
                 title = step.template.title,
-                startDateLabel = step.startDate.toString(),
-                endDateLabel = step.endDate.toString(),
+                startDateLabel = formatLocalDate(step.startDate),
+                endDateLabel = formatLocalDate(step.endDate),
                 durationDays = step.template.minimumDurationDays,
                 doorsOpened = step.doorsOpened.map { labels[it] ?: it },
                 doorsImproved = step.doorsImproved.map { labels[it] ?: it },
@@ -158,10 +164,10 @@ class RouteViewModel(
         daysToFirstDoor = metrics.daysToFirstDoor,
         totalDays = metrics.totalDays,
         costRankSum = metrics.costRankSum,
-        explanation = when (val reason = explanation) {
-            is RouteExplanation.OpensSavedDoors -> "Opens ${reason.count} saved doors first."
-            is RouteExplanation.OpensDoors -> "Opens ${reason.count} doors on the assessed rules."
-            is RouteExplanation.ImprovesDoors -> "Improves the assessed checks for ${reason.count} doors."
+        reason = when (val reason = explanation) {
+            is RouteExplanation.OpensSavedDoors -> RouteReason(RouteReasonKind.OPENS_SAVED, reason.count)
+            is RouteExplanation.OpensDoors -> RouteReason(RouteReasonKind.OPENS, reason.count)
+            is RouteExplanation.ImprovesDoors -> RouteReason(RouteReasonKind.IMPROVES, reason.count)
         },
     )
 
@@ -177,12 +183,12 @@ class RouteViewModel(
         val routes: List<PlannedRoute> = emptyList(),
         val labels: Map<String, String> = emptyMap(),
         val canSave: Boolean = false,
+        val isFictionalProfile: Boolean = false,
         val isLoading: Boolean = true,
     )
 
     private data class SaveState(
         val isSaving: Boolean = false,
-        val error: String? = null,
-        val notice: String? = null,
+        val notice: RouteNotice? = null,
     )
 }

@@ -6,8 +6,7 @@ import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.repository.SavedOpportunityRepository
-import io.github.vietdsk6.porta.data.sample.PortaSampleData
-import io.github.vietdsk6.porta.data.source.local.pack.BundledOpportunityPackProvider
+import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
 import io.github.vietdsk6.porta.data.source.preferences.UserPreferences
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
@@ -16,25 +15,30 @@ import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.FrontierExclusionReason
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.OpportunityPackDocument
+import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.PlanningConstraints
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
-import io.github.vietdsk6.porta.domain.model.displayValue
 import io.github.vietdsk6.porta.domain.usecase.ActionFrontierEngine
 import io.github.vietdsk6.porta.presentation.components.trustLabel
+import io.github.vietdsk6.porta.presentation.locale.displayValue
+import io.github.vietdsk6.porta.util.defaultAsyncDispatcher
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlin.coroutines.CoroutineContext
 
 class FrontierViewModel(
     private val actionFrontierEngine: ActionFrontierEngine,
@@ -44,69 +48,38 @@ class FrontierViewModel(
     private val userPreferences: UserPreferences,
     planRepository: PlanRepository,
     private val currentLocalDateProvider: CurrentLocalDateProvider,
+    private val sampleScenarioProvider: SampleScenarioProvider,
+    calculationDispatcher: CoroutineContext = defaultAsyncDispatcher,
 ) : ViewModel() {
-    private var activeProfile = PortaSampleData.profile
-    private var isSampleProfile = true
-    private var isDemoProfile = false
-    private var isSampleCatalog = true
-    private var activeOpportunities = PortaSampleData.opportunities
-    private var activeDate = currentLocalDateProvider.today()
-    private var persistedSavedIds = emptySet<String>()
-    private var activePlan: ActivePlanSummaryUiState? = null
-    private var selectedActionId: String? = null
-    private var comparedActionIds = emptyList<String>()
-    private var constraintsTouched = false
-    private var constraints = DEFAULT_CONSTRAINTS
-    private val _uiState = MutableStateFlow(buildState())
-    val uiState: StateFlow<FrontierUiState> = _uiState.asStateFlow()
+    private val constraintsState = MutableStateFlow(DEFAULT_CONSTRAINTS)
+    private val constraintsTouched = MutableStateFlow(false)
+    private val selectedActionId = MutableStateFlow<String?>(null)
+    private val comparedActionIds = MutableStateFlow<List<String>>(emptyList())
+
+    private val inputs = combine(
+        profileRepository.observeProfile(),
+        opportunityPackRepository.observeActive(),
+        savedOpportunityRepository.observeSavedIds(),
+        currentLocalDateProvider.currentDate,
+        planRepository.observeCurrentPlan(),
+    ) { profile, packResult, savedIds, today, plan ->
+        FrontierInputs(profile, packResult.getOrNull(), savedIds, today, plan)
+    }
+
+    val uiState: StateFlow<FrontierUiState> = combine(
+        inputs,
+        constraintsState,
+        selectedActionId,
+        comparedActionIds,
+    ) { current, constraints, selectedId, comparedIds ->
+        buildState(current, constraints, selectedId, comparedIds)
+    }.flowOn(calculationDispatcher)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, FrontierUiState())
 
     init {
         viewModelScope.launch {
             val loaded = loadConstraints()
-            if (!constraintsTouched) {
-                constraints = loaded
-                _uiState.value = buildState()
-            }
-        }
-        viewModelScope.launch {
-            combine(
-                profileRepository.observeProfile(),
-                opportunityPackRepository.observeActive(),
-                savedOpportunityRepository.observeSavedIds(),
-                currentLocalDateProvider.currentDate,
-            ) { profile, packResult, savedIds, today ->
-                FrontierInputs(profile, packResult.getOrNull(), savedIds, today)
-            }.collect { inputs ->
-                val profile = inputs.profile
-                val pack = inputs.pack
-                isSampleProfile = profile.facts.isEmpty()
-                isDemoProfile = PortaSampleData.isPersistedDemoProfile(profile)
-                activeProfile = profile.takeUnless { isSampleProfile } ?: PortaSampleData.profile
-                activeOpportunities = pack?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
-                    ?: PortaSampleData.opportunities
-                persistedSavedIds = inputs.savedIds
-                activeDate = inputs.today
-                isSampleCatalog = pack == null ||
-                    pack.metadata.id == BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID
-                _uiState.value = buildState()
-            }
-        }
-        viewModelScope.launch {
-            planRepository.observeCurrentPlan().collect { plan ->
-                activePlan = plan?.let {
-                    ActivePlanSummaryUiState(
-                        title = it.title,
-                        status = it.status,
-                        statusLabel = when (it.status) {
-                            PlanStatus.PLANNED -> "Planned"
-                            PlanStatus.IN_PROGRESS -> "In progress"
-                            PlanStatus.PAUSED -> "Paused"
-                            PlanStatus.COMPLETED -> "Work marked complete"
-                        },
-                    )
-                }
-                _uiState.value = buildState()
-            }
+            if (!constraintsTouched.value) constraintsState.value = loaded
         }
     }
 
@@ -114,47 +87,44 @@ class FrontierViewModel(
         when (event) {
             is FrontierUiEvent.HorizonChanged -> {
                 if (event.days !in ALLOWED_HORIZONS) return
-                updateConstraints(constraints.copy(horizonDays = event.days)) {
+                updateConstraints(constraintsState.value.copy(horizonDays = event.days)) {
                     userPreferences.putInt(UserPreferences.KEY_FRONTIER_HORIZON_DAYS, event.days)
                 }
             }
 
             is FrontierUiEvent.MaxEffortChanged -> updateConstraints(
-                constraints.copy(maxEffort = event.effort),
+                constraintsState.value.copy(maxEffort = event.effort),
             ) {
                 userPreferences.putString(UserPreferences.KEY_FRONTIER_MAX_EFFORT, event.effort.name)
             }
 
             is FrontierUiEvent.MaxCostChanged -> updateConstraints(
-                constraints.copy(maxCost = event.cost),
+                constraintsState.value.copy(maxCost = event.cost),
             ) {
                 userPreferences.putString(UserPreferences.KEY_FRONTIER_MAX_COST, event.cost.name)
             }
 
             is FrontierUiEvent.PrioritizeSavedChanged -> updateConstraints(
-                constraints.copy(prioritizeSaved = event.prioritize),
+                constraintsState.value.copy(prioritizeSaved = event.prioritize),
             ) {
                 userPreferences.putBoolean(UserPreferences.KEY_FRONTIER_PRIORITIZE_SAVED, event.prioritize)
             }
 
             is FrontierUiEvent.ActionSelected -> {
-                selectedActionId = event.actionId
-                _uiState.value = _uiState.value.copy(selectedActionId = event.actionId)
+                selectedActionId.value = event.actionId
             }
 
             is FrontierUiEvent.ComparisonToggled -> {
-                val availableIds = _uiState.value.actions.map(FrontierActionUiState::id).toSet()
-                comparedActionIds = toggleComparedAction(
-                    currentActionIds = comparedActionIds,
+                val availableIds = uiState.value.actions.map(FrontierActionUiState::id).toSet()
+                comparedActionIds.value = toggleComparedAction(
+                    currentActionIds = comparedActionIds.value,
                     actionId = event.actionId,
                     availableActionIds = availableIds,
                 )
-                _uiState.value = _uiState.value.copy(comparedActionIds = comparedActionIds)
             }
 
             FrontierUiEvent.ComparisonCleared -> {
-                comparedActionIds = emptyList()
-                _uiState.value = _uiState.value.copy(comparedActionIds = emptyList())
+                comparedActionIds.value = emptyList()
             }
         }
     }
@@ -163,9 +133,8 @@ class FrontierViewModel(
         updated: PlanningConstraints,
         persist: suspend () -> Unit,
     ) {
-        constraintsTouched = true
-        constraints = updated
-        _uiState.value = buildState()
+        constraintsTouched.value = true
+        constraintsState.value = updated
         viewModelScope.launch { persist() }
     }
 
@@ -194,17 +163,42 @@ class FrontierViewModel(
         )
     }
 
-    private fun buildState(): FrontierUiState {
+    private fun buildState(
+        inputs: FrontierInputs,
+        constraints: PlanningConstraints,
+        selectedActionId: String?,
+        comparedActionIds: List<String>,
+    ): FrontierUiState {
+        val isSampleProfile = inputs.profile.facts.isEmpty()
+        val activeProfile = inputs.profile.takeUnless { isSampleProfile } ?: sampleScenarioProvider.profile
+        val activeOpportunities = inputs.pack?.opportunities?.takeIf { it.isNotEmpty() }
+            ?: sampleScenarioProvider.opportunities
+        val activePlan = inputs.plan?.let { plan ->
+            ActivePlanSummaryUiState(
+                title = plan.title,
+                status = plan.status,
+                statusLabel = when (plan.status) {
+                    PlanStatus.PLANNED -> "Planned"
+                    PlanStatus.IN_PROGRESS -> "In progress"
+                    PlanStatus.PAUSED -> "Paused"
+                    PlanStatus.COMPLETED -> "Work marked complete"
+                },
+            )
+        }
+        val isDemoProfile = sampleScenarioProvider.isPersistedDemoProfile(inputs.profile)
+        val isSampleCatalog = inputs.pack == null ||
+            sampleScenarioProvider.isLegacySyntheticPack(inputs.pack.metadata.id)
         val opportunitiesById = activeOpportunities.associateBy(Opportunity::id)
         val evaluation = actionFrontierEngine.evaluate(
             profile = activeProfile,
             opportunities = activeOpportunities,
-            savedOpportunityIds = persistedSavedIds,
+            savedOpportunityIds = inputs.savedIds,
             constraints = constraints,
-            today = activeDate,
+            today = inputs.today,
         )
         val actions = evaluation.actions.take(MAX_FRONTIER_ACTIONS).map { action ->
             val moveKind = action.template.moveKind()
+            val estimateBasis = action.template.estimateBasis()
             val programmeTitle = (action.template.target as? ActionTarget.OpportunityRuleTarget)
                 ?.let { opportunitiesById[it.opportunityId]?.title }
             val improvedIds = action.improvedOpportunityIds.toSet()
@@ -216,18 +210,19 @@ class FrontierViewModel(
                         change.afterResult == RuleResult.PASS && change.beforeResult != RuleResult.PASS
                     }
                 }
+            val currentValue: FactValue? = when (val target = action.template.target) {
+                is ActionTarget.ProfileFactTarget -> activeProfile.facts[target.factKey]?.value
+
+                is ActionTarget.OpportunityRuleTarget -> activeProfile.ruleAssertions[
+                    RuleRef(target.opportunityId, target.ruleId),
+                ]?.value
+            }
             FrontierActionUiState(
                 id = action.template.id,
                 title = action.template.userFacingTitle(programmeTitle, moveKind),
-                currentLabel = when (val target = action.template.target) {
-                    is ActionTarget.ProfileFactTarget -> activeProfile.facts[target.factKey]
-                        ?.value
-                        ?.displayValue()
-                        ?: "Not set"
-
-                    is ActionTarget.OpportunityRuleTarget -> activeProfile.ruleAssertions[
-                        RuleRef(target.opportunityId, target.ruleId),
-                    ]?.value?.displayValue() ?: "Not confirmed"
+                currentLabel = currentValue?.displayValue() ?: when (action.template.target) {
+                    is ActionTarget.ProfileFactTarget -> "Not set"
+                    is ActionTarget.OpportunityRuleTarget -> "Not confirmed"
                 },
                 targetLabel = action.template.targetValue.displayValue(),
                 newlyOpenCount = action.newlyOpenOpportunityIds.size,
@@ -244,36 +239,8 @@ class FrontierViewModel(
                 },
                 effortLabel = action.template.effort.readable(),
                 costLabel = action.template.costBand.readable(),
-                explanation = buildString {
-                    append(
-                        when (moveKind) {
-                            FrontierMoveKind.VERIFY ->
-                                "Would satisfy this programme-specific check if confirmed."
-
-                            FrontierMoveKind.IMPROVE ->
-                                "Would address an encoded requirement using a profile fact you can change."
-
-                            FrontierMoveKind.PREPARE ->
-                                "Would address an encoded requirement after a time-dependent milestone."
-                        },
-                    )
-                    if (action.newlyOpenOpportunityIds.isNotEmpty()) {
-                        append(" ")
-                        append(action.newlyOpenOpportunityIds.size)
-                        append(" would pass current checks.")
-                    }
-                    if (action.timingUnverifiedOpportunityIds.isNotEmpty()) {
-                        append(" ")
-                        append(action.timingUnverifiedOpportunityIds.size)
-                        append(
-                            if (action.timingUnverifiedOpportunityIds.size == 1) {
-                                " still needs a deadline check."
-                            } else {
-                                " still need a deadline check."
-                            },
-                        )
-                    }
-                },
+                explanation = "",
+                explanationCode = action.explanationCode,
                 doorTitles = action.improvedOpportunityIds.mapNotNull { opportunitiesById[it]?.title },
                 doorComparisons = action.improvedOpportunityIds.mapNotNull { opportunityId ->
                     val opportunity = opportunitiesById[opportunityId] ?: return@mapNotNull null
@@ -288,6 +255,8 @@ class FrontierViewModel(
                         needsVerification = after == EligibilityState.NEEDS_INFO,
                         isSaved = opportunityId in action.improvedSavedOpportunityIds,
                         requiresDeadlineCheck = opportunityId in action.timingUnverifiedOpportunityIds,
+                        actualState = before,
+                        previewState = after,
                     )
                 },
                 kind = moveKind,
@@ -309,15 +278,40 @@ class FrontierViewModel(
                 },
                 changedCheckCount = changedCheckCount,
                 programmeTitle = programmeTitle,
+                targetFactKey = action.template.targetFactKey,
+                currentFallback = if (currentValue == null) {
+                    when (action.template.target) {
+                        is ActionTarget.ProfileFactTarget -> FrontierCurrentFallback.NOT_SET
+                        is ActionTarget.OpportunityRuleTarget -> FrontierCurrentFallback.NOT_CONFIRMED
+                    }
+                } else {
+                    null
+                },
+                scope = when (action.template.target) {
+                    is ActionTarget.ProfileFactTarget -> FrontierScope.PROFILE
+                    is ActionTarget.OpportunityRuleTarget -> FrontierScope.PROGRAMME
+                },
+                estimateBasis = estimateBasis,
+                impactDeadlineUnconfirmed = action.timingUnverifiedOpportunityIds.isNotEmpty(),
+                earliestAffectedDeadline = action.earliestAffectedDeadline,
+                currentValue = currentValue,
+                targetValue = action.template.targetValue,
+                titleCode = action.template.titleCode(moveKind, programmeTitle),
             )
         }
         val exclusions = evaluation.exclusions.map { exclusion ->
+            val programmeTitle = (exclusion.template.target as? ActionTarget.OpportunityRuleTarget)
+                ?.let { opportunitiesById[it.opportunityId]?.title }
             FrontierExcludedActionUiState(
                 id = exclusion.template.id,
                 title = exclusion.template.title,
                 reasons = FrontierExclusionReason.entries
                     .filter(exclusion.reasons::contains)
                     .map { it.readable() },
+                reasonCodes = FrontierExclusionReason.entries.filter(exclusion.reasons::contains),
+                titleCode = exclusion.template.titleCode(exclusion.template.moveKind(), programmeTitle),
+                targetValue = exclusion.template.targetValue,
+                programmeTitle = programmeTitle,
             )
         }
         val suggestedGrowthHorizonDays = evaluation.exclusions
@@ -333,10 +327,10 @@ class FrontierViewModel(
                     horizon > constraints.horizonDays && horizon >= minimumDurationDays
                 }
             }
-        selectedActionId = selectedActionId
+        val validSelectedActionId = selectedActionId
             ?.takeIf { selectedId -> actions.any { it.id == selectedId } }
             ?: actions.firstOrNull()?.id
-        comparedActionIds = comparedActionIds.filter { comparedId -> actions.any { it.id == comparedId } }
+        val validComparedActionIds = comparedActionIds.filter { comparedId -> actions.any { it.id == comparedId } }
         return FrontierUiState(
             isSampleMode = isSampleProfile,
             isDemoProfile = isDemoProfile,
@@ -350,8 +344,8 @@ class FrontierViewModel(
             actions = actions,
             exclusions = exclusions,
             suggestedGrowthHorizonDays = suggestedGrowthHorizonDays,
-            selectedActionId = selectedActionId,
-            comparedActionIds = comparedActionIds,
+            selectedActionId = validSelectedActionId,
+            comparedActionIds = validComparedActionIds,
         )
     }
 
@@ -374,7 +368,25 @@ class FrontierViewModel(
         }
     }
 
-    private fun ActionTemplate.familyId(kind: FrontierMoveKind): String = "${kind.name}:${targetFactKey.name}:${targetValue.displayValue()}"
+    private fun ActionTemplate.titleCode(kind: FrontierMoveKind, programmeTitle: String?): FrontierTitleCode? = when {
+        kind == FrontierMoveKind.VERIFY && programmeTitle != null -> when (targetFactKey) {
+            FactKey.AVAILABLE_FULL_PERIOD -> FrontierTitleCode.VERIFY_AVAILABILITY
+            FactKey.ENROLLED -> FrontierTitleCode.VERIFY_ENROLMENT
+            else -> FrontierTitleCode.VERIFY_REQUIREMENT
+        }
+
+        title == "Complete the required first degree" -> FrontierTitleCode.COMPLETE_DEGREE
+
+        title == "Use a cycle while eligible enrollment is active" -> FrontierTitleCode.ACTIVE_ENROLMENT
+
+        targetFactKey == FactKey.EXPERIENCE_MONTHS && title.startsWith("Reach ") -> FrontierTitleCode.RELEVANT_EXPERIENCE
+
+        targetFactKey == FactKey.IELTS_SCORE && title.startsWith("Raise IELTS to ") -> FrontierTitleCode.RAISE_IELTS
+
+        else -> null
+    }
+
+    private fun ActionTemplate.familyId(kind: FrontierMoveKind): String = "${kind.name}:${targetFactKey.name}:$targetValue"
 
     private fun ActionTemplate.familyLabel(kind: FrontierMoveKind): String = when (targetFactKey) {
         FactKey.AVAILABLE_FULL_PERIOD -> "Confirm programme availability"
@@ -405,6 +417,15 @@ class FrontierViewModel(
         else -> "Time estimate · basis not stated"
     }
 
+    private fun ActionTemplate.estimateBasis(): FrontierEstimateBasis = when {
+        sourceNote?.contains("Synthetic sample", ignoreCase = true) == true -> FrontierEstimateBasis.SYNTHETIC
+
+        sourceNote?.contains("Porta planning estimates", ignoreCase = true) == true ||
+            sourceNote?.contains("Porta assumption", ignoreCase = true) == true -> FrontierEstimateBasis.PORTA_ASSUMPTION
+
+        else -> FrontierEstimateBasis.UNSTATED
+    }
+
     private fun FrontierExclusionReason.readable(): String = when (this) {
         FrontierExclusionReason.BEYOND_HORIZON -> "Needs more time than your horizon"
         FrontierExclusionReason.ABOVE_MAX_EFFORT -> "Above your effort limit"
@@ -423,6 +444,7 @@ class FrontierViewModel(
         val pack: OpportunityPackDocument?,
         val savedIds: Set<String>,
         val today: LocalDate,
+        val plan: PlanItem?,
     )
 
     private companion object {

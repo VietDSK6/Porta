@@ -34,6 +34,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_accessibility
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_axis_days
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_axis_doors
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_hint
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_metrics
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_mixed_scopes
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_point_shared_a11y
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_point_single_a11y
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_shared_title
+import io.github.vietdsk6.porta.generated.resources.frontier_plot_single_title
+import io.github.vietdsk6.porta.generated.resources.frontier_tradeoff_title
+import io.github.vietdsk6.porta.presentation.theme.PortaColors
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun FrontierPlot(
@@ -56,9 +70,9 @@ internal fun FrontierPlot(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("Compare trade-offs", style = AppTheme.typography.h6)
+                Text(stringResource(Res.string.frontier_tradeoff_title), style = AppTheme.typography.h6)
                 Text(
-                    text = "Up and left means more checked requirements affected in less time.",
+                    text = stringResource(Res.string.frontier_plot_hint),
                     color = AppTheme.colors.text.secondary,
                     style = AppTheme.typography.bodySmall,
                 )
@@ -76,9 +90,9 @@ internal fun FrontierPlot(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = if (group.actions.size == 1) {
-                            "${index + 1}. ${group.representative.title}"
+                            stringResource(Res.string.frontier_plot_single_title, index + 1, group.representative.titleText())
                         } else {
-                            "${index + 1}. ${group.actions.size} moves share this trade-off"
+                            stringResource(Res.string.frontier_plot_shared_title, index + 1, group.actions.size)
                         },
                         color = if (group.contains(selectedActionId)) {
                             AppTheme.colors.primary
@@ -93,14 +107,22 @@ internal fun FrontierPlot(
                         },
                     )
                     Text(
-                        text = "${group.representative.durationDays} days · " +
-                            "${group.representative.improvedCount} doors · ${group.representative.costLabel} cost",
+                        text = stringResource(
+                            Res.string.frontier_plot_metrics,
+                            group.representative.durationDays,
+                            group.representative.improvedCount,
+                            group.representative.costText(),
+                        ),
                         color = AppTheme.colors.text.secondary,
                         style = AppTheme.typography.bodySmall,
                     )
                     if (group.actions.size > 1) {
                         Text(
-                            text = group.actions.joinToString(separator = " · ", transform = FrontierActionUiState::scopeLabel),
+                            text = if (group.actions.map { it.scope }.distinct().size > 1) {
+                                stringResource(Res.string.frontier_plot_mixed_scopes)
+                            } else {
+                                group.representative.scopeText()
+                            },
                             color = AppTheme.colors.text.secondary,
                             style = AppTheme.typography.bodySmall,
                         )
@@ -121,6 +143,7 @@ private fun ImpactPlotArea(
     val axisColor = AppTheme.colors.outline.copy(alpha = 0.55f)
     val gridColor = AppTheme.colors.outline.copy(alpha = 0.18f)
     val maxImpact = groups.maxOfOrNull { it.representative.improvedCount }?.coerceAtLeast(1) ?: 1
+    val plotDescription = stringResource(Res.string.frontier_plot_accessibility)
 
     BoxWithConstraints(
         modifier = Modifier
@@ -128,9 +151,7 @@ private fun ImpactPlotArea(
             .height(PLOT_HEIGHT)
             .testTag("frontier-impact-map-plot")
             .semantics {
-                contentDescription =
-                    "Action impact map. Horizontal axis is duration in days. " +
-                    "Vertical axis is affected doors. Point color is cost and every point has a text label."
+                contentDescription = plotDescription
             },
     ) {
         val plotWidth = (maxWidth - PLOT_LEFT - PLOT_RIGHT).coerceAtLeast(1.dp)
@@ -163,7 +184,7 @@ private fun ImpactPlotArea(
         }
 
         Text(
-            text = "$maxImpact doors",
+            text = stringResource(Res.string.frontier_plot_axis_doors, maxImpact),
             modifier = Modifier.offset(x = 0.dp, y = 0.dp),
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodySmall,
@@ -175,7 +196,7 @@ private fun ImpactPlotArea(
             style = AppTheme.typography.bodySmall,
         )
         Text(
-            text = "$horizonDays days",
+            text = stringResource(Res.string.frontier_plot_axis_days, horizonDays),
             modifier = Modifier.offset(x = maxWidth - 70.dp, y = PLOT_HEIGHT - 30.dp),
             color = AppTheme.colors.text.secondary,
             style = AppTheme.typography.bodySmall,
@@ -191,6 +212,23 @@ private fun ImpactPlotArea(
             val selectedGroupActionId = selectedActionId
                 ?.takeIf(group::contains)
                 ?: action.id
+            val pointDescription = if (group.actions.size == 1) {
+                stringResource(
+                    Res.string.frontier_plot_point_single_a11y,
+                    action.titleText(),
+                    action.durationDays,
+                    action.improvedCount,
+                    action.costText(),
+                )
+            } else {
+                stringResource(
+                    Res.string.frontier_plot_point_shared_a11y,
+                    group.actions.size,
+                    action.durationDays,
+                    action.improvedCount,
+                    action.costText(),
+                )
+            }
             Surface(
                 modifier = Modifier
                     .offset(x = markerX, y = markerY)
@@ -202,16 +240,10 @@ private fun ImpactPlotArea(
                         onClick = { onActionSelected(selectedGroupActionId) },
                     )
                     .semantics {
-                        contentDescription = if (group.actions.size == 1) {
-                            "${action.title}. ${action.durationDays} days, ${action.improvedCount} affected doors, " +
-                                "${action.costLabel} cost."
-                        } else {
-                            "${group.actions.size} moves share this point. ${action.durationDays} days, " +
-                                "${action.improvedCount} affected doors, ${action.costLabel} cost."
-                        }
+                        contentDescription = pointDescription
                     },
                 shape = CircleShape,
-                color = action.cost.color(),
+                color = PortaColors.cost(action.cost),
                 border = BorderStroke(
                     width = if (isSelected) 3.dp else 1.dp,
                     color = if (isSelected) AppTheme.colors.text.primary else AppTheme.colors.background,
@@ -261,20 +293,10 @@ private fun CostLegendItem(cost: CostBand) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(modifier = Modifier.size(10.dp), shape = CircleShape, color = cost.color()) {}
-        Text(cost.readable(), color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+        Surface(modifier = Modifier.size(10.dp), shape = CircleShape, color = PortaColors.cost(cost)) {}
+        Text(cost.frontierCostText(), color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
     }
 }
-
-private fun CostBand.color(): Color = when (this) {
-    CostBand.FREE -> Color(0xFF0F9D8A)
-    CostBand.LOW -> Color(0xFF3976D9)
-    CostBand.MEDIUM -> Color(0xFFD18A00)
-    CostBand.HIGH -> Color(0xFFC94B56)
-    CostBand.UNKNOWN -> Color(0xFF74717D)
-}
-
-private fun CostBand.readable(): String = name.lowercase().replaceFirstChar(Char::uppercaseChar)
 
 private val PLOT_HEIGHT = 210.dp
 private val PLOT_LEFT = 42.dp

@@ -20,13 +20,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
+import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.route_drawing_path
+import io.github.vietdsk6.porta.generated.resources.route_path_ready
+import io.github.vietdsk6.porta.generated.resources.route_station_cost
+import io.github.vietdsk6.porta.generated.resources.route_station_title
+import io.github.vietdsk6.porta.presentation.theme.PortaColors
+import io.github.vietdsk6.porta.presentation.theme.PortaDimens
+import org.jetbrains.compose.resources.stringResource
+import kotlin.coroutines.coroutineContext
 
 private val stationWidth = 260.dp
 
@@ -39,10 +51,20 @@ internal fun RouteMetroMap(
     val mutedColor = AppTheme.colors.outline
     val lostColor = AppTheme.colors.status.error
     val progress = remember(route.id) { Animatable(0f) }
-    LaunchedEffect(route.id) { progress.animateTo(1f, animationSpec = tween(650)) }
+    val pathDescription = stringResource(
+        if (progress.value < 1f) Res.string.route_drawing_path else Res.string.route_path_ready,
+    )
+    LaunchedEffect(route.id) {
+        if (coroutineContext[MotionDurationScale]?.scaleFactor == 0f) {
+            progress.snapTo(1f)
+        } else {
+            progress.animateTo(1f, animationSpec = tween(650))
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+            .semantics { stateDescription = pathDescription }
             .testTag("route-metro-map"),
     ) {
         Box(modifier = Modifier.width(stationWidth * route.steps.size.coerceAtLeast(1))) {
@@ -102,20 +124,24 @@ internal fun RouteMetroMap(
                 route.steps.forEachIndexed { index, step ->
                     Column(modifier = Modifier.width(stationWidth).padding(horizontal = 10.dp)) {
                         Card(
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(PortaDimens.cardCorner),
                             modifier = Modifier.fillMaxWidth().testTag("route-station-$index"),
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(18.dp)) {
                                 Text(
-                                    "STATION ${index + 1} · ${step.endDateLabel}",
+                                    stringResource(Res.string.route_station_title, index + 1, step.endDateLabel),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = trackColor,
                                 )
                                 Text(step.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    "${step.durationDays} days · ${step.cost.name.lowercase()} cost",
+                                    stringResource(
+                                        Res.string.route_station_cost,
+                                        routeDuration(step.durationDays),
+                                        routeCostLabel(step.cost),
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = AppTheme.colors.text.secondary,
+                                    color = PortaColors.cost(step.cost),
                                 )
                                 StepDoors(step)
                             }

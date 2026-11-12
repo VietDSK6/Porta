@@ -126,7 +126,7 @@ class PackInspectorUiTest {
 
         onNodeWithTag("pack-update-preview").assertExists()
         onNodeWithText("2 added · 3 changed · 1 removed · 9 unchanged").assertExists()
-        onNodeWithText("1 programme confirmation(s) will no longer match", substring = true).assertExists()
+        onNodeWithText("1 programme confirmation will no longer match", substring = true).assertExists()
         onNodeWithTag("pack-update-confirm").performClick()
         assertEquals(PackInspectorUiEvent.ImportPreviewConfirmed, events.last())
     }
