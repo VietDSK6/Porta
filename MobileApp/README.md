@@ -78,7 +78,7 @@ position, and maximized state are saved locally.
 The bundled catalog currently contains 15 independently encoded records. Its official URLs, interpretation boundary,
 and last manual verification date are documented in [OPPORTUNITY_PACK_SOURCES.md](OPPORTUNITY_PACK_SOURCES.md).
 
-The interface follows the device language by default and offers English and Vietnamese controls in Profile settings.
+The interface starts in English and offers English and Vietnamese controls in Profile settings.
 Official provider quotations remain in their published language. Date and fact-value display follows the selected
 interface language; pack JSON and profile exports retain stable, language-independent values.
 

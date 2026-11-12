@@ -30,6 +30,7 @@ import io.github.vietdsk6.porta.designsystem.components.ButtonStyle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.data_privacy_keep_data
 import io.github.vietdsk6.porta.generated.resources.profile_build
 import io.github.vietdsk6.porta.generated.resources.profile_cancel
 import io.github.vietdsk6.porta.generated.resources.profile_edit
@@ -171,6 +172,25 @@ fun StudentProfileScreen(
             },
         )
     }
+    uiState.pendingDataAction?.let { action ->
+        AlertDialog(
+            modifier = Modifier.testTag("student-profile-data-confirmation"),
+            onDismissRequest = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) },
+            title = { Text(action.confirmationTitle()) },
+            text = { Text(action.confirmationBody()) },
+            confirmButton = {
+                TextButton(
+                    modifier = Modifier.testTag("student-profile-data-confirm"),
+                    onClick = { onUiEvent(StudentProfileUiEvent.DataActionConfirmed) },
+                ) { Text(action.confirmationButton()) }
+            },
+            dismissButton = {
+                TextButton(onClick = { onUiEvent(StudentProfileUiEvent.DataActionCancelled) }) {
+                    Text(stringResource(Res.string.data_privacy_keep_data))
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -251,7 +271,12 @@ internal fun ProfileContent(
     onSaveNoticeDismissed: () -> Unit,
 ) {
     if (uiState.isDemoProfile) {
-        DemoProfileNotice()
+        DemoProfileNotice(
+            isWorking = uiState.isWorking,
+            onRemove = {
+                onUiEvent(StudentProfileUiEvent.DataActionRequested(ProfileDataAction.CLEAR_PROFILE_AND_PLANS))
+            },
+        )
     }
     ProfileIdentity(uiState = uiState)
 
@@ -276,6 +301,7 @@ internal fun ProfileContent(
     uiState.sections.forEach { section ->
         FactSection(
             section = section,
+            isDemoProfile = uiState.isDemoProfile,
             expandedFactKey = uiState.expandedFactKey,
             onUiEvent = onUiEvent,
         )

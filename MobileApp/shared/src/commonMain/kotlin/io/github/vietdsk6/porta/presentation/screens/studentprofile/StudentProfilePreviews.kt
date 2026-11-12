@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.presentation.locale.LocalAppLocale
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -37,6 +39,22 @@ internal fun StudentProfileDemoScreenPreview() {
             onOpenPackInspector = {},
             onOpenDataPrivacy = {},
         )
+    }
+}
+
+@Preview(name = "Demo profile Vietnamese", widthDp = 390, heightDp = 844, locale = "vi")
+@Composable
+internal fun StudentProfileDemoVietnamesePreview() {
+    CompositionLocalProvider(LocalAppLocale provides "vi") {
+        AppTheme {
+            StudentProfileScreen(
+                uiState = previewState.copy(isDemoProfile = true),
+                onUiEvent = {},
+                onEditProfile = {},
+                onOpenPackInspector = {},
+                onOpenDataPrivacy = {},
+            )
+        }
     }
 }
 

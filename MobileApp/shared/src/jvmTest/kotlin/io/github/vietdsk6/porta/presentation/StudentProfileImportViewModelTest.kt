@@ -159,7 +159,8 @@ class StudentProfileImportViewModelTest {
     }
 
     @Test
-    fun `language override persists locally and system choice clears it`() = runTest(dispatcher) {
+    fun `Vietnamese choice persists locally and English can be restored`() = runTest(dispatcher) {
+        assertEquals("en", viewModel.uiState.value.selectedLanguage)
         viewModel.onUiEvent(StudentProfileUiEvent.LanguageChanged("vi"))
         advanceUntilIdle()
 
@@ -167,12 +168,12 @@ class StudentProfileImportViewModelTest {
         assertEquals("vi", viewModel.uiState.value.selectedLanguage)
         assertEquals("vi", AppLanguageState.selected)
 
-        viewModel.onUiEvent(StudentProfileUiEvent.LanguageChanged(null))
+        viewModel.onUiEvent(StudentProfileUiEvent.LanguageChanged("en"))
         advanceUntilIdle()
 
-        assertNull(preferences.getString(UserPreferences.KEY_APP_LANGUAGE))
-        assertNull(viewModel.uiState.value.selectedLanguage)
-        assertNull(AppLanguageState.selected)
+        assertEquals("en", preferences.getString(UserPreferences.KEY_APP_LANGUAGE))
+        assertEquals("en", viewModel.uiState.value.selectedLanguage)
+        assertEquals("en", AppLanguageState.selected)
     }
 
     private fun fact(

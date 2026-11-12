@@ -8,6 +8,8 @@ import io.github.vietdsk6.porta.generated.resources.profile_actionability_contro
 import io.github.vietdsk6.porta.generated.resources.profile_actionability_immutable
 import io.github.vietdsk6.porta.generated.resources.profile_actionability_time_dependent
 import io.github.vietdsk6.porta.generated.resources.profile_actionability_unknown
+import io.github.vietdsk6.porta.generated.resources.profile_demo_country
+import io.github.vietdsk6.porta.generated.resources.profile_demo_field
 import io.github.vietdsk6.porta.generated.resources.profile_fact_key_age
 import io.github.vietdsk6.porta.generated.resources.profile_fact_key_available_full_period
 import io.github.vietdsk6.porta.generated.resources.profile_fact_key_community_project
@@ -28,6 +30,9 @@ import io.github.vietdsk6.porta.generated.resources.profile_section_academic
 import io.github.vietdsk6.porta.generated.resources.profile_section_context
 import io.github.vietdsk6.porta.generated.resources.profile_section_essentials
 import io.github.vietdsk6.porta.generated.resources.profile_section_experience
+import io.github.vietdsk6.porta.generated.resources.profile_setup_level_doctoral
+import io.github.vietdsk6.porta.generated.resources.profile_setup_level_masters
+import io.github.vietdsk6.porta.generated.resources.profile_setup_level_undergraduate
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -71,7 +76,32 @@ internal fun String.localizedProfileActionability(): String = when (this) {
 internal fun String.localizedProfileSection(): String = when (this) {
     "Essentials" -> stringResource(Res.string.profile_section_essentials)
     "Academic record" -> stringResource(Res.string.profile_section_academic)
+    "Academic" -> stringResource(Res.string.profile_section_academic)
     "Experience and evidence" -> stringResource(Res.string.profile_section_experience)
     "Context" -> stringResource(Res.string.profile_section_context)
+    else -> this
+}
+
+@Composable
+internal fun ProfileFactUiState.localizedValue(isDemoProfile: Boolean): String = when {
+    key == FactKey.STUDY_LEVEL -> value.localizedStudyLevel().orEmpty()
+
+    isDemoProfile && key == FactKey.FIELD_OF_STUDY && value == "Computer Science" -> {
+        stringResource(Res.string.profile_demo_field)
+    }
+
+    isDemoProfile && (key == FactKey.NATIONALITY || key == FactKey.RESIDENCY) &&
+        (value == "VN" || value == "Vietnam · VN") -> {
+        "${stringResource(Res.string.profile_demo_country)} · VN"
+    }
+
+    else -> value
+}
+
+@Composable
+internal fun String?.localizedStudyLevel(): String? = when (this?.lowercase()) {
+    "undergraduate" -> stringResource(Res.string.profile_setup_level_undergraduate)
+    "masters" -> stringResource(Res.string.profile_setup_level_masters)
+    "doctoral" -> stringResource(Res.string.profile_setup_level_doctoral)
     else -> this
 }

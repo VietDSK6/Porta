@@ -53,7 +53,6 @@
     <string name="frontier_exclusions_notice">Đây là các bước để cân nhắc, không phải khuyến nghị theo giới hạn hiện tại của bạn.</string>
     <string name="profile_language_title">Ngôn ngữ</string>
     <string name="profile_language_help">Chọn ngôn ngữ cho giao diện Porta. Nội dung nguồn chính thức vẫn giữ nguyên như đã công bố.</string>
-    <string name="profile_language_system">Theo hệ thống</string>
     <string name="profile_language_english">English</string>
     <string name="profile_language_vietnamese">Tiếng Việt</string>
     <string name="profile_language_save_error">Porta không lưu được cài đặt ngôn ngữ trên thiết bị này.</string>
@@ -603,7 +602,7 @@
     <string name="frontier_suggestion_improve">GỢI Ý CẢI THIỆN</string>
     <string name="frontier_suggestion_prepare">GỢI Ý CHUẨN BỊ</string>
     <string name="frontier_deadline_confirmation">Cần xác nhận hạn chót</string>
-    <string name="profile_title">Hồ sơ học tập của bạn</string>
+    <string name="profile_title">Hồ sơ</string>
     <string name="profile_edit">Chỉnh sửa</string>
     <string name="profile_remove_confirm">Các điều kiện dùng thông tin này sẽ trở thành chưa rõ cho đến khi bạn thêm lại.</string>
     <string name="profile_remove_fact">Xóa thông tin</string>
@@ -634,6 +633,10 @@
     <string name="profile_local_references">Lưu trên thiết bị · nguồn tham chiếu chưa được xác minh độc lập</string>
     <string name="profile_demo_notice_title">Hồ sơ demo có sẵn</string>
     <string name="profile_demo_notice_body">Thông tin hư cấu được lưu cục bộ để bạn thử ứng dụng. Bạn có thể sửa; hãy xóa hồ sơ demo trước khi nhập dữ liệu cá nhân.</string>
+    <string name="profile_demo_remove">Xóa hồ sơ demo</string>
+    <string name="profile_demo_field">Khoa học máy tính</string>
+    <string name="profile_demo_country">Việt Nam</string>
+    <string name="profile_field_student">Sinh viên %1$s</string>
     <string name="profile_demo_pack">BỘ DEMO</string>
     <string name="profile_demo_pack_notice">Mức độ dùng thông tin bên dưới dựa trên bộ cơ hội hư cấu của Porta.</string>
     <string name="profile_ai_title">Soạn nháp bằng AI (tùy chọn)</string>

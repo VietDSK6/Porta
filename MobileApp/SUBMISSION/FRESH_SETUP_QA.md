@@ -87,7 +87,7 @@ exercise is still intentionally unchecked below.
 - [ ] System Back returns through detail/preview/setup without losing or duplicating navigation state.
 - [ ] Portrait, landscape, and a tablet-sized viewport keep primary actions visible.
 - [ ] 200% font scaling preserves all trust disclosures and primary actions.
-- [ ] Switch System / English / Tiếng Việt in Profile. Confirm Route, Doors, Next moves, plan and profile controls
+- [ ] Confirm first launch defaults to English, then switch English / Tiếng Việt in Profile. Confirm Route, Doors, Next moves, plan and profile controls
   change language, dates use the selected format, and official source quotations remain unchanged.
 - [ ] TalkBack announces conclusion, source/freshness, What-if summary, and buttons meaningfully.
 - [ ] Pack import rejects an invalid file without partial changes and previews a valid update before activation.
@@ -106,7 +106,7 @@ exercise is still intentionally unchecked below.
   existing local data.
 - [ ] Narrow and 1280×800 windows preserve content, source disclosures, and primary actions.
 - [ ] 200% text or equivalent OS scaling has no clipped critical controls.
-- [ ] The in-app language selector survives relaunch and the system setting restores the OS language.
+- [ ] The in-app language selector survives relaunch; a fresh install starts in English regardless of the OS language.
 - [ ] Screen reader announces navigation, conclusions, changed-count summary, and expanded rule details meaningfully.
 - [ ] Import/export works using files outside the project directory.
 - [ ] Relaunch preserves profile, saves, planning constraints, and the active plan.

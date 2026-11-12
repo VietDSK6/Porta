@@ -34,7 +34,9 @@ import io.github.vietdsk6.porta.generated.resources.profile_demo_notice_body
 import io.github.vietdsk6.porta.generated.resources.profile_demo_notice_title
 import io.github.vietdsk6.porta.generated.resources.profile_demo_pack
 import io.github.vietdsk6.porta.generated.resources.profile_demo_pack_notice
+import io.github.vietdsk6.porta.generated.resources.profile_demo_remove
 import io.github.vietdsk6.porta.generated.resources.profile_detail_provided
+import io.github.vietdsk6.porta.generated.resources.profile_field_student
 import io.github.vietdsk6.porta.generated.resources.profile_local_references
 import io.github.vietdsk6.porta.generated.resources.profile_missing_caveat
 import io.github.vietdsk6.porta.generated.resources.profile_missing_multiple
@@ -129,9 +131,9 @@ internal fun UncheckedFactsNotice(
 @Composable
 internal fun ProfileIdentity(uiState: StudentProfileUiState) {
     val facts = uiState.sections.flatMap(ProfileFactSectionUiState::facts)
-    val fieldOfStudy = facts.valueOf(FactKey.FIELD_OF_STUDY)
-    val studyLevel = facts.valueOf(FactKey.STUDY_LEVEL)?.sentenceCase()
-    val nationality = facts.valueOf(FactKey.NATIONALITY)
+    val fieldOfStudy = facts.firstOrNull { it.key == FactKey.FIELD_OF_STUDY }?.localizedValue(uiState.isDemoProfile)
+    val studyLevel = facts.firstOrNull { it.key == FactKey.STUDY_LEVEL }?.localizedValue(uiState.isDemoProfile)
+    val nationality = facts.firstOrNull { it.key == FactKey.NATIONALITY }?.localizedValue(uiState.isDemoProfile)
     val identityLine = listOfNotNull(studyLevel, nationality).joinToString(" · ")
 
     Surface(
@@ -160,7 +162,8 @@ internal fun ProfileIdentity(uiState: StudentProfileUiState) {
                         letterSpacing = 1.sp,
                     )
                     Text(
-                        text = fieldOfStudy?.let { "$it student" } ?: stringResource(Res.string.profile_student_title),
+                        text = fieldOfStudy?.let { stringResource(Res.string.profile_field_student, it) }
+                            ?: stringResource(Res.string.profile_student_title),
                         style = AppTheme.typography.h5,
                         color = AppTheme.colors.text.primary,
                         fontWeight = FontWeight.ExtraBold,
@@ -207,7 +210,10 @@ internal fun ProfileIdentity(uiState: StudentProfileUiState) {
 }
 
 @Composable
-internal fun DemoProfileNotice() {
+internal fun DemoProfileNotice(
+    isWorking: Boolean,
+    onRemove: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("student-profile-demo-notice"),
         color = AppTheme.colors.surfaceContainer,
@@ -229,6 +235,13 @@ internal fun DemoProfileNotice() {
                 color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
+            TextButton(
+                modifier = Modifier.testTag("student-profile-remove-demo"),
+                enabled = !isWorking,
+                onClick = onRemove,
+            ) {
+                Text(stringResource(Res.string.profile_demo_remove))
+            }
         }
     }
 }

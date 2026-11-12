@@ -310,7 +310,7 @@ class StudentProfileViewModel(
         viewModelScope.launch {
             try {
                 val saved = !preferences.getString(UserPreferences.KEY_AI_DRAFT_API_KEY).isNullOrBlank()
-                val language = preferences.getString(UserPreferences.KEY_APP_LANGUAGE)
+                val language = preferences.getString(UserPreferences.KEY_APP_LANGUAGE)?.takeIf { it == "vi" } ?: "en"
                 transientState.update { it.copy(aiKeySaved = saved, selectedLanguage = language) }
             } catch (_: Exception) {
                 showFailure(ProfileNotice.AI_SETTINGS_READ_FAILED)
@@ -356,16 +356,13 @@ class StudentProfileViewModel(
     private fun changeLanguage(language: String?) {
         val preferences = userPreferences ?: return
         if (language != null && language != "en" && language != "vi") return
-        val previous = transientState.value.selectedLanguage
-        transientState.update { it.copy(selectedLanguage = language) }
-        AppLanguageState.select(language)
+        val normalized = language ?: "en"
+        val previous = transientState.value.selectedLanguage ?: "en"
+        transientState.update { it.copy(selectedLanguage = normalized) }
+        AppLanguageState.select(normalized)
         viewModelScope.launch {
             try {
-                if (language == null) {
-                    preferences.remove(UserPreferences.KEY_APP_LANGUAGE)
-                } else {
-                    preferences.putString(UserPreferences.KEY_APP_LANGUAGE, language)
-                }
+                preferences.putString(UserPreferences.KEY_APP_LANGUAGE, normalized)
             } catch (_: Exception) {
                 AppLanguageState.select(previous)
                 transientState.update { it.copy(selectedLanguage = previous) }
@@ -487,7 +484,7 @@ class StudentProfileViewModel(
     private data class StudentProfileTransientState(
         val isWorking: Boolean = false,
         val aiKeySaved: Boolean = false,
-        val selectedLanguage: String? = null,
+        val selectedLanguage: String? = "en",
         val expandedFactKey: FactKey? = null,
         val factPendingDelete: ProfileFactUiState? = null,
         val pendingDataAction: ProfileDataAction? = null,

@@ -54,7 +54,6 @@
     <string name="frontier_exclusions_notice">These are candidates, not recommendations under your current limits.</string>
     <string name="profile_language_title">Language</string>
     <string name="profile_language_help">Choose the language used for Porta’s interface. Official source wording stays as published.</string>
-    <string name="profile_language_system">System</string>
     <string name="profile_language_english">English</string>
     <string name="profile_language_vietnamese">Tiếng Việt</string>
     <string name="profile_language_save_error">Porta could not save the language setting on this device.</string>
@@ -620,7 +619,7 @@
     <string name="frontier_suggestion_improve">SUGGESTED IMPROVEMENT</string>
     <string name="frontier_suggestion_prepare">SUGGESTED PREPARATION</string>
     <string name="frontier_deadline_confirmation">Deadline needs confirmation</string>
-    <string name="profile_title">Your academic profile</string>
+    <string name="profile_title">Profile</string>
     <string name="profile_edit">Edit</string>
     <string name="profile_remove_confirm">Rules that use this fact will become unknown until you add it again.</string>
     <string name="profile_remove_fact">Remove fact</string>
@@ -651,6 +650,10 @@
     <string name="profile_local_references">Saved on this device · references are not independently verified</string>
     <string name="profile_demo_notice_title">Ready-made demo profile</string>
     <string name="profile_demo_notice_body">These fictional facts were saved locally for hands-on testing. You can edit them freely; clear the demo profile before entering personal data.</string>
+    <string name="profile_demo_remove">Remove demo profile</string>
+    <string name="profile_demo_field">Computer Science</string>
+    <string name="profile_demo_country">Vietnam</string>
+    <string name="profile_field_student">%1$s student</string>
     <string name="profile_demo_pack">DEMO PACK</string>
     <string name="profile_demo_pack_notice">Door usage below comes from Porta's synthetic opportunity pack.</string>
     <string name="profile_ai_title">AI drafting (optional)</string>

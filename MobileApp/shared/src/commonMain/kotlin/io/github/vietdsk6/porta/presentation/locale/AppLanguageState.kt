@@ -6,18 +6,18 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Null follows the device language. The only supported overrides are en and vi. */
+/** English is the first-run default; Vietnamese is an explicit in-app choice. */
 object AppLanguageState {
-    var selected: String? by mutableStateOf(null)
+    var selected: String? by mutableStateOf("en")
         private set
 
-    private val mutableChanges = MutableStateFlow<String?>(null)
+    private val mutableChanges = MutableStateFlow<String?>("en")
     val changes: StateFlow<String?> = mutableChanges
 
-    val effectiveLanguageTag: String get() = selected ?: LocalAppLocale.system
+    val effectiveLanguageTag: String get() = selected ?: "en"
 
     fun select(languageTag: String?) {
-        val normalized = languageTag?.takeIf { it == "en" || it == "vi" }
+        val normalized = languageTag?.takeIf { it == "en" || it == "vi" } ?: "en"
         selected = normalized
         mutableChanges.value = normalized
     }

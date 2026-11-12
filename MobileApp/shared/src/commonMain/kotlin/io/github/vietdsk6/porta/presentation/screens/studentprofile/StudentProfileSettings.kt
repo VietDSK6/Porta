@@ -46,7 +46,6 @@ import io.github.vietdsk6.porta.generated.resources.profile_data_privacy_hint
 import io.github.vietdsk6.porta.generated.resources.profile_dismiss
 import io.github.vietdsk6.porta.generated.resources.profile_language_english
 import io.github.vietdsk6.porta.generated.resources.profile_language_help
-import io.github.vietdsk6.porta.generated.resources.profile_language_system
 import io.github.vietdsk6.porta.generated.resources.profile_language_title
 import io.github.vietdsk6.porta.generated.resources.profile_language_vietnamese
 import io.github.vietdsk6.porta.generated.resources.profile_open
@@ -81,14 +80,13 @@ internal fun LanguageSettingsCard(
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
-                    null to stringResource(Res.string.profile_language_system),
                     "en" to stringResource(Res.string.profile_language_english),
                     "vi" to stringResource(Res.string.profile_language_vietnamese),
                 )
                     .forEach { (language, label) ->
                         FilterChip(
-                            modifier = Modifier.testTag("student-profile-language-${language ?: "system"}"),
-                            selected = uiState.selectedLanguage == language,
+                            modifier = Modifier.testTag("student-profile-language-$language"),
+                            selected = (uiState.selectedLanguage ?: "en") == language,
                             onClick = { onUiEvent(StudentProfileUiEvent.LanguageChanged(language)) },
                             enabled = !uiState.isWorking,
                             label = { Text(label) },

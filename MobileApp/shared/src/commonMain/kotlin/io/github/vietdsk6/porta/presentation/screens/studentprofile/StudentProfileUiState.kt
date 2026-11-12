@@ -20,7 +20,7 @@ data class StudentProfileUiState(
     val aiDraftSettingsAvailable: Boolean = false,
     val aiKeySaved: Boolean = false,
     val languageSettingsAvailable: Boolean = false,
-    val selectedLanguage: String? = null,
+    val selectedLanguage: String? = "en",
     val pendingProfileImport: ProfileImportPreviewUiState? = null,
     val profileImportError: String? = null,
     val message: ProfileNotice? = null,

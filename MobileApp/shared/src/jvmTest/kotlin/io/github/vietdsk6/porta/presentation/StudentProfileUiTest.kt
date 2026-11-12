@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.runComposeUiTest
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.FactKey
+import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileDataAction
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileFactSectionUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.ProfileFactUiState
 import io.github.vietdsk6.porta.presentation.screens.studentprofile.StudentProfileScreen
@@ -66,11 +67,12 @@ class StudentProfileUiTest {
 
     @Test
     fun `persisted demo profile remains clearly labelled as fictional`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
         setContent {
             AppTheme {
                 StudentProfileScreen(
                     uiState = actualProfileState.copy(isDemoProfile = true),
-                    onUiEvent = {},
+                    onUiEvent = { events += it },
                     onEditProfile = {},
                     onOpenPackInspector = {},
                     onOpenDataPrivacy = {},
@@ -81,6 +83,31 @@ class StudentProfileUiTest {
         onNodeWithTag("student-profile-demo-notice").assertExists()
         onNodeWithText("FICTIONAL DEMO PROFILE").assertExists()
         onNodeWithText("These fictional facts were saved locally", substring = true).assertExists()
+        onNodeWithTag("student-profile-remove-demo").performClick()
+        assertTrue(events.last() == StudentProfileUiEvent.DataActionRequested(ProfileDataAction.CLEAR_PROFILE_AND_PLANS))
+    }
+
+    @Test
+    fun `demo removal asks for confirmation before clearing profile and plans`() = runComposeUiTest {
+        val events = mutableListOf<StudentProfileUiEvent>()
+        setContent {
+            AppTheme {
+                StudentProfileScreen(
+                    uiState = actualProfileState.copy(
+                        isDemoProfile = true,
+                        pendingDataAction = ProfileDataAction.CLEAR_PROFILE_AND_PLANS,
+                    ),
+                    onUiEvent = { events += it },
+                    onEditProfile = {},
+                    onOpenPackInspector = {},
+                )
+            }
+        }
+
+        onNodeWithText("Clear academic profile and plans?").assertExists()
+        onNodeWithText("Saved doors, the opportunity catalog", substring = true).assertExists()
+        onNodeWithTag("student-profile-data-confirm").performClick()
+        assertTrue(events.last() == StudentProfileUiEvent.DataActionConfirmed)
     }
 
     @Test

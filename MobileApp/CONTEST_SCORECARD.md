@@ -101,8 +101,8 @@ Current evidence:
   original non-persisted sample path remains available. The judge profile uses a 180-day horizon and three pre-saved
   sourced goals to expose degree, English and programme-verification trade-offs without claiming a perfect applicant.
 - [x] P5 reduces onboarding to two steps and leads with Route's one-statement, three-number summary. Its explanation
-  is expandable, and motion preserves the same result when reduced. System, English and Vietnamese UI selection is
-  persisted; English and Vietnamese resource files each contain 1,154 matching unique entries. The Vietnamese Route
+  is expandable, and motion preserves the same result when reduced. English is the default, and English/Vietnamese UI selection is
+  persisted; English and Vietnamese resource files each contain 1,157 matching unique entries. The Vietnamese Route
   and onboarding snapshots were reviewed, and the largest Kotlin presentation file is 584 lines.
 - [x] Pack identity is immutable across every stored version: a publisher change for an existing pack ID is rejected
   before persistence, including when the original version is inactive.

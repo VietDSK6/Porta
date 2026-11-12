@@ -46,6 +46,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun FactSection(
     section: ProfileFactSectionUiState,
+    isDemoProfile: Boolean,
     expandedFactKey: FactKey?,
     onUiEvent: (StudentProfileUiEvent) -> Unit,
 ) {
@@ -84,6 +85,7 @@ internal fun FactSection(
                 section.facts.forEachIndexed { index, fact ->
                     FactRow(
                         fact = fact,
+                        isDemoProfile = isDemoProfile,
                         expanded = fact.key == expandedFactKey,
                         onToggle = { onUiEvent(StudentProfileUiEvent.ToggleDependencies(fact.key)) },
                         onDelete = { onUiEvent(StudentProfileUiEvent.DeleteFactRequested(fact)) },
@@ -106,6 +108,7 @@ internal fun FactSection(
 @Composable
 internal fun FactRow(
     fact: ProfileFactUiState,
+    isDemoProfile: Boolean,
     expanded: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
@@ -134,7 +137,7 @@ internal fun FactRow(
                     color = AppTheme.colors.text.secondary,
                 )
                 Text(
-                    text = fact.value,
+                    text = fact.localizedValue(isDemoProfile),
                     style = AppTheme.typography.h6,
                     color = AppTheme.colors.text.primary,
                     fontWeight = FontWeight.Bold,
