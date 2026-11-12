@@ -29,7 +29,7 @@
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
 | Comprehensive README | PASS | The public root README covers product story, demo path, architecture, declared targets, limitations, quality gates, trust boundaries, exact baseline/first-product commits, and a table separating inherited Koko infrastructure from Porta work. |
 | Launch instructions for every declared target | PASS | Android and JVM Desktop have exact commands. A credential-free public clone builds the APK and DMG; the rebuilt Desktop package was observed launching past startup. Android device interaction remains a disclosed manual QA item, not an instruction gap. |
-| 300-word essay | IN PROGRESS | `SUBMISSION/ESSAY.md` has an exactly 300-word body and four explicit entrant-fact placeholders. Replace them truthfully and recount before submission. |
+| 300-word essay | IN PROGRESS | `SUBMISSION/ESSAY.md` has an exactly 300-word body grounded in the entrant's August 2026 CV and the current project. Entrant must verify that enrollment and employment remain accurate before submission. |
 | Submission form before deadline | TODO | Save the final form link and submission receipt outside the repository. |
 | Truthful and rights-safe submission/media | IN PROGRESS | Source every factual claim and opportunity rule; obtain permission for any identifiable third party in media. |
 
@@ -209,7 +209,7 @@ A green formatter alone must never be recorded as `20/20`.
 | Product name and visual identity | READY LOCALLY | Porta uses the Editorial Atlas palette, Newsreader/Manrope typography and trust-first core journey; final light/dark Android and Desktop captures plus rights audit remain. |
 | Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register, visible freshness policy, lifecycle handling and user-approved update diffs; complete an independent second reading before submission. |
 | README | READY LOCALLY | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and the public fresh-clone record. |
-| Essay | NEEDS ENTRANT FACTS | Body is exactly 300 words; replace the four factual placeholders without changing truth or count. |
+| Essay | DRAFT READY; ENTRANT REVIEW | Body is exactly 300 words with CV-backed education, work and Myosotis details; entrant confirms current facts and final wording. |
 | Screencast | SCRIPT READY; CAPTURE PENDING | `SUBMISSION/DEMO_SCRIPT.md` defines a Route-first 3:30 path with Linh's honest zero-open-door result; record it from the frozen Android/Desktop build. |
 | Screenshots/GIFs | TODO | Current UI only; rights-safe and readable. |
 | Submission form | TODO | Final URLs tested without private access. |
@@ -224,9 +224,9 @@ A green formatter alone must never be recorded as `20/20`.
 
 ## Next three contest actions
 
-1. Replace the four essay placeholders with verified entrant facts, preserve the exact 300-word count, and confirm the
-   personal eligibility/solo-entry gates.
+1. Confirm the CV-backed essay's current enrollment and employment facts, preserve the exact 300-word count after any
+   edits, and confirm the personal eligibility/solo-entry gates.
 2. Have a second person re-read all 15 official sources, refresh every TBA deadline, and capture rights-safe Android
    and Desktop media from the frozen build.
-3. Complete Android-device plus keyboard/screen-reader QA, record the video URL, replace the essay placeholders, and
+3. Complete Android-device plus keyboard/screen-reader QA, record the video URL, approve the final essay wording, and
    submit the verified public repository before the deadline.

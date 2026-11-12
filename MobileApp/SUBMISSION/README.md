@@ -22,7 +22,7 @@ entrant's request; Web is not a declared submission target.
 | JVM Desktop package | HISTORICAL PUBLIC-CLONE PASS | The 2 November DMG built and launched past startup after the `jdk.unsupported` fix; final package and keyboard/screen-reader QA remain pending. |
 | Current P5 code | LOCAL COMMIT; GATES PASS | `dc4e701`; scoped tests, Android APK, Desktop DMG, Roborazzi previews, and 100-opportunity timing are recorded locally. Public-clone verification remains pending. |
 | Web build | DEFERRED | The entrant requested that Web build work wait while Android, Desktop, and other app work proceeds. |
-| Essay | NEEDS ENTRANT FACTS | `ESSAY.md` is a 300-word structural draft with four factual placeholders. Replace them truthfully and re-run the word-count command. |
+| Essay | DRAFT READY; ENTRANT REVIEW | `ESSAY.md` is 300 words with CV-backed education, work and Myosotis details. Confirm current facts and wording before submission. |
 | Screencast | 3:30 SCRIPT READY | Record and review a 3–5 minute video using the Route-first `DEMO_SCRIPT.md`. |
 | Final media | CAPTURE REQUIRED | Capture real Android and Desktop output using `MEDIA_CHECKLIST.md`; do not substitute design mockups. |
 | Source audit | IN PROGRESS | A second reader must check all 15 records and all TBA/current-cycle dates. |
@@ -30,7 +30,7 @@ entrant's request; Web is not a declared submission target.
 
 ## Freeze procedure
 
-1. Replace every factual placeholder in `ESSAY.md` and keep the essay at exactly 300 words.
+1. Confirm the CV-backed facts and final wording in `ESSAY.md`; keep the essay at exactly 300 words after any edits.
 2. Complete every mandatory row in `FRESH_SETUP_QA.md` from a clean clone of the public repository.
 3. Complete the independent source review in `../OPPORTUNITY_PACK_SOURCES.md`.
 4. Record the screencast and capture final screenshots from the frozen build.
