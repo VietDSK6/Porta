@@ -1,25 +1,9 @@
-# 300-word contest essay
+A deadline tells a student when an opportunity closes. It does not tell them which milestone is worth pursuing first. I study Information Technology at PTIT and build mobile apps at AISOFT. On PTIT S-Link, I use React Native, TypeScript, and REST APIs to make academic workflows usable. Building Myosotis, a project supporting people with Alzheimer's disease, strengthened my interest in accessibility and clear explanations.
 
-The background and experience below use the entrant's August 2026 CV: PTIT Information Technology, AISOFT,
-PTIT S-Link, the public-service Zalo Mini App, and Myosotis. The entrant chose Myosotis and accessibility as the
-relevant personal interest. Porta's idea and implementation details come from the project. The entrant should
-check that the employment and enrollment facts are still accurate before submitting. Do not submit this note or
-the markers below.
+That perspective shaped Porta. Scholarships, internships, and study programmes have different requirements, deadlines, and uncertainties. A list of matches shows the present; students also need to understand what they can change. Porta asks which realistic action could improve several opportunities, and what time, effort, or money it would require.
 
-Count only the text between the markers:
+Students enter facts once, then inspect source-linked checks. Porta's deterministic engine separates passing checks from missing information and checks that need human review. Each opportunity conclusion points to its published source so students can challenge the interpretation. Its Action Frontier compares feasible moves, while Route orders milestones and shows the opportunities each step might open, improve, or lose to a deadline. Students can change constraints and preview outcomes without changing their actual profile. Finishing a plan never silently turns a goal into a proven fact.
 
-```bash
-sed -n '/^<!-- ESSAY_START -->$/,/^<!-- ESSAY_END -->$/p' SUBMISSION/ESSAY.md | sed '1d;$d' | wc -w
-```
+Kotlin Multiplatform shares the rule engine, scenario evaluation, planning, Room persistence, and most Compose interface code between Android and JVM Desktop. Android makes profile and progress updates quick. Desktop uses the extra space for route comparison and opportunity-pack inspection. A command-line tool uses the same engine to validate packs and evaluate exported profiles. Tests cover the shared rules and the boundary between hypothetical and actual data.
 
-<!-- ESSAY_START -->
-I study Information Technology at the Posts and Telecommunications Institute of Technology (PTIT) and work as a mobile developer at AISOFT. I build React Native and TypeScript workflows for PTIT S-Link and a public-service Zalo Mini App. Working on Myosotis, an accessibility-focused app for people with Alzheimer's disease, shaped my interest in clear, inclusive software.
-
-That work led me to a question: scholarships, internships, contests, and study programmes are plentiful, but which milestones should someone tackle with limited time, effort, and money? Porta's Route planner orders up to four controllable steps and reevaluates published checks at each step's end date. It shows improved checks, doors opened, and doors lost to deadlines. An Action Frontier compares non-dominated moves.
-
-Students inspect why doors need action or verification, change Route limits, and preview milestones without changing their saved profile. Every conclusion traces to encoded rules and an official source. Completing a plan never silently proves a fact; updating the actual profile requires separate confirmation, with optional evidence. Missing information stays unknown, manual checks stay manual, and soft selection criteria never become eligibility scores. Linh's fictional profile improves checks across 15 sourced doors, yet opens zero.
-
-Porta uses Kotlin 2.4.10 and Compose Multiplatform. Shared Kotlin contains deterministic rules, scenarios, Route planning, pack validation, Room persistence, ViewModels, and interface code. Android supports profile and progress updates; JVM Desktop offers a route map, comparison workspace, and pack inspector. A JVM CLI exports, validates, evaluates, and plans with the engine. Common, JVM, and Android-host tests exercise trust boundaries and behavior.
-
-Porta works locally without accounts, analytics, subscriptions, or an AI key. Optional drafting uses offline examples; with a personal key, Gemini may propose source-quoted rules for human review and separate pack approval. AI never decides eligibility or predicts selection. Porta maps assessed possibilities across Android and Desktop.
-<!-- ESSAY_END -->
+I wanted a planning tool that respects uncertainty instead of hiding it. Porta cannot promise a scholarship or admission. It gives students a clearer way to choose their next move and understand why it matters.
