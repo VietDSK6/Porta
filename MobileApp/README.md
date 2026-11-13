@@ -54,7 +54,7 @@ diff and import approval. AI never supplies an eligibility conclusion.
 2. Open **Doors** to see the current source-linked conclusions.
 3. Open **Route** to compare ordered milestone paths. Compact layouts show a timeline; wide Desktop layouts show a
    metro-style map. Inspect which checks improve, which doors open, and which deadlines can close along the way.
-   Change the time, cost, and effort limits, then save a chosen path as ordered steps in the active plan.
+   Change the time, estimated cost per step, and effort limits, then save a chosen path as ordered steps, replacing the current active plan.
 4. Open **Next moves** for individual actions. On Desktop, select two or three actions in Compare Lab to compare
    independent What-if results against the same
    Actual profile; scenarios are never combined or saved.

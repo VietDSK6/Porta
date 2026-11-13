@@ -145,13 +145,17 @@
 
     <string name="route_controls_title">Shape your route</string>
 
+    <string name="route_controls_help">Change these limits to recalculate the routes above. Your active plan changes only when you save a route.</string>
+
+    <string name="route_recalculating">Updating routes…</string>
+
     <string name="route_horizon">Horizon · %1$s</string>
 
-    <string name="route_total_budget">Total budget</string>
+    <string name="route_max_cost_per_step">Maximum estimated cost per step</string>
 
     <string name="route_max_effort">Maximum effort per step</string>
 
-    <string name="route_budget_note">Budget uses Porta's estimate bands; check actual costs on the provider site.</string>
+    <string name="route_budget_note">Cost bands are estimates, not currency amounts. Check actual prices on the provider site.</string>
 
     <string name="route_cost_free">Free</string>
 
@@ -218,6 +222,12 @@
     </plurals>
 
     <string name="route_notice_saved">Route saved to your active plan.</string>
+
+    <string name="route_saved">Saved</string>
+
+    <string name="route_save_replaces_plan">Saving a route replaces your current active plan with its milestones.</string>
+
+    <string name="route_notice_saved_detail">The milestones are now in order in Active plan. Finishing a step will not change your profile automatically.</string>
 
     <string name="route_notice_error">Porta could not save this route. Please try again.</string>
 

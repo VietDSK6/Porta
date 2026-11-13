@@ -40,7 +40,7 @@ class RoutePlanner(
                 template.minimumDurationDays >= 0 &&
                     template.minimumDurationDays <= constraints.horizonDays &&
                     template.effort.rank <= constraints.maxEffort.rank &&
-                    template.costBand.rank <= constraints.maxTotalCost.rank &&
+                    template.costBand.rank <= constraints.maxCostPerStep.rank &&
                     template.scenarioOverrides(opportunityById).hasChanges()
             }
         if (candidates.isEmpty()) return emptyList()
@@ -147,7 +147,6 @@ class RoutePlanner(
     ): SearchNode? {
         if (template.id in node.usedTemplateIds) return null
         val cost = node.costRankSum + template.costBand.rank
-        if (cost > constraints.maxTotalCost.rank) return null
         val endDate = LocalDate.fromEpochDays(node.cursorDate.toEpochDays() + template.minimumDurationDays)
         if (endDate.toEpochDays() - today.toEpochDays() > constraints.horizonDays) return null
         val nextOverrides = node.overrides.mergedWith(template.scenarioOverrides(opportunityById))

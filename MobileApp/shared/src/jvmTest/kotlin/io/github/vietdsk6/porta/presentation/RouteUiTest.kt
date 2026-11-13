@@ -11,6 +11,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -21,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.presentation.screens.route.RouteNotice
 import io.github.vietdsk6.porta.presentation.screens.route.RouteOptionUiState
 import io.github.vietdsk6.porta.presentation.screens.route.RouteReason
 import io.github.vietdsk6.porta.presentation.screens.route.RouteReasonKind
@@ -30,6 +33,7 @@ import io.github.vietdsk6.porta.presentation.screens.route.RouteUiEvent
 import io.github.vietdsk6.porta.presentation.screens.route.RouteUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class RouteUiTest {
@@ -85,6 +89,67 @@ class RouteUiTest {
         onNodeWithTag("route-list").performScrollToNode(hasTestTag("route-save"))
         onNodeWithTag("route-save").performClick()
         assertEquals(listOf<RouteUiEvent>(RouteUiEvent.SaveRoute), events)
+    }
+
+    @Test
+    fun `all cost and effort choices remain reachable on compact route`() = runComposeUiTest {
+        val events = mutableListOf<RouteUiEvent>()
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 320.dp, height = 640.dp)) {
+                    RouteScreen(
+                        uiState = routeState,
+                        onUiEvent = events::add,
+                        onOpenNextMoves = {},
+                        onOpenActivePlan = {},
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("route-list").performScrollToNode(hasTestTag("route-cost-unknown"))
+        onNodeWithTag("route-cost-unknown").assertIsDisplayed().performClick()
+        onNodeWithTag("route-list").performScrollToNode(hasTestTag("route-effort-very_high"))
+        onNodeWithTag("route-effort-very_high").assertIsDisplayed().performClick()
+        assertEquals(listOf(RouteUiEvent.MaxCostChanged(CostBand.UNKNOWN), RouteUiEvent.MaxEffortChanged(EffortLevel.VERY_HIGH)), events)
+    }
+
+    @Test
+    fun `save stays disabled while route is recalculating`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                RouteScreen(
+                    uiState = routeState.copy(isRecalculating = true),
+                    onUiEvent = {},
+                    onOpenNextMoves = {},
+                    onOpenActivePlan = {},
+                )
+            }
+        }
+
+        onNodeWithTag("route-list").performScrollToNode(hasTestTag("route-save"))
+        onNodeWithTag("route-save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `saved route confirms the active plan beside the save button`() = runComposeUiTest {
+        var openedActivePlan = false
+        setContent {
+            AppTheme {
+                RouteScreen(
+                    uiState = routeState.copy(notice = RouteNotice.SAVED),
+                    onUiEvent = {},
+                    onOpenNextMoves = {},
+                    onOpenActivePlan = { openedActivePlan = true },
+                )
+            }
+        }
+
+        onNodeWithTag("route-list").performScrollToNode(hasTestTag("route-save-feedback"))
+        onNodeWithTag("route-save").assertIsNotEnabled()
+        onNodeWithText("Route saved to your active plan.").assertIsDisplayed()
+        onNodeWithTag("route-view-saved-plan").assertIsDisplayed().performClick()
+        assertTrue(openedActivePlan)
     }
 
     @Test

@@ -46,7 +46,7 @@ class RouteViewModel(
     private val constraints = MutableStateFlow(
         RouteConstraints(
             horizonDays = 180,
-            maxTotalCost = CostBand.UNKNOWN,
+            maxCostPerStep = CostBand.UNKNOWN,
             maxEffort = EffortLevel.VERY_HIGH,
         ),
     )
@@ -84,6 +84,7 @@ class RouteViewModel(
                 labels = inputs.opportunities.associate { it.id to it.title },
                 canSave = !useSample,
                 isFictionalProfile = useSample || sampleScenarioProvider.isPersistedDemoProfile(inputs.profile),
+                constraints = inputs.constraints,
                 isLoading = false,
             )
         }
@@ -103,8 +104,9 @@ class RouteViewModel(
             canSave = result.canSave,
             isFictionalProfile = result.isFictionalProfile,
             horizonDays = selectedConstraints.horizonDays,
-            maxTotalCost = selectedConstraints.maxTotalCost,
+            maxCostPerStep = selectedConstraints.maxCostPerStep,
             maxEffort = selectedConstraints.maxEffort,
+            isRecalculating = !result.isLoading && result.constraints != selectedConstraints,
             routes = routeOptions,
             selectedRouteId = selectedId?.takeIf { id -> routeOptions.any { it.id == id } }
                 ?: routeOptions.firstOrNull()?.id,
@@ -113,16 +115,27 @@ class RouteViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, RouteUiState())
 
     fun onUiEvent(event: RouteUiEvent) {
+        if (saveState.value.isSaving) return
         when (event) {
-            is RouteUiEvent.HorizonChanged -> constraints.value = constraints.value.copy(
-                horizonDays = event.days.coerceIn(30, 365),
-            )
+            is RouteUiEvent.HorizonChanged -> {
+                constraints.value = constraints.value.copy(horizonDays = event.days.coerceIn(30, 365))
+                clearNotice()
+            }
 
-            is RouteUiEvent.MaxCostChanged -> constraints.value = constraints.value.copy(maxTotalCost = event.cost)
+            is RouteUiEvent.MaxCostChanged -> {
+                constraints.value = constraints.value.copy(maxCostPerStep = event.cost)
+                clearNotice()
+            }
 
-            is RouteUiEvent.MaxEffortChanged -> constraints.value = constraints.value.copy(maxEffort = event.effort)
+            is RouteUiEvent.MaxEffortChanged -> {
+                constraints.value = constraints.value.copy(maxEffort = event.effort)
+                clearNotice()
+            }
 
-            is RouteUiEvent.RouteSelected -> selectedRouteId.value = event.id
+            is RouteUiEvent.RouteSelected -> {
+                selectedRouteId.value = event.id
+                clearNotice()
+            }
 
             RouteUiEvent.SaveRoute -> saveSelectedRoute()
 
@@ -130,9 +143,14 @@ class RouteViewModel(
         }
     }
 
+    private fun clearNotice() {
+        if (saveState.value.notice != null) saveState.value = SaveState()
+    }
+
     private fun saveSelectedRoute() {
-        if (!planning.value.canSave || saveState.value.isSaving) return
-        val selectedId = selectedRouteId.value ?: planning.value.routes.firstOrNull()?.id
+        if (!planning.value.canSave || saveState.value.isSaving || planning.value.constraints != constraints.value) return
+        val selectedId = selectedRouteId.value?.takeIf { id -> planning.value.routes.any { it.id == id } }
+            ?: planning.value.routes.firstOrNull()?.id
         val route = planning.value.routes.firstOrNull { it.id == selectedId } ?: return
         viewModelScope.launch {
             saveState.value = SaveState(isSaving = true)
@@ -184,6 +202,7 @@ class RouteViewModel(
         val labels: Map<String, String> = emptyMap(),
         val canSave: Boolean = false,
         val isFictionalProfile: Boolean = false,
+        val constraints: RouteConstraints? = null,
         val isLoading: Boolean = true,
     )
 

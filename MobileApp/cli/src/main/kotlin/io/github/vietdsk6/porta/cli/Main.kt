@@ -133,7 +133,7 @@ private class RouteCommand :
     private val packPath by option("--pack", help = "Pack JSON; defaults to bundled catalog")
     private val dateValue by option("--date", help = "ISO yyyy-MM-dd; defaults to today")
     private val horizon by option("--horizon", help = "Planning horizon in days").int().default(180)
-    private val budget by option("--budget", help = "Maximum cumulative cost: free, low, medium, high, unknown")
+    private val budget by option("--budget", help = "Maximum estimated cost band per step: free, low, medium, high, unknown")
         .default("low")
     private val effort by option("--effort", help = "Maximum effort per step: very_low, low, medium, high, very_high")
         .default("high")

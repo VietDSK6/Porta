@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
@@ -53,9 +55,12 @@ import io.github.vietdsk6.porta.generated.resources.route_improved_opportunities
 import io.github.vietdsk6.porta.generated.resources.route_loading
 import io.github.vietdsk6.porta.generated.resources.route_milestones
 import io.github.vietdsk6.porta.generated.resources.route_no_open_doors
+import io.github.vietdsk6.porta.generated.resources.route_notice_saved_detail
 import io.github.vietdsk6.porta.generated.resources.route_open_doors
 import io.github.vietdsk6.porta.generated.resources.route_profile_to_save
 import io.github.vietdsk6.porta.generated.resources.route_save
+import io.github.vietdsk6.porta.generated.resources.route_save_replaces_plan
+import io.github.vietdsk6.porta.generated.resources.route_saved
 import io.github.vietdsk6.porta.generated.resources.route_saving
 import io.github.vietdsk6.porta.generated.resources.route_toolbar_title
 import io.github.vietdsk6.porta.generated.resources.route_verify_sources
@@ -173,15 +178,6 @@ fun RouteScreen(
                         }
                     }
                 }
-                val notice = uiState.notice
-                if (notice != null) {
-                    item {
-                        RouteNotice(
-                            message = routeNotice(notice),
-                            onDismiss = { onUiEvent(RouteUiEvent.NoticeDismissed) },
-                        )
-                    }
-                }
             }
         }
     }
@@ -258,6 +254,7 @@ private fun RouteChoices(uiState: RouteUiState, onUiEvent: (RouteUiEvent) -> Uni
                 FilterChip(
                     selected = uiState.selectedRoute?.id == route.id,
                     onClick = { onUiEvent(RouteUiEvent.RouteSelected(route.id)) },
+                    enabled = !uiState.isSaving,
                     label = { Text(stringResource(Res.string.route_choice_label, index + 1)) },
                     modifier = Modifier.testTag("route-choice-$index"),
                 )
@@ -290,17 +287,41 @@ private fun RouteActions(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = { onUiEvent(RouteUiEvent.SaveRoute) },
-                enabled = uiState.canSave && !uiState.isSaving,
+                enabled = uiState.canSave && !uiState.isSaving && !uiState.isRecalculating && uiState.notice != RouteNotice.SAVED,
                 modifier = Modifier.testTag("route-save"),
             ) {
-                Text(stringResource(if (uiState.isSaving) Res.string.route_saving else Res.string.route_save))
+                Text(
+                    stringResource(
+                        when {
+                            uiState.isSaving -> Res.string.route_saving
+                            uiState.notice == RouteNotice.SAVED -> Res.string.route_saved
+                            else -> Res.string.route_save
+                        },
+                    ),
+                )
             }
             OutlinedButton(onClick = onOpenNextMoves) { Text(stringResource(Res.string.route_first_move)) }
+        }
+        uiState.notice?.let { notice ->
+            RouteFeedback(
+                notice = notice,
+                onOpenActivePlan = onOpenActivePlan,
+                onDismiss = { onUiEvent(RouteUiEvent.NoticeDismissed) },
+            )
+        }
+        if (uiState.canSave && uiState.notice != RouteNotice.SAVED) {
+            Text(
+                stringResource(Res.string.route_save_replaces_plan),
+                style = MaterialTheme.typography.bodySmall,
+                color = AppTheme.colors.text.secondary,
+            )
         }
         if (!uiState.canSave) {
             Text(stringResource(Res.string.route_profile_to_save), style = MaterialTheme.typography.bodySmall)
         }
-        TextButton(onClick = onOpenActivePlan) { Text(stringResource(Res.string.route_view_active_plan)) }
+        if (uiState.notice != RouteNotice.SAVED) {
+            TextButton(onClick = onOpenActivePlan) { Text(stringResource(Res.string.route_view_active_plan)) }
+        }
         Text(
             stringResource(Res.string.route_verify_sources),
             style = MaterialTheme.typography.bodySmall,
@@ -310,11 +331,41 @@ private fun RouteActions(
 }
 
 @Composable
-private fun RouteNotice(message: String, onDismiss: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.route_dismiss)) }
+private fun RouteFeedback(notice: RouteNotice, onOpenActivePlan: () -> Unit, onDismiss: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("route-save-feedback")
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.alternative),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                routeNotice(notice),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (notice == RouteNotice.SAVED) AppTheme.colors.primary else AppTheme.colors.status.error,
+            )
+            if (notice == RouteNotice.SAVED) {
+                Text(stringResource(Res.string.route_notice_saved_detail), style = MaterialTheme.typography.bodyMedium)
+                Button(onClick = onOpenActivePlan, modifier = Modifier.testTag("route-view-saved-plan")) {
+                    Text(stringResource(Res.string.route_view_active_plan))
+                }
+            } else {
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.route_dismiss)) }
+            }
+        }
+    }
+}
+
+@Preview(name = "Route saved feedback", widthDp = 390, heightDp = 420)
+@Composable
+private fun RouteSavedFeedbackPreview() {
+    AppTheme {
+        Column(Modifier.padding(16.dp)) {
+            RouteActions(
+                uiState = RouteUiState(isLoading = false, canSave = true, notice = RouteNotice.SAVED),
+                onUiEvent = {},
+                onOpenNextMoves = {},
+                onOpenActivePlan = {},
+            )
         }
     }
 }

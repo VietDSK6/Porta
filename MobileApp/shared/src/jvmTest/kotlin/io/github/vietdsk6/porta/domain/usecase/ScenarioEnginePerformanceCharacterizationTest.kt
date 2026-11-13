@@ -150,7 +150,7 @@ class ScenarioEnginePerformanceCharacterizationTest {
         savedOpportunityIds = fixture.savedOpportunityIds,
         constraints = RouteConstraints(
             horizonDays = fixture.constraints.horizonDays,
-            maxTotalCost = fixture.constraints.maxCost,
+            maxCostPerStep = fixture.constraints.maxCost,
             maxEffort = fixture.constraints.maxEffort,
         ),
         today = today,

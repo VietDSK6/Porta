@@ -2,10 +2,10 @@ package io.github.vietdsk6.porta.domain.model
 
 import kotlinx.datetime.LocalDate
 
-/** Limits a route's elapsed time, total cost rank, effort per milestone, and number of steps. */
+/** Limits a route's elapsed time, estimated cost and effort per milestone, and number of steps. */
 data class RouteConstraints(
     val horizonDays: Int,
-    val maxTotalCost: CostBand,
+    val maxCostPerStep: CostBand,
     val maxEffort: EffortLevel,
     val maxSteps: Int = 4,
     val prioritizeSaved: Boolean = true,

@@ -68,7 +68,7 @@ class PortaCliService(
             savedOpportunityIds = emptySet(),
             constraints = RouteConstraints(
                 horizonDays = horizonDays,
-                maxTotalCost = maxCost,
+                maxCostPerStep = maxCost,
                 maxEffort = maxEffort,
             ),
             today = date,

@@ -1,8 +1,12 @@
 package io.github.vietdsk6.porta.presentation.screens.route
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
@@ -52,6 +56,19 @@ private fun RouteZeroOpenPreview() {
             onOpenNextMoves = {},
             onOpenActivePlan = {},
         )
+    }
+}
+
+@Preview(name = "Route controls compact", widthDp = 320, heightDp = 840)
+@Composable
+private fun RouteControlsCompactPreview() {
+    AppTheme {
+        Column(Modifier.padding(16.dp)) {
+            RouteControls(
+                uiState = RouteUiState(isLoading = false),
+                onUiEvent = {},
+            )
+        }
     }
 }
 

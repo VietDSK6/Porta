@@ -83,7 +83,7 @@ class RoutePlannerTest {
     }
 
     @Test
-    fun `routes obey cumulative cost horizon effort and step caps`() {
+    fun `routes obey estimated cost per step horizon effort and step caps`() {
         val costlyIelts = ielts.copy(costBand = CostBand.LOW)
         val costlyCommunity = community.copy(costBand = CostBand.LOW, effort = EffortLevel.HIGH)
         val opportunities = listOf(
@@ -94,16 +94,44 @@ class RoutePlannerTest {
             profile,
             opportunities,
             emptySet(),
-            RouteConstraints(horizonDays = 15, maxTotalCost = CostBand.LOW, maxEffort = EffortLevel.MEDIUM),
+            RouteConstraints(horizonDays = 15, maxCostPerStep = CostBand.LOW, maxEffort = EffortLevel.MEDIUM),
             today,
         )
 
         assertTrue(routes.isNotEmpty())
         assertTrue(routes.all { route -> route.metrics.totalDays <= 15 })
-        assertTrue(routes.all { route -> route.metrics.costRankSum <= CostBand.LOW.rank })
+        assertTrue(routes.all { route -> route.steps.all { it.template.costBand.rank <= CostBand.LOW.rank } })
         assertTrue(routes.all { route -> route.metrics.peakEffort.rank <= EffortLevel.MEDIUM.rank })
         assertTrue(routes.all { route -> route.steps.size <= 4 })
         assertTrue(routes.all { route -> route.steps.none { it.template.id == costlyCommunity.id } })
+    }
+
+    @Test
+    fun `any estimated cost allows multiple high cost steps`() {
+        val highCostIelts = ielts.copy(costBand = CostBand.HIGH)
+        val highCostCommunity = community.copy(costBand = CostBand.HIGH)
+        val opportunities = listOf(
+            erasmus.copy(actionTemplates = listOf(highCostIelts)),
+            contest.copy(actionTemplates = listOf(highCostIelts, highCostCommunity)),
+        )
+
+        val anyCostRoutes = planner.plan(
+            profile,
+            opportunities,
+            emptySet(),
+            RouteConstraints(30, CostBand.UNKNOWN, EffortLevel.HIGH),
+            today,
+        )
+        val lowCostRoutes = planner.plan(
+            profile,
+            opportunities,
+            emptySet(),
+            RouteConstraints(30, CostBand.LOW, EffortLevel.HIGH),
+            today,
+        )
+
+        assertTrue(anyCostRoutes.any { route -> route.steps.size == 2 && route.metrics.costRankSum > CostBand.UNKNOWN.rank })
+        assertTrue(lowCostRoutes.isEmpty())
     }
 
     @Test

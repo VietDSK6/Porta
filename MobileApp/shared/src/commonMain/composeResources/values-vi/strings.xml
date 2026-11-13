@@ -142,13 +142,17 @@
 
     <string name="route_controls_title">Điều chỉnh lộ trình</string>
 
+    <string name="route_controls_help">Đổi các giới hạn để tính lại những lộ trình phía trên. Kế hoạch hiện tại chỉ thay đổi khi bạn lưu lộ trình.</string>
+
+    <string name="route_recalculating">Đang tính lại lộ trình…</string>
+
     <string name="route_horizon">Thời gian · %1$s</string>
 
-    <string name="route_total_budget">Tổng ngân sách</string>
+    <string name="route_max_cost_per_step">Chi phí ước tính tối đa cho mỗi bước</string>
 
     <string name="route_max_effort">Công sức tối đa cho mỗi bước</string>
 
-    <string name="route_budget_note">Ngân sách dùng các mức ước tính của Porta; hãy kiểm tra chi phí thực tế trên trang của đơn vị cung cấp.</string>
+    <string name="route_budget_note">Các mức chi phí chỉ là ước tính, không phải số tiền. Hãy kiểm tra giá thực tế trên trang của đơn vị cung cấp.</string>
 
     <string name="route_cost_free">Miễn phí</string>
 
@@ -207,6 +211,12 @@
     </plurals>
 
     <string name="route_notice_saved">Đã lưu lộ trình vào kế hoạch hiện tại.</string>
+
+    <string name="route_saved">Đã lưu</string>
+
+    <string name="route_save_replaces_plan">Lưu lộ trình sẽ thay kế hoạch hiện tại bằng các mốc của lộ trình này.</string>
+
+    <string name="route_notice_saved_detail">Các mốc đã được xếp theo thứ tự trong Kế hoạch hiện tại. Hoàn thành một bước không tự động đổi hồ sơ của bạn.</string>
 
     <string name="route_notice_error">Porta không lưu được lộ trình này. Vui lòng thử lại.</string>
 
