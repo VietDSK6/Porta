@@ -30,7 +30,13 @@ data class RouteOptionUiState(
     val costRankSum: Int,
     val reason: RouteReason,
 ) {
-    val improvedDoorCount: Int get() = steps.flatMap(RouteStepUiState::doorsImproved).distinct().size
+    val improvedDoorCount: Int
+        get() {
+            val improved = steps.flatMap(RouteStepUiState::doorsImproved).toSet()
+            val opened = steps.flatMap(RouteStepUiState::doorsOpened).toSet()
+            val lost = steps.flatMap(RouteStepUiState::doorsLost).toSet()
+            return (improved - opened - lost).size
+        }
     val lostDoorCount: Int get() = steps.flatMap(RouteStepUiState::doorsLost).distinct().size
 }
 

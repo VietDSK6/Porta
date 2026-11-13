@@ -6,7 +6,7 @@ Capture only after the frozen commit passes its scoped gates and the Android dev
 
 | ID | Platform / viewport | State | Required content |
 |---|---|---|---|
-| A1 | Android phone, light | Onboarding → Route | Fictional Linh badge, zero-open-doors notice, first route timeline and **Why these numbers?** disclosure. |
+| A1 | Android phone, light | Onboarding → Route | Fictional IELTS threshold before/after, four changed sample checks, then the separate sourced Linh Route with its fictional-profile badge, zero-open-doors notice, first timeline and **Why these numbers?** disclosure. |
 | A2 | Android phone, dark | Doors → detail | Conclusion groups, one source-linked receipt, source date and disclaimer. |
 | A3 | Android phone, light | Next moves | Constraints and explainable candidate actions. |
 | A4 | Android phone, dark | What-if | Actual → simulated counts, changed checks and saved-profile warning. |
@@ -23,7 +23,7 @@ Capture only after the frozen commit passes its scoped gates and the Android dev
 ## Capture sequence
 
 1. Record the frozen commit SHA, app version, bundled pack ID/version, local date, Android device/API and Desktop OS. Use one fictional profile and the same date for comparisons. Clear notifications and private browser tabs before starting.
-2. Launch the built Android app on a device or emulator and the packaged Desktop app, not a Compose preview. Complete the two-step Linh onboarding on a clean local profile. Verify the **zero** count in the sourced 15-door pack before filming any Route claim.
+2. Launch the built Android app on a device or emulator and the packaged Desktop app, not a Compose preview. Complete the two-step onboarding on a clean local profile, showing that the IELTS lesson is synthetic and separate from Linh's sourced pack. Verify the **zero** opened doors in that 15-door pack before filming any Route claim.
 3. Capture each row above at native resolution. On Android, `adb exec-out screencap -p > A1.png` saves a screenshot of the active screen. On macOS Desktop, `screencapture -x D1.png` saves the screen; crop to the app window during editing without changing UI content. Use descriptive filenames if the final capture location differs.
 4. Record the 3–5 minute screencast from the same build. Keep the pointer visible on Desktop, magnify small receipts in the edit, and caption official URLs, source-review dates, simulated values and the saved-profile warning so they remain readable in the uploaded video.
 5. Review each exported image and the final video at the actual submission size. Check text overflow in English and Vietnamese, keyboard focus on Desktop, dark-mode contrast, disclosure visibility, zero-open-doors wording and synchronization between narrated claims and shown state. Retake any failed shot.

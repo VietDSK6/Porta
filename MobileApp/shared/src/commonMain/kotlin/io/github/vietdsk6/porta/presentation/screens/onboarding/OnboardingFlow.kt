@@ -36,6 +36,8 @@ import io.github.vietdsk6.porta.generated.resources.Res
 import io.github.vietdsk6.porta.generated.resources.onboarding_brand
 import io.github.vietdsk6.porta.generated.resources.onboarding_continue
 import io.github.vietdsk6.porta.generated.resources.onboarding_explore_sample
+import io.github.vietdsk6.porta.generated.resources.onboarding_opening_route
+import io.github.vietdsk6.porta.generated.resources.onboarding_show_linh_route
 import io.github.vietdsk6.porta.generated.resources.onboarding_step_count
 import io.github.vietdsk6.porta.presentation.theme.PortaDimens
 import org.jetbrains.compose.resources.stringResource
@@ -60,7 +62,7 @@ fun OnboardingFlow(
             verticalArrangement = Arrangement.spacedBy(PortaDimens.sectionGap),
         ) {
             if (uiState.currentStep == 0) {
-                OnboardingDirectionStep(uiState, onUiEvent)
+                OnboardingDirectionStep()
             } else {
                 OnboardingRouteStep(uiState, onUiEvent)
             }
@@ -68,11 +70,28 @@ fun OnboardingFlow(
         if (uiState.currentStep == 0) {
             Button(
                 onClick = { onUiEvent(OnBoardingUiEvent.Next) },
-                enabled = uiState.selectedGoal != null,
                 modifier = Modifier.widthIn(max = 588.dp).fillMaxWidth()
                     .padding(horizontal = PortaDimens.compactScreenInset, vertical = 12.dp)
                     .testTag("onboarding-continue"),
             ) { Text(stringResource(Res.string.onboarding_continue)) }
+        } else {
+            Button(
+                onClick = { onUiEvent(OnBoardingUiEvent.UseDemoProfile) },
+                enabled = !uiState.isInstallingDemoProfile,
+                modifier = Modifier.widthIn(max = 588.dp).fillMaxWidth()
+                    .padding(horizontal = PortaDimens.compactScreenInset, vertical = 12.dp)
+                    .testTag("onboarding-use-demo-profile"),
+            ) {
+                Text(
+                    stringResource(
+                        if (uiState.isInstallingDemoProfile) {
+                            Res.string.onboarding_opening_route
+                        } else {
+                            Res.string.onboarding_show_linh_route
+                        },
+                    ),
+                )
+            }
         }
     }
 }

@@ -48,6 +48,8 @@ import io.github.vietdsk6.porta.generated.resources.route_hero_eyebrow
 import io.github.vietdsk6.porta.generated.resources.route_hero_title
 import io.github.vietdsk6.porta.generated.resources.route_hide_why
 import io.github.vietdsk6.porta.generated.resources.route_illustrative_badge
+import io.github.vietdsk6.porta.generated.resources.route_improved_metric
+import io.github.vietdsk6.porta.generated.resources.route_improved_opportunities
 import io.github.vietdsk6.porta.generated.resources.route_loading
 import io.github.vietdsk6.porta.generated.resources.route_milestones
 import io.github.vietdsk6.porta.generated.resources.route_no_open_doors
@@ -188,6 +190,8 @@ fun RouteScreen(
 @Composable
 private fun RouteHero(uiState: RouteUiState) {
     val route = uiState.selectedRoute
+    val improvedCount = route?.improvedDoorCount ?: 0
+    val progressWithoutOpen = route != null && route.openedTotal == 0 && improvedCount > 0
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(Res.string.route_hero_eyebrow), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.primary)
         if (uiState.isIllustrativePreview) {
@@ -198,15 +202,34 @@ private fun RouteHero(uiState: RouteUiState) {
         Text(
             when {
                 route == null -> stringResource(Res.string.route_hero_title)
+
+                progressWithoutOpen -> pluralStringResource(
+                    Res.plurals.route_improved_opportunities,
+                    improvedCount,
+                    improvedCount,
+                )
+
                 route.openedTotal == 0 -> stringResource(Res.string.route_no_open_doors)
+
                 else -> pluralStringResource(Res.plurals.route_open_doors, route.openedTotal, route.openedTotal)
             },
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.testTag("route-headline"),
         )
+        if (progressWithoutOpen) {
+            Text(
+                stringResource(Res.string.route_no_open_doors),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTheme.colors.text.secondary,
+            )
+        }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            RouteMetric(route?.openedTotal?.toString() ?: "—", stringResource(Res.string.route_doors_passing), Modifier.weight(1f))
+            RouteMetric(
+                value = if (progressWithoutOpen) improvedCount.toString() else route?.openedTotal?.toString() ?: "—",
+                label = stringResource(if (progressWithoutOpen) Res.string.route_improved_metric else Res.string.route_doors_passing),
+                modifier = Modifier.weight(1f),
+            )
             RouteMetric(route?.steps?.size?.toString() ?: "—", stringResource(Res.string.route_milestones), Modifier.weight(1f))
             RouteMetric(route?.totalDays?.toString() ?: "—", stringResource(Res.string.route_days), Modifier.weight(1f))
         }

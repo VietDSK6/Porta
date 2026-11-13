@@ -82,8 +82,9 @@ exercise is still intentionally unchecked below.
 ## Android manual path
 
 - [ ] Fresh install launches offline without an account or service configuration.
-- [ ] Two-step onboarding reaches Linh's fictional Route in under 30 seconds; record measured time and confirm the
-  zero-open-doors statement is visible. Then reach a meaningful What-if preview.
+- [ ] Two-step onboarding lets a new user toggle the clearly fictional IELTS 6.5 → 7.0 lesson, then reaches Linh's
+  sourced fictional Route in under 30 seconds; record measured time and confirm the zero-open-doors statement is visible.
+  Then reach a meaningful What-if preview.
 - [ ] System Back returns through detail/preview/setup without losing or duplicating navigation state.
 - [ ] Portrait, landscape, and a tablet-sized viewport keep primary actions visible.
 - [ ] 200% font scaling preserves all trust disclosures and primary actions.

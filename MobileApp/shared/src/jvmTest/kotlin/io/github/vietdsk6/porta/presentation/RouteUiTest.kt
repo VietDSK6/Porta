@@ -34,6 +34,16 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class RouteUiTest {
     @Test
+    fun `route progress excludes a door lost before the route ends`() {
+        val route = routeOption("zero", 0, "Door A")
+        assertEquals(1, route.improvedDoorCount)
+        assertEquals(
+            0,
+            route.copy(steps = route.steps.map { it.copy(doorsLost = listOf("Door A")) }).improvedDoorCount,
+        )
+    }
+
+    @Test
     fun `selecting another route changes the announced outcome`() = runComposeUiTest {
         var state by mutableStateOf(routeState)
         setContent {
@@ -107,7 +117,8 @@ class RouteUiTest {
             }
         }
 
-        onNodeWithText("This route improves checks. No doors open yet.").assertExists()
+        onNodeWithText("1 opportunity could gain a passing check.").assertExists()
+        onNodeWithText("No door passes every assessed check yet.").assertExists()
         onNodeWithTag("route-summary").assertDoesNotExist()
         onNodeWithTag("route-why").performClick()
         onNodeWithTag("route-summary").assertExists()
@@ -162,7 +173,7 @@ private fun routeOption(id: String, openedTotal: Int, doorTitle: String) = Route
             startDateLabel = "2026-11-11",
             endDateLabel = "2027-01-10",
             durationDays = 60,
-            doorsOpened = listOf(doorTitle),
+            doorsOpened = if (openedTotal > 0) listOf(doorTitle) else emptyList(),
             doorsImproved = listOf(doorTitle),
             doorsLost = emptyList(),
             effort = EffortLevel.MEDIUM,
@@ -174,5 +185,9 @@ private fun routeOption(id: String, openedTotal: Int, doorTitle: String) = Route
     daysToFirstDoor = 60,
     totalDays = 60,
     costRankSum = 1,
-    reason = RouteReason(RouteReasonKind.OPENS, openedTotal),
+    reason = if (openedTotal > 0) {
+        RouteReason(RouteReasonKind.OPENS, openedTotal)
+    } else {
+        RouteReason(RouteReasonKind.IMPROVES, 1)
+    },
 )

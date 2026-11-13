@@ -81,7 +81,6 @@ private fun OnBoardingScreenPreview() {
     AppTheme {
         OnBoardingScreen(
             uiState = OnBoardingUiState(
-                selectedGoal = OnboardingGoal.SCHOLARSHIPS,
                 isLoading = false,
             ),
             onUiEvent = {},
@@ -96,7 +95,7 @@ private fun OnBoardingRoutePreview() {
         OnBoardingScreen(
             uiState = OnBoardingUiState(
                 currentStep = 1,
-                selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                thresholdLesson = previewThresholdLesson,
                 isLoading = false,
             ),
             onUiEvent = {},
@@ -112,7 +111,7 @@ private fun OnBoardingRouteVietnamesePreview() {
             OnBoardingScreen(
                 uiState = OnBoardingUiState(
                     currentStep = 1,
-                    selectedGoal = OnboardingGoal.SCHOLARSHIPS,
+                    thresholdLesson = previewThresholdLesson,
                     isLoading = false,
                 ),
                 onUiEvent = {},
@@ -120,3 +119,26 @@ private fun OnBoardingRouteVietnamesePreview() {
         }
     }
 }
+
+@Preview(name = "Onboarding threshold changed")
+@Composable
+private fun OnBoardingThresholdChangedPreview() {
+    AppTheme {
+        OnBoardingScreen(
+            uiState = OnBoardingUiState(
+                currentStep = 1,
+                thresholdLesson = previewThresholdLesson,
+                isThresholdPreviewApplied = true,
+                isLoading = false,
+            ),
+            onUiEvent = {},
+        )
+    }
+}
+
+private val previewThresholdLesson = OnboardingThresholdLessonUiState(
+    beforeScore = 6.5,
+    afterScore = 7.0,
+    changedOpportunityTitles = listOf("Aurora Scholars", "Forge Student Lab", "Horizon Exchange", "Spark Fellowship"),
+    unchangedOpportunityTitles = listOf("Local Makers Challenge"),
+)

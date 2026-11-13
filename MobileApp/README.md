@@ -46,10 +46,11 @@ diff and import approval. AI never supplies an eligibility conclusion.
 
 ## Demo path
 
-1. In the two-step onboarding, choose a direction and tap **Show me Linh's route**. Linh is an editable fictional CS
-   undergraduate with a 180-day horizon and three pre-saved sourced goals. Her current 15-door route improves checks
-   but opens **zero** doors under the encoded rules and deadlines. The app labels the demo throughout. You can also
-   browse without saving a profile or enter your own local facts.
+1. In the two-step onboarding, try the clearly fictional IELTS 6.5 → 7.0 threshold lesson, then tap **Explore Linh's
+   sourced route**. The lesson demonstrates four changed checks in a synthetic five-opportunity sample; it is separate
+   from Linh's editable fictional CS profile and the sourced 15-door catalog. Linh's current 180-day route improves
+   checks but opens **zero** doors under the encoded rules and deadlines. You can also browse without saving a profile
+   or enter your own local facts.
 2. Open **Doors** to see the current source-linked conclusions.
 3. Open **Route** to compare ordered milestone paths. Compact layouts show a timeline; wide Desktop layouts show a
    metro-style map. Inspect which checks improve, which doors open, and which deadlines can close along the way.

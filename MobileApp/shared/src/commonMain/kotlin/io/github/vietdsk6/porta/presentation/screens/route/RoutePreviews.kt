@@ -14,6 +14,47 @@ private fun RouteCompactPreview() {
     AppTheme { PreviewRouteScreen() }
 }
 
+@Preview(name = "Route zero fully open", widthDp = 390, heightDp = 840)
+@Composable
+private fun RouteZeroOpenPreview() {
+    AppTheme {
+        RouteScreen(
+            uiState = RouteUiState(
+                isLoading = false,
+                isFictionalProfile = true,
+                routes = listOf(
+                    RouteOptionUiState(
+                        id = "sourced-check-progress",
+                        steps = listOf(
+                            RouteStepUiState(
+                                id = "availability",
+                                title = "Confirm full-period availability for CERN openlab Summer Student Programme",
+                                startDateLabel = "2026-11-13",
+                                endDateLabel = "2026-11-27",
+                                durationDays = 14,
+                                doorsOpened = emptyList(),
+                                doorsImproved = listOf("CERN openlab Summer Student Programme"),
+                                doorsLost = emptyList(),
+                                effort = EffortLevel.LOW,
+                                cost = CostBand.FREE,
+                            ),
+                        ),
+                        openedTotal = 0,
+                        openedSaved = 0,
+                        daysToFirstDoor = null,
+                        totalDays = 14,
+                        costRankSum = 0,
+                        reason = RouteReason(RouteReasonKind.IMPROVES, 1),
+                    ),
+                ),
+            ),
+            onUiEvent = {},
+            onOpenNextMoves = {},
+            onOpenActivePlan = {},
+        )
+    }
+}
+
 @Preview(name = "Route compact Vietnamese", widthDp = 390, heightDp = 840, locale = "vi")
 @Composable
 private fun RouteVietnamesePreview() {
@@ -65,8 +106,8 @@ private val previewState = RouteUiState(
                     startDateLabel = "2026-11-11",
                     endDateLabel = "2027-01-10",
                     durationDays = 60,
-                    doorsOpened = listOf("Erasmus Mundus Joint Masters", "CERN openlab"),
-                    doorsImproved = listOf("Erasmus Mundus Joint Masters", "CERN openlab"),
+                    doorsOpened = listOf("Aurora Scholars", "Horizon Exchange"),
+                    doorsImproved = listOf("Aurora Scholars", "Horizon Exchange"),
                     doorsLost = emptyList(),
                     effort = EffortLevel.HIGH,
                     cost = CostBand.LOW,
@@ -77,9 +118,9 @@ private val previewState = RouteUiState(
                     startDateLabel = "2027-01-10",
                     endDateLabel = "2027-05-10",
                     durationDays = 120,
-                    doorsOpened = listOf("Summer Research Lab"),
-                    doorsImproved = listOf("Summer Research Lab"),
-                    doorsLost = listOf("Early spring fellowship"),
+                    doorsOpened = listOf("Forge Student Lab"),
+                    doorsImproved = listOf("Forge Student Lab"),
+                    doorsLost = listOf("Local Makers Challenge"),
                     effort = EffortLevel.MEDIUM,
                     cost = CostBand.FREE,
                 ),
@@ -100,8 +141,8 @@ private val previewState = RouteUiState(
                     startDateLabel = "2026-11-11",
                     endDateLabel = "2027-03-11",
                     durationDays = 120,
-                    doorsOpened = listOf("Summer Research Lab"),
-                    doorsImproved = listOf("Summer Research Lab"),
+                    doorsOpened = listOf("Forge Student Lab"),
+                    doorsImproved = listOf("Forge Student Lab"),
                     doorsLost = emptyList(),
                     effort = EffortLevel.MEDIUM,
                     cost = CostBand.FREE,

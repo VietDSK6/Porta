@@ -21,7 +21,17 @@ class OnBoardingViewModel(
     private val savedOpportunityRepository: SavedOpportunityRepository? = null,
     private val sampleScenarioProvider: SampleScenarioProvider = SampleScenarioProvider(),
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(OnBoardingUiState())
+    private val lesson = sampleScenarioProvider.thresholdLesson
+    private val _uiState = MutableStateFlow(
+        OnBoardingUiState(
+            thresholdLesson = OnboardingThresholdLessonUiState(
+                beforeScore = lesson.beforeScore,
+                afterScore = lesson.afterScore,
+                changedOpportunityTitles = lesson.changedOpportunityTitles,
+                unchangedOpportunityTitles = lesson.unchangedOpportunityTitles,
+            ),
+        ),
+    )
     val uiState: StateFlow<OnBoardingUiState> = _uiState.asStateFlow()
 
     init {
@@ -30,23 +40,16 @@ class OnBoardingViewModel(
 
     fun onUiEvent(event: OnBoardingUiEvent) = viewModelScope.launch {
         when (event) {
-            is OnBoardingUiEvent.GoalSelected -> {
-                userPreferences.putString(UserPreferences.KEY_OPPORTUNITY_GOAL, event.goal.storageValue)
-                _uiState.update { state ->
-                    state.copy(selectedGoal = event.goal)
-                }
-            }
-
             OnBoardingUiEvent.Next -> _uiState.update { state ->
-                if (state.currentStep == 0 && state.selectedGoal != null) {
-                    state.copy(currentStep = (state.currentStep + 1).coerceAtMost(LAST_STEP))
-                } else {
-                    state
-                }
+                state.copy(currentStep = (state.currentStep + 1).coerceAtMost(LAST_STEP))
             }
 
             OnBoardingUiEvent.Back -> _uiState.update { state ->
                 state.copy(currentStep = (state.currentStep - 1).coerceAtLeast(0))
+            }
+
+            OnBoardingUiEvent.ThresholdPreviewToggled -> _uiState.update { state ->
+                state.copy(isThresholdPreviewApplied = !state.isThresholdPreviewApplied)
             }
 
             OnBoardingUiEvent.ExploreSample,
@@ -133,13 +136,9 @@ class OnBoardingViewModel(
 
     private fun restoreOnboardingState() = viewModelScope.launch {
         try {
-            val selectedGoal = OnboardingGoal.fromStorageValue(
-                userPreferences.getString(UserPreferences.KEY_OPPORTUNITY_GOAL),
-            )?.takeIf(OnboardingGoal.selectableEntries::contains)
             if (userPreferences.getBoolean(UserPreferences.KEY_IS_ONBOARD_SHOWN)) {
                 _uiState.update {
                     it.copy(
-                        selectedGoal = selectedGoal,
                         completion = OnboardingCompletion(
                             destination = OnboardingDestination.SAMPLE_MAP,
                             isNewUser = false,
@@ -149,7 +148,6 @@ class OnBoardingViewModel(
             } else {
                 _uiState.update {
                     it.copy(
-                        selectedGoal = selectedGoal,
                         isLoading = false,
                     )
                 }

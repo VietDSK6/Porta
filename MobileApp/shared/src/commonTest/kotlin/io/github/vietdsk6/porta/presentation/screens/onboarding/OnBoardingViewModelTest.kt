@@ -34,12 +34,11 @@ class OnBoardingViewModelTest {
     }
 
     @Test
-    fun `first launch starts with an unselected direction`() = runTest(mainDispatcher) {
+    fun `first launch starts at the introduction`() = runTest(mainDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.completion)
-        assertNull(viewModel.uiState.value.selectedGoal)
         assertEquals(0, viewModel.uiState.value.currentStep)
         assertFalse(viewModel.uiState.value.isLoading)
     }
@@ -66,20 +65,26 @@ class OnBoardingViewModelTest {
     }
 
     @Test
-    fun `choosing a direction persists it and unlocks the second step`() = runTest(mainDispatcher) {
+    fun `first step advances and lesson comes from the sample evaluator`() = runTest(mainDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.onUiEvent(OnBoardingUiEvent.Next)
         advanceUntilIdle()
-        assertEquals(0, viewModel.uiState.value.currentStep)
-
-        viewModel.onUiEvent(OnBoardingUiEvent.GoalSelected(OnboardingGoal.SCHOLARSHIPS))
-        viewModel.onUiEvent(OnBoardingUiEvent.Next)
-        advanceUntilIdle()
-
         assertEquals(1, viewModel.uiState.value.currentStep)
-        assertEquals(OnboardingGoal.SCHOLARSHIPS.storageValue, userPreferences.getString(UserPreferences.KEY_OPPORTUNITY_GOAL))
+        val lesson = checkNotNull(viewModel.uiState.value.thresholdLesson)
+        assertEquals(6.5, lesson.beforeScore)
+        assertEquals(7.0, lesson.afterScore)
+        assertEquals(4, lesson.changedOpportunityTitles.size)
+        assertEquals(1, lesson.unchangedOpportunityTitles.size)
+
+        viewModel.onUiEvent(OnBoardingUiEvent.ThresholdPreviewToggled)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isThresholdPreviewApplied)
+        viewModel.onUiEvent(OnBoardingUiEvent.ThresholdPreviewToggled)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.isThresholdPreviewApplied)
+
         viewModel.onUiEvent(OnBoardingUiEvent.Next)
         advanceUntilIdle()
         assertEquals(1, viewModel.uiState.value.currentStep)

@@ -1,37 +1,23 @@
 package io.github.vietdsk6.porta.presentation.screens.onboarding
 
-import io.github.vietdsk6.porta.domain.model.OpportunityCategory
-
 data class OnBoardingUiState(
     val currentStep: Int = 0,
-    val selectedGoal: OnboardingGoal? = null,
+    val thresholdLesson: OnboardingThresholdLessonUiState? = null,
+    val isThresholdPreviewApplied: Boolean = false,
     val completion: OnboardingCompletion? = null,
     val isLoading: Boolean = true,
     val isInstallingDemoProfile: Boolean = false,
     val demoProfileError: OnboardingDemoError? = null,
 )
 
+data class OnboardingThresholdLessonUiState(
+    val beforeScore: Double,
+    val afterScore: Double,
+    val changedOpportunityTitles: List<String>,
+    val unchangedOpportunityTitles: List<String>,
+)
+
 enum class OnboardingDemoError { EXISTING_PROFILE, INSTALL_FAILED }
-
-enum class OnboardingGoal(
-    val storageValue: String,
-    val category: OpportunityCategory,
-) {
-    SCHOLARSHIPS("scholarships", OpportunityCategory.SCHOLARSHIP),
-    INTERNSHIPS("internships", OpportunityCategory.INTERNSHIP),
-    EXCHANGES("exchanges", OpportunityCategory.ACADEMIC_PROGRAM),
-    COMPETITIONS(
-        "competitions",
-        OpportunityCategory.STUDENT_CONTEST,
-    ),
-    ;
-
-    companion object {
-        val selectableEntries: List<OnboardingGoal> = listOf(SCHOLARSHIPS, INTERNSHIPS, EXCHANGES)
-
-        fun fromStorageValue(value: String?): OnboardingGoal? = entries.firstOrNull { it.storageValue == value }
-    }
-}
 
 enum class OnboardingDestination {
     SAMPLE_MAP,
@@ -44,11 +30,11 @@ data class OnboardingCompletion(
 )
 
 sealed interface OnBoardingUiEvent {
-    data class GoalSelected(val goal: OnboardingGoal) : OnBoardingUiEvent
-
     data object Next : OnBoardingUiEvent
 
     data object Back : OnBoardingUiEvent
+
+    data object ThresholdPreviewToggled : OnBoardingUiEvent
 
     data object ExploreSample : OnBoardingUiEvent
 

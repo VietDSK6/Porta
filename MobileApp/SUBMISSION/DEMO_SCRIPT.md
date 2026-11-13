@@ -4,7 +4,7 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 ## Recording setup
 
-1. Start from a fresh demo profile or reset local data, complete two-step onboarding with **Show me Linh's route**, and confirm the fictional-demo badge, sourced pack and zero-open-doors message. Record the app build SHA and local date.
+1. Start from a fresh demo profile or reset local data. In the two-step onboarding, try the fictional IELTS 6.5 → 7.0 threshold, then tap **Explore Linh's sourced route**. Confirm the fictional-demo badge, sourced pack and zero-open-doors message. Record the app build SHA and local date.
 2. Preselect a Route candidate and a source-linked door. Prepare a saved milestone that can be marked complete, plus a disposable actual-result entry; rehearse this flow so no personal file picker appears in the recording.
 3. For the optional Studio segment, leave the personal AI key empty so the bundled offline fixture is used. Select the **Google Summer of Code** demo excerpt, draft its age-threshold suggestion, edit the quote to words absent from the excerpt to show rejection, then restore the matching quote before accepting. Prepare a separate valid draft pack for the inspector preview; show approval only if validation actually passes.
 4. Capture the CLI export and validate commands against the same frozen commit. Do not imply a live provider call, a completed application, or a positive eligibility decision.
@@ -17,9 +17,9 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 ## 0:20–0:45 — First value in two steps
 
-**Shot:** Choose a direction, tap **Show me Linh's route**, then show the fictional-demo badge and Route hero.
+**Shot:** Tap **See one change**, then toggle the fictional IELTS score from 6.5 to 7.0. Show the four synthetic checks changing, tap **Explore Linh's sourced route**, and show its separate fictional-profile badge and Route hero.
 
-**Narration:** “Linh is a fictional computer-science student. Her profile stays on this device. In the sourced 15-door catalog, her current route improves checks but opens zero doors. Porta does not claim an award or a fully open door.”
+**Narration:** “One plausible change alters four checks in this fictional lesson. Linh's separate sourced route stays honest: her local profile improves checks, but no programme passes every assessed check yet. This does not predict an award.”
 
 **Capture check:** Measure the time from launch to Route. Keep the clip only if the interaction takes at most 30 seconds without editing.
 
