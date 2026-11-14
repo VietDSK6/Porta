@@ -1,8 +1,8 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 12 November 2026
+> Last updated: 14 November 2026
 > Deadline: 7 December 2026, 23:59 CET
-> Live rules rechecked: 12 November 2026
+> Live rules rechecked: 14 November 2026
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
 > Internal estimates in this file are not official judging results.
@@ -14,6 +14,16 @@
 - `TODO` — required evidence does not exist yet.
 - `USER CONFIRM` — personal/legal fact that an agent must not infer.
 - `RISK` — unresolved issue can affect eligibility or judge reproduction.
+
+## 14 November milestone review
+
+The current product branch is `codex/porta-final-improvements` at `5b342c9`. A read-only check of the `porta` remote on 14 November found its default `main` at `e41172a`, 14 commits behind the product branch. The repository URL alone therefore does not yet present the latest app to judges. The final submission commit needs to be on the submitted branch and verified from a fresh public clone.
+
+The Android/desktop product is technically substantial, but the first-use story still needs stronger evidence. The onboarding IELTS threshold uses an explicitly synthetic pack; Linh's separate sourced catalog shows useful checked progress while zero doors pass every assessed condition. This is honest, but a real user cannot yet see a strong sourced cross-opportunity outcome in the first screen. Final Android/Desktop capture and a 3–5 minute screencast remain pending.
+
+Three trust/continuity findings need repair before final media: `RouteViewModel` can use synthetic opportunities after an active-pack failure without marking the Route as illustrative; Active plan re-evaluates each saved Route step against today's actual profile rather than the preceding planned steps and their future dates; and `PlanRepository.observeCurrentPlan()` can select a later planned milestone after an earlier Route step was completed, blocking actual-result confirmation. The Route's **First move** button also opens the generic Next moves tab rather than the selected Route step. Recheck these flows after fixes and record fresh evidence from the final commit.
+
+The optional live Gemini path has mock transport coverage but no documented real-key exercise; the personal key is stored in ordinary local DataStore preferences. Treat live drafting as unverified and review key-at-rest protection before encouraging personal-key use.
 
 ## Mandatory gates
 
