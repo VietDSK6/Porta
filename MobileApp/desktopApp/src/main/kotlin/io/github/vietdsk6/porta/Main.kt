@@ -27,6 +27,8 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.github.vietdsk6.porta.data.source.preferences.DesktopWindowGeometry
 import io.github.vietdsk6.porta.data.source.preferences.DesktopWindowPreferences
+import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
+import io.github.vietdsk6.porta.designsystem.generated.resources.ic_logo
 import io.github.vietdsk6.porta.presentation.navigation.DesktopCommand
 import io.github.vietdsk6.porta.root.App
 import io.github.vietdsk6.porta.root.AppInitializer
@@ -36,6 +38,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.compose.resources.painterResource
 import java.io.File
 import java.net.URI
 import kotlin.math.roundToInt
@@ -69,6 +72,7 @@ fun main() {
             onCloseRequest = closeWindow,
             title = "Porta",
             state = windowState,
+            icon = painterResource(UiRes.drawable.ic_logo),
         ) {
             DesktopMenuBar(commandBus::send, onQuit = closeWindow)
             DesktopContent(commandBus)

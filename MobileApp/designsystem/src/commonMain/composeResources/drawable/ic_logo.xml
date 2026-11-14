@@ -1,36 +1,9 @@
-<!--
-  ~ Copyright (C) 2026 The Android Open Source Project
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~      http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="48dp"
-    android:height="48dp"
-    android:viewportWidth="48"
-    android:viewportHeight="48">
-  <path
-      android:pathData="M48,48H0V0H48L23.505,23.647L48,48Z">
-    <aapt:attr name="android:fillColor">
-      <gradient
-          android:centerX="48"
-          android:centerY="-0"
-          android:gradientRadius="48"
-          android:type="radial">
-        <item android:offset="0" android:color="#FFE44857"/>
-        <item android:offset="0.504" android:color="#FFC711E1"/>
-        <item android:offset="1" android:color="#FF7F52FF"/>
-      </gradient>
-    </aapt:attr>
-  </path>
+    android:width="180dp"
+    android:height="180dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <path
+        android:fillColor="#FF5E4DB2"
+        android:pathData="M230,850 L230,445 C230,291 356,170 512,170 C668,170 794,291 794,445 L794,850 L706,850 L706,445 C706,337 619,258 512,258 C405,258 318,337 318,445 L318,850 Z M330,850 L330,816 C330,790 374,772 402,772 L706,772 L706,850 Z M438,734 L438,704 C438,678 478,660 506,660 L706,660 L706,734 Z M548,622 L548,592 C548,566 584,548 612,548 L706,548 L706,622 Z" />
 </vector>
