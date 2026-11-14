@@ -3,6 +3,7 @@ package io.github.vietdsk6.porta.data.source.local.pack
 import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
+import io.github.vietdsk6.porta.domain.model.Deadline
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
@@ -37,7 +38,7 @@ class BundledOpportunityPackProviderTest {
         val document = assertNotNull(result.document)
         val opportunities = document.opportunities
         assertEquals(BundledOpportunityPackProvider.PACK_ID, document.metadata.id)
-        assertEquals(4, document.metadata.version)
+        assertEquals(BundledOpportunityPackProvider.PACK_VERSION, document.metadata.version)
         assertEquals(BundledPack.REVIEWED_ON, document.metadata.lastCheckedOn.toString())
         assertEquals(15, opportunities.size)
         assertTrue(opportunities.all { it.eligibilityRule.id.isNotBlank() })
@@ -47,6 +48,8 @@ class BundledOpportunityPackProviderTest {
                 it.lastCheckedOn.toString() in setOf(
                     BundledPack.REVIEWED_ON,
                     BundledPack.SOURCE_REFRESH_REVIEWED_ON,
+                    BundledPack.CERN_REVIEWED_ON,
+                    BundledPack.EIFFEL_REVIEWED_ON,
                 )
             },
         )
@@ -64,6 +67,13 @@ class BundledOpportunityPackProviderTest {
                 .filter { it.lastCheckedOn.toString() == BundledPack.SOURCE_REFRESH_REVIEWED_ON }
                 .mapTo(mutableSetOf()) { it.id },
         )
+        val cern = opportunities.single { it.id == "cern-openlab-summer-student-2027" }
+        assertEquals(LocalDate(2026, 11, 14), cern.lastCheckedOn)
+        assertEquals(Deadline.Known(LocalDate(2027, 1, 21)), cern.deadline)
+        assertEquals("https://jobs.smartrecruiters.com/cern/744000159596524", cern.sourceUrl)
+        val eiffel = opportunities.single { it.id == "france-excellence-eiffel-2027" }
+        assertEquals(LocalDate(2026, 11, 14), eiffel.lastCheckedOn)
+        assertEquals(Deadline.Tba, eiffel.deadline)
         assertFalse(opportunities.any { "example.invalid" in it.sourceUrl })
         assertTrue(opportunities.count { it.softCriteria.isNotEmpty() } >= 3)
         assertTrue(opportunities.sumOf { it.actionTemplates.size } >= 5)
@@ -104,7 +114,8 @@ class BundledOpportunityPackProviderTest {
         assertTrue(provider.shouldInstallOver(activePackId = null, activeVersion = null))
         assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.LEGACY_SYNTHETIC_PACK_ID, 1))
         assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 3))
-        assertFalse(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 4))
+        assertTrue(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 4))
+        assertFalse(provider.shouldInstallOver(BundledOpportunityPackProvider.PACK_ID, 5))
         assertFalse(provider.shouldInstallOver("student-imported-catalog", 1))
     }
 
@@ -297,7 +308,10 @@ class BundledOpportunityPackProviderTest {
         availability.forEach { action ->
             val target = assertNotNull(action.template.target as? ActionTarget.OpportunityRuleTarget)
             assertEquals(listOf(target.opportunityId), action.improvedOpportunityIds)
-            assertEquals(listOf(target.opportunityId), action.timingUnverifiedOpportunityIds)
+            assertEquals(
+                if (target.opportunityId == "cern-openlab-summer-student-2027") emptyList() else listOf(target.opportunityId),
+                action.timingUnverifiedOpportunityIds,
+            )
             assertTrue(action.newlyOpenOpportunityIds.isEmpty())
         }
         assertEquals(2, availability.sumOf { it.improvedSavedOpportunityIds.size })

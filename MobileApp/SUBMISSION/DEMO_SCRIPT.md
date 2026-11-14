@@ -23,15 +23,15 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 **Capture check:** Measure the time from launch to Route. Keep the clip only if the interaction takes at most 30 seconds without editing.
 
-## 0:45–1:25 — The route map
+## 0:45–1:25 — From a Door to a route
 
-**Shot:** Show the compact timeline on Android and wide metro map on Desktop. Switch between the available Route candidates, open **Why these numbers?**, change the horizon, and show improved checks, opened doors and deadline losses. Save one route and show its ordered steps in Active plan. Keep the zero-open-doors notice visible when showing Linh's current route.
+**Shot:** Open one sourced Door. Show its applicable published checks and the separate source-review remainder; expand alternative paths only if the record has them. Tap **Explore routes for this opportunity**, then show the focused compact timeline on Android and the wide metro map on Desktop. Switch Route candidates, open **Why these numbers?**, and show improved checks and deadline losses. Save one route, use **View active plan** to show its ordered steps, then return to Route and tap **First move**. Keep the zero-open-doors notice visible for Linh's current route.
 
 **Narration:** “The shared planner sequences up to four milestones, evaluates checks at each step's end date, and filters by the chosen time, cost and effort limits. Stations show planned check transitions, not admission predictions. Deadline uncertainty stays visible.”
 
 ## 1:25–1:55 — One move, one simulation
 
-**Shot:** Open Next moves and one What-if receipt. Show actual versus simulated values, changed checks, remaining information or source-review checks, and the notice that the saved profile is unchanged.
+**Shot:** In the selected first move's What-if receipt, show actual versus simulated values, changed checks, remaining information or source-review checks, and the notice that the saved profile is unchanged. Briefly show Next moves for independent action comparison.
 
 **Narration:** “Every candidate comes from a curated action template. The same deterministic engine compares its encoded-rule impact and keeps the actual profile untouched.”
 

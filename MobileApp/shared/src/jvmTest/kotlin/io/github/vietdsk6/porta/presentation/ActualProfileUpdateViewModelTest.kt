@@ -17,6 +17,7 @@ import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
 import io.github.vietdsk6.porta.domain.model.ActionTarget
+import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.DurationUnit
@@ -27,7 +28,11 @@ import io.github.vietdsk6.porta.domain.model.FactProvenance
 import io.github.vietdsk6.porta.domain.model.FactValue
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
+import io.github.vietdsk6.porta.domain.model.PlannedRoute
 import io.github.vietdsk6.porta.domain.model.ProfileFact
+import io.github.vietdsk6.porta.domain.model.RouteExplanation
+import io.github.vietdsk6.porta.domain.model.RouteMetrics
+import io.github.vietdsk6.porta.domain.model.RouteStep
 import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.findAtomicRule
 import io.github.vietdsk6.porta.domain.model.fingerprint
@@ -40,6 +45,7 @@ import io.github.vietdsk6.porta.util.file.FileManager
 import io.github.vietdsk6.porta.util.file.SelectedEvidenceFile
 import io.github.vietdsk6.porta.util.time.CurrentLocalDateProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -336,6 +342,61 @@ class ActualProfileUpdateViewModelTest {
     }
 
     @Test
+    fun `selected completed route step can be confirmed while a later step is planned`() = runTest(dispatcher) {
+        saveIelts(6.5)
+        val first = ActionTemplate(
+            id = "raise-ielts",
+            title = "Raise IELTS",
+            targetFactKey = FactKey.IELTS_SCORE,
+            targetValue = FactValue.NumberValue(7.0, "band"),
+            targetActionability = Actionability.CONTROLLABLE,
+            minimumDurationDays = 30,
+            effort = EffortLevel.MEDIUM,
+            costBand = CostBand.LOW,
+        )
+        val second = ActionTemplate(
+            id = "complete-degree",
+            title = "Complete degree",
+            targetFactKey = FactKey.DEGREE_COMPLETED,
+            targetValue = FactValue.BooleanValue(true),
+            targetActionability = Actionability.TIME_DEPENDENT,
+            minimumDurationDays = 60,
+            effort = EffortLevel.HIGH,
+            costBand = CostBand.MEDIUM,
+        )
+        planRepository.saveRoute(
+            PlannedRoute(
+                id = "ielts-then-degree",
+                steps = listOf(
+                    RouteStep(first, LocalDate(2026, 11, 1), LocalDate(2026, 12, 1), emptyList(), emptyList(), emptyList()),
+                    RouteStep(second, LocalDate(2026, 12, 1), LocalDate(2027, 1, 30), emptyList(), emptyList(), emptyList()),
+                ),
+                metrics = RouteMetrics(0, 0, null, 90, 3, EffortLevel.HIGH),
+                explanation = RouteExplanation.ImprovesDoors(0),
+            ),
+        ).getOrThrow()
+        val steps = planRepository.observePlans().first().sortedBy { it.sequence }
+        planRepository.updateStatus(steps.first().id, PlanStatus.COMPLETED).getOrThrow()
+
+        val viewModel = createViewModel(planId = steps.first().id)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.hasCompletedPlan)
+        assertEquals("Raise IELTS", viewModel.uiState.value.planTitle)
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.AchievedValueChanged("7.0"))
+        viewModel.onUiEvent(ActualProfileUpdateUiEvent.Confirm)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSaved)
+        assertEquals(FactValue.NumberValue(7.0, "band"), profileRepository.getProfile().getOrThrow().facts[FactKey.IELTS_SCORE]?.value)
+        assertEquals(PlanStatus.PLANNED, planRepository.observePlan(steps.last().id).first()?.status)
+
+        val removedViewModel = createViewModel(planId = "removed-step")
+        advanceUntilIdle()
+        assertFalse(removedViewModel.uiState.value.hasCompletedPlan)
+        assertFalse(removedViewModel.uiState.value.canConfirm)
+    }
+
+    @Test
     fun `text result starts blank even when the planned target has text`() = runTest(dispatcher) {
         val target = ActionTarget.ProfileFactTarget(
             factKey = FactKey.COMMUNITY_PROJECT,
@@ -538,12 +599,13 @@ class ActualProfileUpdateViewModelTest {
         assertTrue(profileRepository.getProfile().getOrThrow().ruleAssertions.isEmpty())
     }
 
-    private fun createViewModel() = ActualProfileUpdateViewModel(
+    private fun createViewModel(planId: String? = null) = ActualProfileUpdateViewModel(
         planRepository,
         profileRepository,
         ruleAssertionRepository,
         opportunityPackRepository,
         fileManager,
+        planId,
     )
 
     private suspend fun saveIelts(value: Double) {

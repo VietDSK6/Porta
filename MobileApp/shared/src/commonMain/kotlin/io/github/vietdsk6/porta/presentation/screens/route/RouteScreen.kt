@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,8 +36,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.vietdsk6.porta.designsystem.components.ScreenWithToolbar
+import io.github.vietdsk6.porta.designsystem.generated.resources.UiRes
+import io.github.vietdsk6.porta.designsystem.generated.resources.ic_back
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.route_catalog_unavailable
+import io.github.vietdsk6.porta.generated.resources.route_catalog_unavailable_help
 import io.github.vietdsk6.porta.generated.resources.route_choice_label
 import io.github.vietdsk6.porta.generated.resources.route_choose
 import io.github.vietdsk6.porta.generated.resources.route_days
@@ -46,6 +51,11 @@ import io.github.vietdsk6.porta.generated.resources.route_doors_passing
 import io.github.vietdsk6.porta.generated.resources.route_empty_help
 import io.github.vietdsk6.porta.generated.resources.route_empty_title
 import io.github.vietdsk6.porta.generated.resources.route_first_move
+import io.github.vietdsk6.porta.generated.resources.route_focus_checks_improve
+import io.github.vietdsk6.porta.generated.resources.route_focus_no_path
+import io.github.vietdsk6.porta.generated.resources.route_focus_no_path_help
+import io.github.vietdsk6.porta.generated.resources.route_focus_pass
+import io.github.vietdsk6.porta.generated.resources.route_focus_title
 import io.github.vietdsk6.porta.generated.resources.route_hero_eyebrow
 import io.github.vietdsk6.porta.generated.resources.route_hero_title
 import io.github.vietdsk6.porta.generated.resources.route_hide_why
@@ -74,16 +84,24 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun RouteScreen(
     viewModel: RouteViewModel,
-    onOpenNextMoves: () -> Unit,
+    onOpenNextMoves: (String) -> Unit,
     onOpenActivePlan: () -> Unit,
+    focusedOpportunityId: String? = null,
+    onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(focusedOpportunityId) { viewModel.focusOnOpportunity(focusedOpportunityId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     RouteScreen(
-        uiState = uiState,
+        uiState = if (focusedOpportunityId != null && uiState.focusedOpportunityId != focusedOpportunityId) {
+            RouteUiState(focusedOpportunityId = focusedOpportunityId)
+        } else {
+            uiState
+        },
         onUiEvent = viewModel::onUiEvent,
         onOpenNextMoves = onOpenNextMoves,
         onOpenActivePlan = onOpenActivePlan,
+        onNavigateBack = onNavigateBack,
         modifier = modifier,
     )
 }
@@ -92,8 +110,9 @@ fun RouteScreen(
 fun RouteScreen(
     uiState: RouteUiState,
     onUiEvent: (RouteUiEvent) -> Unit,
-    onOpenNextMoves: () -> Unit,
+    onOpenNextMoves: (String) -> Unit,
     onOpenActivePlan: () -> Unit,
+    onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var showWhy by remember(uiState.selectedRoute?.id) { mutableStateOf(false) }
@@ -102,6 +121,8 @@ fun RouteScreen(
         title = stringResource(Res.string.route_toolbar_title),
         isScrollableContent = false,
         includeBottomInsets = false,
+        navigationIcon = if (onNavigateBack != null) UiRes.drawable.ic_back else null,
+        onNavigationIconClick = onNavigateBack ?: {},
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val wide = maxWidth >= PortaBreakpoints.wide &&
@@ -124,8 +145,8 @@ fun RouteScreen(
                     }
 
                     selected == null -> {
-                        item { NoRouteCard() }
-                        item { RouteControls(uiState, onUiEvent) }
+                        item { NoRouteCard(uiState) }
+                        if (!uiState.catalogUnavailable) item { RouteControls(uiState, onUiEvent) }
                     }
 
                     else -> {
@@ -190,6 +211,24 @@ private fun RouteHero(uiState: RouteUiState) {
     val progressWithoutOpen = route != null && route.openedTotal == 0 && improvedCount > 0
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(Res.string.route_hero_eyebrow), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.primary)
+        uiState.focusedOpportunityTitle?.let { title ->
+            Text(stringResource(Res.string.route_focus_title, title), style = MaterialTheme.typography.titleLarge)
+        }
+        when (route?.focusedDoorOutcome) {
+            FocusedDoorOutcome.ASSESSED_CHECKS_PASS -> Text(
+                stringResource(Res.string.route_focus_pass),
+                color = AppTheme.colors.status.success,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            FocusedDoorOutcome.CHECKS_IMPROVE -> Text(
+                stringResource(Res.string.route_focus_checks_improve),
+                color = AppTheme.colors.primary,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            null -> Unit
+        }
         if (uiState.isIllustrativePreview) {
             Text(stringResource(Res.string.route_illustrative_badge), style = MaterialTheme.typography.labelMedium)
         } else if (uiState.isFictionalProfile) {
@@ -264,12 +303,27 @@ private fun RouteChoices(uiState: RouteUiState, onUiEvent: (RouteUiEvent) -> Uni
 }
 
 @Composable
-private fun NoRouteCard() {
+private fun NoRouteCard(uiState: RouteUiState) {
     Card(modifier = Modifier.fillMaxWidth().testTag("route-empty")) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(Res.string.route_empty_title), style = MaterialTheme.typography.titleMedium)
             Text(
-                stringResource(Res.string.route_empty_help),
+                stringResource(
+                    when {
+                        uiState.catalogUnavailable -> Res.string.route_catalog_unavailable
+                        uiState.focusedOpportunityId != null -> Res.string.route_focus_no_path
+                        else -> Res.string.route_empty_title
+                    },
+                ),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                stringResource(
+                    when {
+                        uiState.catalogUnavailable -> Res.string.route_catalog_unavailable_help
+                        uiState.focusedOpportunityId != null -> Res.string.route_focus_no_path_help
+                        else -> Res.string.route_empty_help
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -280,7 +334,7 @@ private fun NoRouteCard() {
 private fun RouteActions(
     uiState: RouteUiState,
     onUiEvent: (RouteUiEvent) -> Unit,
-    onOpenNextMoves: () -> Unit,
+    onOpenNextMoves: (String) -> Unit,
     onOpenActivePlan: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -300,7 +354,14 @@ private fun RouteActions(
                     ),
                 )
             }
-            OutlinedButton(onClick = onOpenNextMoves) { Text(stringResource(Res.string.route_first_move)) }
+            uiState.selectedRoute?.steps?.firstOrNull()?.let { firstStep ->
+                OutlinedButton(
+                    onClick = { onOpenNextMoves(firstStep.id) },
+                    modifier = Modifier.testTag("route-first-move"),
+                ) {
+                    Text(stringResource(Res.string.route_first_move))
+                }
+            }
         }
         uiState.notice?.let { notice ->
             RouteFeedback(

@@ -261,7 +261,18 @@ private fun EntryProviderScope<ScreenRoute>.screens(
         val viewModel = koinViewModel<RouteViewModel>()
         RouteScreen(
             viewModel = viewModel,
-            onOpenNextMoves = { navigator.navigate(FrontierScreenRoute) },
+            onOpenNextMoves = { actionId -> navigator.navigate(ScenarioPreviewScreenRoute(actionId)) },
+            onOpenActivePlan = { navigator.navigate(ActivePlanScreenRoute) },
+        )
+    }
+
+    entry<FocusedRouteScreenRoute> { key ->
+        val viewModel = koinViewModel<RouteViewModel>()
+        RouteScreen(
+            viewModel = viewModel,
+            focusedOpportunityId = key.opportunityId,
+            onNavigateBack = { navigator.goBack() },
+            onOpenNextMoves = { actionId -> navigator.navigate(ScenarioPreviewScreenRoute(actionId)) },
             onOpenActivePlan = { navigator.navigate(ActivePlanScreenRoute) },
         )
     }
@@ -346,6 +357,7 @@ private fun EntryProviderScope<ScreenRoute>.screens(
         OpportunityDetailScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },
+            onViewRoute = { opportunityId -> navigator.navigate(FocusedRouteScreenRoute(opportunityId)) },
             onPreviewAction = { actionId ->
                 navigator.navigate(ScenarioPreviewScreenRoute(actionId = actionId))
             },
@@ -382,7 +394,11 @@ private fun EntryProviderScope<ScreenRoute>.screens(
             onPreviewImpact = { actionId ->
                 navigator.replace(ScenarioPreviewScreenRoute(actionId = actionId))
             },
-            onUpdateProfile = { navigator.navigate(ActualProfileUpdateScreenRoute) },
+            onUpdateProfile = {
+                viewModel.uiState.value.plan?.id?.let { planId ->
+                    navigator.navigate(ActualProfileUpdateScreenRoute(planId))
+                }
+            },
         )
     }
 
@@ -412,8 +428,8 @@ private fun EntryProviderScope<ScreenRoute>.screens(
         )
     }
 
-    entry<ActualProfileUpdateScreenRoute> {
-        val viewModel = koinViewModel<ActualProfileUpdateViewModel>()
+    entry<ActualProfileUpdateScreenRoute> { key ->
+        val viewModel = koinViewModel<ActualProfileUpdateViewModel>(parameters = { parametersOf(key.planId) })
         ActualProfileUpdateScreen(
             viewModel = viewModel,
             onNavigateBack = { navigator.goBack() },

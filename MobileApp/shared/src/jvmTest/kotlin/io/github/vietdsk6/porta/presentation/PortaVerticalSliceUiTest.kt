@@ -562,6 +562,7 @@ class PortaVerticalSliceUiTest {
 
         onNodeWithTag("requirement-toggle-ielts").performScrollTo().performClick()
         onNodeWithText("Current: 6.5 band · Required: 7.0 band").assertExists()
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(5)
         onNodeWithTag("opportunity-source-toggle").performScrollTo().performClick()
         onNodeWithText("Evidence & sources").assertExists()
         onNodeWithText("Sample data only.").assertExists()

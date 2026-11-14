@@ -50,6 +50,10 @@ class RouteViewModel(
             maxEffort = EffortLevel.VERY_HIGH,
         ),
     )
+    private val focusedOpportunityId = MutableStateFlow<String?>(null)
+    private val routeQuery = combine(constraints, focusedOpportunityId) { limits, focusedId ->
+        RouteQuery(limits, focusedId)
+    }
     private val selectedRouteId = MutableStateFlow<String?>(null)
     private val saveState = MutableStateFlow(SaveState())
 
@@ -58,15 +62,21 @@ class RouteViewModel(
         opportunityPackRepository.observeActive(),
         savedOpportunityRepository.observeSavedIds(),
         currentLocalDateProvider.currentDate,
-        constraints,
-    ) { profile, packResult, savedIds, today, selectedConstraints ->
+        routeQuery,
+    ) { profile, packResult, savedIds, today, query ->
+        val activePack = packResult.getOrNull()?.takeIf { it.opportunities.isNotEmpty() }
+        val useSampleProfile = profile.facts.isEmpty()
+        val useSampleCatalog = activePack == null && useSampleProfile
         PlanningInputs(
             profile = profile,
-            opportunities = packResult.getOrNull()?.opportunities?.takeIf(List<Opportunity>::isNotEmpty)
-                ?: sampleScenarioProvider.opportunities,
+            opportunities = activePack?.opportunities ?: if (useSampleCatalog) sampleScenarioProvider.opportunities else emptyList(),
             savedIds = savedIds,
             today = today,
-            constraints = selectedConstraints,
+            constraints = query.constraints,
+            focusedOpportunityId = query.focusedOpportunityId,
+            isSampleCatalog = useSampleCatalog ||
+                (activePack != null && sampleScenarioProvider.isLegacySyntheticPack(activePack.metadata.id)),
+            catalogUnavailable = activePack == null && !useSampleProfile,
         )
     }.debounce(150).mapLatest { inputs ->
         withContext(plannerContext) {
@@ -78,12 +88,19 @@ class RouteViewModel(
                 savedOpportunityIds = inputs.savedIds,
                 constraints = inputs.constraints,
                 today = inputs.today,
+                focusedOpportunityId = inputs.focusedOpportunityId,
             )
             PlanningResult(
                 routes = routes,
                 labels = inputs.opportunities.associate { it.id to it.title },
-                canSave = !useSample,
+                canSave = !useSample && !inputs.isSampleCatalog,
                 isFictionalProfile = useSample || sampleScenarioProvider.isPersistedDemoProfile(inputs.profile),
+                isIllustrativePreview = inputs.isSampleCatalog,
+                catalogUnavailable = inputs.catalogUnavailable,
+                focusedOpportunityId = inputs.focusedOpportunityId,
+                focusedOpportunityTitle = inputs.focusedOpportunityId?.let { focusedId ->
+                    inputs.opportunities.firstOrNull { it.id == focusedId }?.title
+                },
                 constraints = inputs.constraints,
                 isLoading = false,
             )
@@ -97,12 +114,18 @@ class RouteViewModel(
         saveState,
         AppLanguageState.changes,
     ) { result, selectedConstraints, selectedId, save, _ ->
-        val routeOptions = result.routes.map { route -> route.toUiState(result.labels) }
+        val routeOptions = result.routes.map { route ->
+            route.toUiState(result.labels, result.focusedOpportunityId)
+        }
         RouteUiState(
             isLoading = result.isLoading,
             isSaving = save.isSaving,
             canSave = result.canSave,
             isFictionalProfile = result.isFictionalProfile,
+            isIllustrativePreview = result.isIllustrativePreview,
+            catalogUnavailable = result.catalogUnavailable,
+            focusedOpportunityId = result.focusedOpportunityId,
+            focusedOpportunityTitle = result.focusedOpportunityTitle,
             horizonDays = selectedConstraints.horizonDays,
             maxCostPerStep = selectedConstraints.maxCostPerStep,
             maxEffort = selectedConstraints.maxEffort,
@@ -113,6 +136,13 @@ class RouteViewModel(
             notice = save.notice,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, RouteUiState())
+
+    fun focusOnOpportunity(opportunityId: String?) {
+        if (focusedOpportunityId.value == opportunityId) return
+        focusedOpportunityId.value = opportunityId
+        selectedRouteId.value = null
+        clearNotice()
+    }
 
     fun onUiEvent(event: RouteUiEvent) {
         if (saveState.value.isSaving) return
@@ -161,7 +191,7 @@ class RouteViewModel(
         }
     }
 
-    private fun PlannedRoute.toUiState(labels: Map<String, String>): RouteOptionUiState = RouteOptionUiState(
+    private fun PlannedRoute.toUiState(labels: Map<String, String>, focusedOpportunityId: String?): RouteOptionUiState = RouteOptionUiState(
         id = id,
         steps = steps.map { step ->
             RouteStepUiState(
@@ -187,6 +217,12 @@ class RouteViewModel(
             is RouteExplanation.OpensDoors -> RouteReason(RouteReasonKind.OPENS, reason.count)
             is RouteExplanation.ImprovesDoors -> RouteReason(RouteReasonKind.IMPROVES, reason.count)
         },
+        focusedDoorOutcome = when {
+            focusedOpportunityId == null -> null
+            steps.any { focusedOpportunityId in it.doorsOpened } -> FocusedDoorOutcome.ASSESSED_CHECKS_PASS
+            steps.any { focusedOpportunityId in it.doorsImproved } -> FocusedDoorOutcome.CHECKS_IMPROVE
+            else -> null
+        },
     )
 
     private data class PlanningInputs(
@@ -195,13 +231,22 @@ class RouteViewModel(
         val savedIds: Set<String>,
         val today: LocalDate,
         val constraints: RouteConstraints,
+        val focusedOpportunityId: String?,
+        val isSampleCatalog: Boolean,
+        val catalogUnavailable: Boolean,
     )
+
+    private data class RouteQuery(val constraints: RouteConstraints, val focusedOpportunityId: String?)
 
     private data class PlanningResult(
         val routes: List<PlannedRoute> = emptyList(),
         val labels: Map<String, String> = emptyMap(),
         val canSave: Boolean = false,
         val isFictionalProfile: Boolean = false,
+        val isIllustrativePreview: Boolean = false,
+        val catalogUnavailable: Boolean = false,
+        val focusedOpportunityId: String? = null,
+        val focusedOpportunityTitle: String? = null,
         val constraints: RouteConstraints? = null,
         val isLoading: Boolean = true,
     )

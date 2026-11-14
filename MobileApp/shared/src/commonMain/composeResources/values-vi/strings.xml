@@ -125,6 +125,21 @@
     <string name="route_empty_title">Chưa có lộ trình phù hợp với giới hạn này</string>
 
     <string name="route_empty_help">Thử tăng thời gian, ngân sách hoặc mức công sức. Porta chỉ dùng các cột mốc gắn với điều kiện đã đánh giá.</string>
+    <string name="route_catalog_unavailable">Không truy cập được danh mục cơ hội</string>
+    <string name="route_catalog_unavailable_help">Mở mục kiểm tra gói dữ liệu để khôi phục hoặc nhập danh mục trước khi lập lộ trình. Porta sẽ không dùng cơ hội hư cấu với hồ sơ của bạn.</string>
+    <string name="route_focus_title">Dành cho %1$s</string>
+    <string name="route_focus_pass">Lộ trình này có thể vượt qua các điều kiện đã mã hóa cho cơ hội này. Hãy kiểm tra nguồn hiện hành trước khi ứng tuyển.</string>
+    <string name="route_focus_checks_improve">Lộ trình này cải thiện điều kiện của cơ hội này; những yêu cầu khác vẫn cần được xử lý.</string>
+    <string name="route_focus_no_path">Chưa có lộ trình nào thay đổi cơ hội này trong các giới hạn đã chọn</string>
+    <string name="route_focus_no_path_help">Xem lại điều kiện đã công bố, rồi thử tăng thời gian, chi phí hoặc công sức. Một số điều kiện không thể giải quyết bằng cột mốc dự kiến.</string>
+    <string name="detail_view_route">Khám phá lộ trình cho cơ hội này</string>
+    <string name="detail_view_route_note">Xem có lộ trình nào phù hợp với điều kiện đã công bố, hạn chót và giới hạn của bạn không.</string>
+    <string name="detail_check_snapshot">%1$d điều kiện đã đạt · %2$d cần cải thiện</string>
+    <string name="detail_check_no_assessed">Chưa thể đánh giá điều kiện nào từ hồ sơ này.</string>
+    <string name="detail_check_remaining">%1$d cần đối chiếu nguồn · %2$d cần thêm thông tin</string>
+    <string name="detail_assessed_path_passed">Các điều kiện có thể đánh giá trên hướng này đã đạt.</string>
+    <string name="detail_guidance_assessed_path_review">Các điều kiện có thể đánh giá trên một hướng đã đạt. Hãy xác nhận các yêu cầu còn lại và hạn chót hiện hành với đơn vị tổ chức.</string>
+    <string name="active_route_projection_risk">Dự kiến này giả định các bước trước đạt mục tiêu đúng ngày trong kế hoạch. Hãy xác nhận kết quả thực tế, điều kiện cần kiểm tra thủ công và hạn chót hiện hành; lập lại lộ trình nếu có thay đổi.</string>
 
     <string name="route_save">Lưu lộ trình</string>
 

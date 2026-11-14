@@ -17,11 +17,11 @@
 
 ## 14 November milestone review
 
-The current product branch is `codex/porta-final-improvements` at `5b342c9`. A read-only check of the `porta` remote on 14 November found its default `main` at `e41172a`, 14 commits behind the product branch. The repository URL alone therefore does not yet present the latest app to judges. The final submission commit needs to be on the submitted branch and verified from a fresh public clone.
+The current product branch is `codex/porta-final-improvements`. A read-only check of the `porta` remote on 14 November found its default `main` at `e41172a`, behind the product branch. The repository URL alone therefore does not yet present the latest app to judges. The final submission commit needs to be on the submitted branch and verified from a fresh public clone.
 
 The Android/desktop product is technically substantial, but the first-use story still needs stronger evidence. The onboarding IELTS threshold uses an explicitly synthetic pack; Linh's separate sourced catalog shows useful checked progress while zero doors pass every assessed condition. This is honest, but a real user cannot yet see a strong sourced cross-opportunity outcome in the first screen. Final Android/Desktop capture and a 3–5 minute screencast remain pending.
 
-Three trust/continuity findings need repair before final media: `RouteViewModel` can use synthetic opportunities after an active-pack failure without marking the Route as illustrative; Active plan re-evaluates each saved Route step against today's actual profile rather than the preceding planned steps and their future dates; and `PlanRepository.observeCurrentPlan()` can select a later planned milestone after an earlier Route step was completed, blocking actual-result confirmation. The Route's **First move** button also opens the generic Next moves tab rather than the selected Route step. Recheck these flows after fixes and record fresh evidence from the final commit.
+The 14 November working tree repairs the Route/Active plan continuity findings: a real profile no longer falls back to a synthetic catalog after pack failure; a sample route is labelled illustrative and cannot be saved; later saved steps project from preceding planned changes at their future dates; and actual-result confirmation uses the selected plan ID. The Route's **First move** opens its selected step. Door detail now offers a focused Route and displays one applicable path through published checks before optional alternatives. The scoped Android/Desktop build and test gates passed on this working tree. Fresh final media and a public-commit verification remain pending.
 
 The optional live Gemini path has mock transport coverage but no documented real-key exercise; the personal key is stored in ordinary local DataStore preferences. Treat live drafting as unverified and review key-at-rest protection before encouraging personal-key use.
 
@@ -194,6 +194,10 @@ Required evidence:
   79 Android-host tests, and 3 CLI tests, all clean. Roborazzi recording separately passed 66 previews. Android APK
   and macOS Desktop DMG assembled. Vietnamese Route/onboarding and wide English Route snapshots were visually reviewed.
   The code is committed locally at `dc4e701`, not yet verified from a fresh public clone.
+- [x] The 14 November working-tree scoped gates passed `spotlessCheck`, 48 engine JVM, 296 shared JVM,
+  82 Android-host core and 3 CLI tests with zero failures. Android APK and macOS Desktop DMG assembled. A separate
+  Roborazzi recording passed 71 preview cases; the compact Route, Door detail and saved-route feedback snapshots
+  were visually reviewed. Re-run from the public submission commit before final media.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
 

@@ -188,7 +188,7 @@ class ActionFrontierEngine(
                 }
                 .thenByDescending { it.newlyOpenOpportunityIds.size }
                 .thenByDescending { it.improvedOpportunityIds.size }
-                .thenBy { it.earliestAffectedDeadline?.toEpochDays() ?: Int.MAX_VALUE }
+                .thenBy { it.earliestAffectedDeadline?.toEpochDays() ?: Long.MAX_VALUE }
                 .thenBy { it.template.minimumDurationDays }
                 .thenBy { it.template.effort.rank }
                 .thenBy { it.template.costBand.rank }

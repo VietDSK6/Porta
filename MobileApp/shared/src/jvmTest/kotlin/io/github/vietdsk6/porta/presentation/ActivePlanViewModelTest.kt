@@ -13,6 +13,7 @@ import io.github.vietdsk6.porta.data.source.local.AppDatabase
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackCodec
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackParser
 import io.github.vietdsk6.porta.data.source.local.pack.OpportunityPackValidator
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.Deadline
@@ -188,6 +189,64 @@ class ActivePlanViewModelTest {
         assertEquals(4, impacts.size)
         assertEquals(4, impacts.count { it.timing == PlanTimingStatus.TIMING_UNVERIFIED })
         assertEquals(0, impacts.count { it.timing == PlanTimingStatus.WITHIN_KNOWN_DEADLINE })
+    }
+
+    @Test
+    fun `later route step compares against earlier target rather than actual baseline`() {
+        val earlierStep = plan().copy(id = "route:0", routeId = "route", sequence = 0)
+        val laterStep = plan().copy(
+            id = "route:1",
+            routeId = "route",
+            sequence = 1,
+            target = ActionTarget.ProfileFactTarget(FactKey.IELTS_SCORE, FactValue.NumberValue(8.0, "band")),
+            targetDateEpochDays = LocalDate(2027, 1, 1).toEpochDays().toLong(),
+        )
+        val evaluator = ScenarioEvaluator(EligibilityEvaluator())
+
+        val independentlyProjected = projectPlanImpacts(
+            plan = laterStep,
+            profile = PortaSampleData.profile,
+            opportunities = PortaSampleData.opportunities,
+            today = PortaSampleData.referenceDate,
+            scenarioEvaluator = evaluator,
+            minimumDurationDays = 45,
+        )
+        val cumulativeProjection = projectPlanImpacts(
+            plan = laterStep,
+            profile = PortaSampleData.profile,
+            opportunities = PortaSampleData.opportunities,
+            today = PortaSampleData.referenceDate,
+            scenarioEvaluator = evaluator,
+            minimumDurationDays = 45,
+            priorRouteSteps = listOf(earlierStep),
+        )
+
+        assertEquals(4, independentlyProjected.size)
+        assertEquals(emptyList(), cumulativeProjection)
+    }
+
+    @Test
+    fun `saved route step uses its projected end date to flag a missed deadline`() {
+        val opportunity = PortaSampleData.opportunities.first().copy(
+            deadline = Deadline.Known(LocalDate(2026, 11, 20)),
+        )
+        val routeStep = plan().copy(
+            routeId = "route",
+            sequence = 0,
+            targetDateEpochDays = LocalDate(2026, 11, 30).toEpochDays().toLong(),
+        )
+
+        val impacts = projectPlanImpacts(
+            plan = routeStep,
+            profile = PortaSampleData.profile,
+            opportunities = listOf(opportunity),
+            today = PortaSampleData.referenceDate,
+            scenarioEvaluator = ScenarioEvaluator(EligibilityEvaluator()),
+            minimumDurationDays = 5,
+        )
+
+        assertEquals(1, impacts.size)
+        assertEquals(PlanTimingStatus.MISSES_KNOWN_DEADLINE, impacts.single().timing)
     }
 
     private fun plan(): PlanItem = PlanItem(

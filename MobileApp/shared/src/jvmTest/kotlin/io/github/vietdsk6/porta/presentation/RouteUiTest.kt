@@ -92,6 +92,46 @@ class RouteUiTest {
     }
 
     @Test
+    fun `first move opens the selected route action`() = runComposeUiTest {
+        var openedAction: String? = null
+        setContent {
+            AppTheme {
+                RouteScreen(
+                    uiState = routeState.copy(selectedRouteId = "second"),
+                    onUiEvent = {},
+                    onOpenNextMoves = { openedAction = it },
+                    onOpenActivePlan = {},
+                )
+            }
+        }
+
+        onNodeWithTag("route-list").performScrollToNode(hasTestTag("route-first-move"))
+        onNodeWithTag("route-first-move").performClick()
+        assertEquals("step-second", openedAction)
+    }
+
+    @Test
+    fun `focused route says when no milestone changes the selected door`() = runComposeUiTest {
+        setContent {
+            AppTheme {
+                RouteScreen(
+                    uiState = RouteUiState(
+                        isLoading = false,
+                        focusedOpportunityId = "chosen-door",
+                        focusedOpportunityTitle = "Chosen door",
+                    ),
+                    onUiEvent = {},
+                    onOpenNextMoves = {},
+                    onOpenActivePlan = {},
+                )
+            }
+        }
+
+        onNodeWithText("For Chosen door").assertExists()
+        onNodeWithText("No route changes this opportunity within these limits").assertExists()
+    }
+
+    @Test
     fun `all cost and effort choices remain reachable on compact route`() = runComposeUiTest {
         val events = mutableListOf<RouteUiEvent>()
         setContent {

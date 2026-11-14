@@ -83,6 +83,36 @@ class RoutePlannerTest {
     }
 
     @Test
+    fun `focused routes show progress for the selected opportunity only`() {
+        val routes = planner.plan(
+            profile = profile,
+            opportunities = listOf(contest, erasmus),
+            savedOpportunityIds = setOf("erasmus"),
+            constraints = RouteConstraints(30, CostBand.FREE, EffortLevel.HIGH),
+            today = today,
+            focusedOpportunityId = "contest",
+        )
+
+        assertTrue(routes.isNotEmpty())
+        assertTrue(
+            routes.all { route ->
+                route.steps.any { step -> "contest" in step.doorsOpened || "contest" in step.doorsImproved }
+            },
+        )
+        assertEquals(listOf("a-ielts", "b-community"), routes.first().steps.map { it.template.id })
+        assertTrue(
+            planner.plan(
+                profile,
+                listOf(contest, erasmus),
+                emptySet(),
+                RouteConstraints(30, CostBand.FREE, EffortLevel.HIGH),
+                today,
+                focusedOpportunityId = "not-in-pack",
+            ).isEmpty(),
+        )
+    }
+
+    @Test
     fun `routes obey estimated cost per step horizon effort and step caps`() {
         val costlyIelts = ielts.copy(costBand = CostBand.LOW)
         val costlyCommunity = community.copy(costBand = CostBand.LOW, effort = EffortLevel.HIGH)

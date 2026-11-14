@@ -120,6 +120,12 @@ class PlanRepositoryTest {
         assertEquals(listOf(0, 1), plans.map(PlanItem::sequence))
         assertTrue(plans.all { it.routeId == route.id })
         assertEquals(listOf(30, 60), plans.map(PlanItem::expectedDurationDays))
+
+        repository.updateStatus(plans.first().id, PlanStatus.COMPLETED, updatedAtEpochMillis = 200L).getOrThrow()
+        assertEquals(plans.first().id, repository.observeCurrentPlan().first()?.id)
+        assertEquals(PlanStatus.COMPLETED, repository.observePlan(plans.first().id).first()?.status)
+        assertEquals(plans.last().id, repository.observePlan(plans.last().id).first()?.id)
+        assertNull(repository.observePlan("missing-step").first())
     }
 
     private fun plan(

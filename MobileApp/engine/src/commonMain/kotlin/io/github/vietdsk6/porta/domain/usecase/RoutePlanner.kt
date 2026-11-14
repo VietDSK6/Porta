@@ -30,9 +30,11 @@ class RoutePlanner(
         savedOpportunityIds: Set<String>,
         constraints: RouteConstraints,
         today: LocalDate,
+        focusedOpportunityId: String? = null,
     ): List<PlannedRoute> {
         if (constraints.horizonDays < 1 || constraints.maxSteps < 1 || opportunities.isEmpty()) return emptyList()
         val opportunityById = opportunities.associateBy(Opportunity::id)
+        if (focusedOpportunityId != null && focusedOpportunityId !in opportunityById) return emptyList()
         val baseline = evaluate(profile, opportunities, today)
         val baselineOpen = baseline.openIds()
         val candidates = CandidateCatalog().select(opportunities, baseline)
@@ -59,8 +61,14 @@ class RoutePlanner(
             lostIds = emptySet(),
         )
         val searchOrder = compareByDescending<SearchNode> {
-            if (constraints.prioritizeSaved) it.openedIds.count(savedOpportunityIds::contains) else 0
+            if (focusedOpportunityId != null && focusedOpportunityId in it.openedIds) 1 else 0
         }
+            .thenByDescending {
+                if (focusedOpportunityId != null && focusedOpportunityId in it.improvedIds) 1 else 0
+            }
+            .thenByDescending {
+                if (constraints.prioritizeSaved) it.openedIds.count(savedOpportunityIds::contains) else 0
+            }
             .thenByDescending { it.openedIds.size }
             .thenByDescending { it.improvedIds.size }
             .thenBy { it.firstDoorDay ?: Int.MAX_VALUE }
@@ -94,7 +102,13 @@ class RoutePlanner(
             completed += beam
         }
 
-        val meaningful = completed.filter { it.openedIds.isNotEmpty() || it.improvedIds.isNotEmpty() }
+        val meaningful = completed.filter { node ->
+            if (focusedOpportunityId == null) {
+                node.openedIds.isNotEmpty() || node.improvedIds.isNotEmpty()
+            } else {
+                focusedOpportunityId in node.openedIds || focusedOpportunityId in node.improvedIds
+            }
+        }
         val frontier = meaningful.filter { candidate ->
             meaningful.none { other ->
                 other !== candidate && dominates(other, candidate, today)

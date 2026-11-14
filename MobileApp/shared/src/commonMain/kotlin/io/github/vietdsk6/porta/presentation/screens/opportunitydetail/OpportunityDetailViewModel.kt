@@ -93,13 +93,18 @@ class OpportunityDetailViewModel(
                 today,
             )
             val displayCopy = receipt.displayCopy()
-            val relatedAction = actionFrontierEngine.relevantActionFor(
-                profile = profile,
-                opportunity = opportunity,
-                today = today,
-            )
+            val publishedPath = publishedCheckPath(opportunity.eligibilityRule, receipt.rules)
+            val relatedAction = if (publishedPath.failed == 0 && publishedPath.unknown == 0) {
+                null
+            } else {
+                actionFrontierEngine.relevantActionFor(
+                    profile = profile,
+                    opportunity = opportunity,
+                    today = today,
+                )
+            }
             val informationTasks = receipt.rules.mapNotNull { rule ->
-                if (rule.result != RuleResult.UNKNOWN) return@mapNotNull null
+                if (rule.result != RuleResult.UNKNOWN || rule.ruleId !in publishedPath.ruleIds) return@mapNotNull null
                 val factKey = rule.factKey ?: return@mapNotNull null
                 val target = rule.actionTemplateId
                     ?.let { actionId -> opportunity.actionTemplates.firstOrNull { it.id == actionId } }
@@ -159,6 +164,7 @@ class OpportunityDetailViewModel(
                         expectedManualReview = rule.expected == null,
                     )
                 },
+                publishedPath = publishedPath,
                 softCriteria = opportunity.softCriteria,
                 relatedActionId = relatedAction?.id,
                 relatedActionTitle = relatedAction?.title.orEmpty(),
@@ -172,6 +178,9 @@ class OpportunityDetailViewModel(
                     receipt.rules.any { it.result == RuleResult.FAIL && it.actionTemplateId != null } ->
                         "A linked milestone does not fit the published timing. Recheck the official cycle before planning it."
 
+                    publishedPath.hasOnlyManualRemaining ->
+                        "The assessable checks on one published path pass. Confirm the remaining programme conditions with the provider."
+
                     receipt.rules.any {
                         it.result == RuleResult.UNKNOWN || it.result == RuleResult.REVIEW
                     } -> "No safe profile change can be inferred yet. Verify the questions below with the official source."
@@ -182,6 +191,7 @@ class OpportunityDetailViewModel(
                     relatedAction != null -> NextStepCode.LINKED_ACTION
                     informationTasks.isNotEmpty() -> NextStepCode.MISSING_FACTS
                     receipt.rules.any { it.result == RuleResult.FAIL && it.actionTemplateId != null } -> NextStepCode.TIMING_MISMATCH
+                    publishedPath.hasOnlyManualRemaining -> NextStepCode.ASSESSED_PATH_REVIEW
                     receipt.rules.any { it.result == RuleResult.UNKNOWN || it.result == RuleResult.REVIEW } -> NextStepCode.VERIFY_SOURCE
                     else -> NextStepCode.NO_CHANGE
                 },

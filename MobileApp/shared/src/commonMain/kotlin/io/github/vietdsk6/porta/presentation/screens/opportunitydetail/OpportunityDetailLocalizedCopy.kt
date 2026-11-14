@@ -41,6 +41,7 @@ internal fun OpportunityDetailUiState.localizedNextStep(): String = when (nextSt
     NextStepCode.MISSING_FACTS -> stringResource(Res.string.detail_guidance_missing)
     NextStepCode.TIMING_MISMATCH -> stringResource(Res.string.detail_guidance_timing)
     NextStepCode.VERIFY_SOURCE -> stringResource(Res.string.detail_guidance_verify)
+    NextStepCode.ASSESSED_PATH_REVIEW -> stringResource(Res.string.detail_guidance_assessed_path_review)
     NextStepCode.NO_CHANGE -> stringResource(Res.string.detail_guidance_none)
     null -> nextStepGuidance
 }

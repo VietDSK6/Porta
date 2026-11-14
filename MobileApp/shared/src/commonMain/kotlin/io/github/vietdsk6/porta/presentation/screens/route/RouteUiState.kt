@@ -9,6 +9,9 @@ data class RouteUiState(
     val canSave: Boolean = false,
     val isFictionalProfile: Boolean = false,
     val isIllustrativePreview: Boolean = false,
+    val catalogUnavailable: Boolean = false,
+    val focusedOpportunityId: String? = null,
+    val focusedOpportunityTitle: String? = null,
     val horizonDays: Int = 180,
     val maxCostPerStep: CostBand = CostBand.UNKNOWN,
     val isRecalculating: Boolean = false,
@@ -30,6 +33,7 @@ data class RouteOptionUiState(
     val totalDays: Int,
     val costRankSum: Int,
     val reason: RouteReason,
+    val focusedDoorOutcome: FocusedDoorOutcome? = null,
 ) {
     val improvedDoorCount: Int
         get() {
@@ -42,6 +46,8 @@ data class RouteOptionUiState(
 }
 
 enum class RouteNotice { SAVED, SAVE_FAILED }
+
+enum class FocusedDoorOutcome { ASSESSED_CHECKS_PASS, CHECKS_IMPROVE }
 
 enum class RouteReasonKind { OPENS_SAVED, OPENS, IMPROVES }
 

@@ -14,6 +14,16 @@
 > below for JJ/WBGSP and Chevening. Pack metadata retains the **21 October pack-wide review date**;
 > each refreshed record carries its own 2 November date.
 
+> Selective 14 November 2026 refresh: the [CERN openlab 2027 listing](https://jobs.smartrecruiters.com/cern/744000159596524)
+> publishes a **21 January 2027, 23:59 Geneva time** application deadline and confirms the current call.
+> Porta now uses that date for the CERN record. Its six-semester study requirement, prior CERN
+> participation limits, English knowledge and computing-profile judgment still require source review;
+> confirming nine-week availability alone does not pass the entire eligibility root. The
+> [Campus France Eiffel timeline](https://www.southafrica.campusfrance.org/france-excellence-eiffel-scholarship)
+> lists **6 January 2027** as the *institution's* nomination deadline. A student's deadline is set
+> by their chosen institution, so Porta now leaves the student deadline TBA instead of showing the
+> former 8 January date. This is a selective update, not a second reading of every record.
+
 ## Encoding policy
 
 - `ATOMIC` is used only when the published condition maps directly to a typed Porta fact.
@@ -79,14 +89,14 @@ Official wording rechecked for these fixtures:
 | Chevening Scholarship | [Eligibility criteria](https://www.chevening.org/resource-hub/guidance/eligibility/); [application timeline](https://www.chevening.org/scholarships/application-timeline/) | Degree completion is typed. The 2,800 **post-degree work hours**, degree-age rule, citizenship, return commitment, conflicts and offers remain manual. | The 2027–28 application closed in October 2026; a future cycle date is unknown. |
 | Rhodes Scholarship | [Applications](https://www.rhodeshouse.ox.ac.uk/scholarships/applications/) | Entire eligibility decision is manual because the official checker varies by constituency. | Constituency-specific. |
 | Schwarzman Scholars | [Application instructions](https://www.schwarzmanscholars.org/admissions/application-instructions/); [English FAQ](https://www.schwarzmanscholars.org/frequently-asked-questions/) | Published age band and completed-degree check are typed. IELTS ≥ 7 is an encoded **alternative** branch; other tests, exemptions and degree completion by August 2028 remain manual. | Class of 2028–2029; global application April–September 2027, exact close date TBA. |
-| France Excellence Eiffel | [Campus France programme page](https://www.campusfrance.org/en/the-france-excellence-eiffel-scholarship-program) | Nationality, age band, field and institution nomination remain manual. | Campus France institution deadline: 8 Jan 2027; institutions may close earlier. |
+| France Excellence Eiffel | [Campus France campaign timeline](https://www.southafrica.campusfrance.org/france-excellence-eiffel-scholarship) | Nationality, age band, field and institution nomination remain manual. | Student deadline is institution-specific and TBA in Porta; institutions submit nominations by 6 Jan 2027. |
 | DAAD EPOS | [Official scholarship record](https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database.pdf?detail=50076777) | Degree and 24-month duration are typed; experience relevance/timing, country, language and course fit remain manual. | Course-specific 2027–2028 deadlines. |
 | JJ/WBGSP | [2027 application cycle](https://www.worldbank.org/en/programs/scholarships/jj-wbgsp); [eligible-country list](https://www.worldbank.org/en/brief/2026/07/15/countries-eligible-for-jjwbgsp-scholarship) | Degree and 36-month duration are typed; nationality, work definition/timing and participating-program admission remain manual. **Viet Nam is absent from the 2027 country list.** | Window 1 closes 26 Feb 2027; Window 2 closes 21 May 2027. |
 | OECD Internship Programme | [Internships](https://www.oecd.org/en/about/careers/internships.html) | Full-time enrollment and minimum-period availability are typed; field and language fit remain manual. | Rolling applications. |
 | UNICEF Internship Programme | [Internships](https://www.unicef.org/careers/internships) | Age and current enrollment are typed; recent-graduate, language and family-conflict branches remain manual. | Vacancy-specific, throughout the year. |
 | World Bank Treasury Summer Internship | [Student careers](https://treasury.worldbank.org/en/about/unit/treasury/about/student-and-graduate-careers) | Enrollment and full-period availability are typed; degree stage, good standing, field and concurrent work remain manual. | 2027 application close date must be confirmed live. |
 | ESA Student Internships | [Student internships](https://www.esa.int/About_Us/Careers_at_ESA/Student_Internships2) | Enrollment and placement availability are typed; citizenship and vacancy rules remain manual. | Vacancy-specific. |
-| CERN openlab Summer Student Programme | [Programme page](https://openlab.web.cern.ch/cern-openlab-summer-student-programme/) | Student status and nine-week availability are typed; study duration, field and computing profile remain manual. | 2027 call announced for Nov 2026; closing date TBA. |
+| CERN openlab Summer Student Programme | [2027 CERN listing](https://jobs.smartrecruiters.com/cern/744000159596524); [programme page](https://openlab.web.cern.ch/cern-openlab-summer-student-programme/) | Student status and nine-week availability are typed; six semesters of full-time study, enrollment through summer, prior CERN participation, English and computing profile need review. | 2027 call open; applications close 21 Jan 2027 at 23:59 Geneva time. |
 | Google Summer of Code | [Official FAQ](https://developers.google.com/open-source/gsoc/faq) | Minimum age is typed; residence, work eligibility, beginner status and prior participation remain manual. | Next contributor timeline TBA. |
 | Swift Student Challenge | [2026 terms](https://developer.apple.com/swift-student-challenge/policy/) | Current enrollment is one typed education branch; country age, other education branches, employment, registration and award history remain manual. | Archived 2026 record; deadline was 28 Feb 2026. |
 

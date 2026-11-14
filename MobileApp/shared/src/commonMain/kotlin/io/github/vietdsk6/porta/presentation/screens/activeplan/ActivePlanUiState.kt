@@ -38,6 +38,7 @@ data class ActivePlanCardUiState(
     val riskNote: String,
     val updatedLabel: String,
     val steps: List<PlanStepUiState>,
+    val isRouteProjection: Boolean = false,
     val durationKind: PlanDurationKind? = null,
     val durationDays: Int? = null,
     val effortName: String? = null,

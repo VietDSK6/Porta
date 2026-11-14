@@ -22,6 +22,27 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class OpportunityDetailProgressiveDisclosureUiTest {
     @Test
+    fun `route entry carries this opportunity id even when the door is closed`() = runComposeUiTest {
+        var requestedOpportunityId: String? = null
+        setContent {
+            AppTheme {
+                Box(Modifier.size(width = 390.dp, height = 800.dp)) {
+                    OpportunityDetailScreen(
+                        uiState = detailState.copy(state = EligibilityState.CLOSED),
+                        onUiEvent = {},
+                        onNavigateBack = {},
+                        onPreviewAction = {},
+                        onViewRoute = { requestedOpportunityId = it },
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("opportunity-view-route").performScrollTo().performClick()
+        kotlin.test.assertEquals("aurora", requestedOpportunityId)
+    }
+
+    @Test
     fun `rule evidence and source provenance are disclosed on demand`() = runComposeUiTest {
         setContent {
             AppTheme {
@@ -44,6 +65,7 @@ class OpportunityDetailProgressiveDisclosureUiTest {
         onNodeWithText("Current: 6.5 band · Required: 7.0 band").assertExists()
         onNodeWithText("Synthetic evidence note", substring = true).assertExists()
 
+        onNodeWithTag("opportunity-detail-content").performScrollToIndex(5)
         onNodeWithTag("opportunity-source-toggle").performScrollTo().performClick()
         onNodeWithText("Section: Eligibility section").assertExists()
     }

@@ -19,11 +19,22 @@ class PlanRepository(
     fun observePlans(profileId: String = ProfileFact.DEFAULT_PROFILE_ID): Flow<List<PlanItem>> = planItemDao.observeForProfile(profileId).map { entities -> entities.map { it.toModel() } }
 
     fun observeCurrentPlan(profileId: String = ProfileFact.DEFAULT_PROFILE_ID): Flow<PlanItem?> = observePlans(profileId).map { plans ->
-        plans.maxWithOrNull(
-            compareBy<PlanItem> { it.status.priority() }
-                .thenBy { it.updatedAtEpochMillis },
-        )
+        // A route is one ordered plan. A completed first step must remain addressable while
+        // later steps are still PLANNED; status priority alone would skip its confirmation.
+        plans.filter { it.routeId != null && it.sequence != null }
+            .minWithOrNull(compareBy<PlanItem> { it.sequence }.thenBy { it.id })
+            ?: plans.maxWithOrNull(
+                compareBy<PlanItem> { it.status.priority() }
+                    .thenBy { it.updatedAtEpochMillis }
+                    .thenBy { it.id },
+            )
     }
+
+    /** Never substitutes another step when the selected plan was replaced or removed. */
+    fun observePlan(
+        id: String,
+        profileId: String = ProfileFact.DEFAULT_PROFILE_ID,
+    ): Flow<PlanItem?> = observePlans(profileId).map { plans -> plans.firstOrNull { it.id == id } }
 
     suspend fun replaceCurrentPlan(plan: PlanItem): Result<Unit> = backgroundExecutor.execute {
         planItemDao.replaceForProfile(plan.toEntity())

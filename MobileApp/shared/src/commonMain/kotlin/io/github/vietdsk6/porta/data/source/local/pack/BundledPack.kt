@@ -27,6 +27,8 @@ import kotlinx.datetime.LocalDate
 internal object BundledPack {
     const val REVIEWED_ON = "2026-10-21"
     const val SOURCE_REFRESH_REVIEWED_ON = "2026-11-02"
+    const val CERN_REVIEWED_ON = "2026-11-14"
+    const val EIFFEL_REVIEWED_ON = "2026-11-14"
 
     /** Curated provider records declared directly through Porta's typed pack DSL. */
     fun document(): OpportunityPackDocument = opportunityPack(
@@ -348,7 +350,7 @@ internal object BundledPack {
     }
 
     private fun PackBuilder.eiffel() {
-        val source = "https://www.campusfrance.org/en/the-france-excellence-eiffel-scholarship-program"
+        val source = "https://www.southafrica.campusfrance.org/france-excellence-eiffel-scholarship"
         opportunity(
             id = "france-excellence-eiffel-2027",
             title = "France Excellence Eiffel Scholarship",
@@ -356,8 +358,9 @@ internal object BundledPack {
             category = OpportunityCategory.SCHOLARSHIP,
             cycle = "2027 campaign",
         ) {
-            source(source, "2027 call and regulations", LocalDate.parse(REVIEWED_ON))
-            deadline { known("2027-01-08") }
+            source(source, "2027 campaign timeline and how to apply", LocalDate.parse(EIFFEL_REVIEWED_ON))
+            // The 6 January date is for institutions. Each student's university may close earlier.
+            deadline { tba() }
             eligibility {
                 manual(
                     id = "eiffel-official-check",
@@ -370,7 +373,7 @@ internal object BundledPack {
             readinessItems.addAll(
                 listOf(
                     "Students cannot submit directly; a French higher-education institution must nominate",
-                    "Ask the institution for its earlier internal deadline",
+                    "Ask the institution for its student deadline; institutions submit nominations to Campus France by 6 January 2027",
                 ),
             )
         }
@@ -729,7 +732,8 @@ internal object BundledPack {
     }
 
     private fun PackBuilder.cernOpenlab() {
-        val source = "https://openlab.web.cern.ch/cern-openlab-summer-student-programme/"
+        val source = "https://jobs.smartrecruiters.com/cern/744000159596524"
+        val programmeSource = "https://openlab.web.cern.ch/cern-openlab-summer-student-programme/"
         val enrollmentAction = enrollmentAction("cern-openlab", source)
         val availabilityAction = availabilityAction(
             id = "cern-openlab",
@@ -744,8 +748,8 @@ internal object BundledPack {
             category = OpportunityCategory.ACADEMIC_PROGRAM,
             cycle = "Summer 2027",
         ) {
-            source(source, "Who can apply?; How and when to apply?", LocalDate.parse(REVIEWED_ON))
-            deadline { tba() }
+            source(source, "Qualifications; Additional Information", LocalDate.parse(CERN_REVIEWED_ON))
+            deadline { known("2027-01-21") }
             eligibility {
                 all("cern-openlab-root") {
                     atomic(
@@ -754,7 +758,7 @@ internal object BundledPack {
                         operator = Operator.EQUALS,
                         expected = bool(true),
                         explanation = "The programme is for BSc or MSc students.",
-                        sourceNote = checked(source, "Who can apply?"),
+                        sourceNote = checked(programmeSource, "Who can apply?"),
                         actionability = Actionability.TIME_DEPENDENT,
                         actionTemplateId = enrollmentAction.id,
                     )
@@ -764,15 +768,16 @@ internal object BundledPack {
                         operator = Operator.EQUALS,
                         expected = bool(true),
                         explanation = "Participants must be available for the nine-week June–August programme.",
-                        sourceNote = checked(source, "Who can apply? and programme duration"),
+                        sourceNote = checked(programmeSource, "Who can apply? and programme duration"),
                         actionability = Actionability.CONTROLLABLE,
                         actionTemplateId = availabilityAction.id,
                     )
                     manual(
                         id = "cern-openlab-study-profile",
-                        explanation = "Confirm three years of full-time university study by June, an accepted field " +
-                            "and the programme's computing-profile requirement.",
-                        sourceNote = checked(source, "Who can apply?"),
+                        explanation = "Confirm six semesters of full-time study in an accepted field by summer 2027, " +
+                            "continued enrollment, prior CERN participation limits and good English. " +
+                            "CERN assesses the computing profile.",
+                        sourceNote = checked(source, "Qualifications", CERN_REVIEWED_ON),
                     )
                 }
             }
@@ -780,7 +785,8 @@ internal object BundledPack {
             readinessItems.addAll(
                 listOf(
                     "Prepare a CV, official transcript and academic reference letter",
-                    "The official page says the 2027 call opens in November 2026; confirm the closing date then",
+                    "Apply by 21 January 2027, 23:59 Geneva time; verify the live listing before submitting",
+                    "See the programme overview at $programmeSource",
                 ),
             )
             action(enrollmentAction)

@@ -29,6 +29,7 @@ data class OpportunityDetailUiState(
     val sourceSection: String = "",
     val disclaimer: String = "",
     val rules: List<RuleReceiptUiState> = emptyList(),
+    val publishedPath: PublishedCheckPath? = null,
     val softCriteria: List<String> = emptyList(),
     val relatedActionId: String? = null,
     val relatedActionTitle: String = "",
@@ -45,7 +46,7 @@ data class OpportunityDetailUiState(
 
 enum class DeadlineKind { KNOWN, MISSING, TBA }
 
-enum class NextStepCode { LINKED_ACTION, MISSING_FACTS, TIMING_MISMATCH, VERIFY_SOURCE, NO_CHANGE }
+enum class NextStepCode { LINKED_ACTION, MISSING_FACTS, TIMING_MISMATCH, VERIFY_SOURCE, ASSESSED_PATH_REVIEW, NO_CHANGE }
 
 enum class DetailErrorCode { OPPORTUNITY_MISSING }
 

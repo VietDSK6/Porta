@@ -28,6 +28,7 @@ import io.github.vietdsk6.porta.util.extensions.nowEpochMillis
 import io.github.vietdsk6.porta.util.file.EvidenceAttachmentPolicy
 import io.github.vietdsk6.porta.util.file.FileManager
 import io.github.vietdsk6.porta.util.file.SelectedEvidenceFile
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,11 +44,17 @@ class ActualProfileUpdateViewModel(
     private val ruleAssertionRepository: RuleAssertionRepository,
     private val opportunityPackRepository: OpportunityPackRepository,
     private val fileManager: FileManager,
+    planId: String? = null,
 ) : ViewModel() {
     private val formState = MutableStateFlow(FormState())
+    private val observedPlan: Flow<PlanItem?> = if (planId == null) {
+        planRepository.observeCurrentPlan()
+    } else {
+        planRepository.observePlan(planId)
+    }
 
     val uiState: StateFlow<ActualProfileUpdateUiState> = combine(
-        planRepository.observeCurrentPlan(),
+        observedPlan,
         profileRepository.observeProfile(),
         opportunityPackRepository.observeActive(),
         combine(formState, AppLanguageState.changes) { form, _ -> form },
@@ -62,7 +69,7 @@ class ActualProfileUpdateViewModel(
     init {
         viewModelScope.launch {
             combine(
-                planRepository.observeCurrentPlan(),
+                observedPlan,
                 profileRepository.observeProfile(),
             ) { plan, profile -> plan to profile }
                 .collect { (plan, profile) ->
@@ -142,7 +149,7 @@ class ActualProfileUpdateViewModel(
 
         viewModelScope.launch {
             formState.update { it.copy(isSaving = true, error = null) }
-            val plan = planRepository.observeCurrentPlan().first()
+            val plan = observedPlan.first()
             if (
                 plan == null ||
                 plan.status != PlanStatus.COMPLETED ||

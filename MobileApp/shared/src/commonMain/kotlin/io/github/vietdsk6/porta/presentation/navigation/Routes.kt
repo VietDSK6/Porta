@@ -38,6 +38,10 @@ data object DoorsScreenRoute : TopLevelScreenRoute
 data object RouteScreenRoute : TopLevelScreenRoute
 
 @Serializable
+@SerialName("FocusedRoute")
+data class FocusedRouteScreenRoute(val opportunityId: String) : ScreenRoute
+
+@Serializable
 @SerialName("OpportunityDetail")
 data class OpportunityDetailScreenRoute(val opportunityId: String) : ScreenRoute
 
@@ -71,6 +75,6 @@ data object OpportunityStudioScreenRoute : ScreenRoute
 
 @Serializable
 @SerialName("ActualProfileUpdate")
-data object ActualProfileUpdateScreenRoute : ScreenRoute
+data class ActualProfileUpdateScreenRoute(val planId: String) : ScreenRoute
 
 // Add new routes below — generate_screen.sh inserts here.

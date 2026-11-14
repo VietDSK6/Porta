@@ -128,7 +128,9 @@ private val presentationModule = module {
     viewModel {
         OpportunityStudioViewModel(get(), get(), get(), get(), get(), get())
     }
-    viewModelOf(::ActualProfileUpdateViewModel)
+    viewModel { (planId: String) ->
+        ActualProfileUpdateViewModel(get(), get(), get(), get(), get(), planId)
+    }
     // Add new view models below — generate_screen.sh inserts here.
 }
 

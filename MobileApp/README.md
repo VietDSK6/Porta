@@ -25,6 +25,10 @@ From those explanations, Porta proposes only controllable milestones, such as im
 a documented project. The What-if view previews only the doors changed by one milestone. It never writes a
 hypothetical value into the actual profile; the student must confirm a real update separately.
 
+Each Door shows the applicable path through its published `ALL`/`ANY` checks first, with other published paths
+available on demand. Porta uses a manual source check only where the catalog cannot safely infer a requirement from
+the student's facts; a passed subset of checks is shown as progress, never as full eligibility.
+
 Programme-specific confirmations are scoped to one opportunity and one rule fingerprint. Confirming availability
 for one internship cannot silently change another programme, and a changed source rule makes an old assertion stale.
 
@@ -51,14 +55,18 @@ diff and import approval. AI never supplies an eligibility conclusion.
    from Linh's editable fictional CS profile and the sourced 15-door catalog. Linh's current 180-day route improves
    checks but opens **zero** doors under the encoded rules and deadlines. You can also browse without saving a profile
    or enter your own local facts.
-2. Open **Doors** to see the current source-linked conclusions.
+2. Open **Doors** to see the current source-linked conclusions. Open one Door to inspect its applicable published
+   checks, then use **Explore routes for this opportunity** to see whether a planned milestone could improve it.
 3. Open **Route** to compare ordered milestone paths. Compact layouts show a timeline; wide Desktop layouts show a
    metro-style map. Inspect which checks improve, which doors open, and which deadlines can close along the way.
-   Change the time, estimated cost per step, and effort limits, then save a chosen path as ordered steps, replacing the current active plan.
+   Change the time, estimated cost per step, and effort limits, then save a chosen path as ordered steps, replacing the
+   current active plan. The saved state leads to that plan, and **First move** opens the selected route's first step.
 4. Open **Next moves** for individual actions. On Desktop, select two or three actions in Compare Lab to compare
    independent What-if results against the same
    Actual profile; scenarios are never combined or saved.
-5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed. Add
+5. Save an action as the active plan, then explicitly update the actual profile when the milestone is completed. A
+   saved Route projects later steps from the preceding planned changes and their future dates; those projections are
+   assumptions until each actual result is confirmed. Add
    an optional image, PDF, text file, or Word document as local supporting evidence and reopen it from Porta.
 6. Export profile metadata on Android, then open **Data & privacy** on Desktop to preview and import the JSON copy.
    The import replaces profile facts and scoped confirmations in one local transaction while keeping plans, saved

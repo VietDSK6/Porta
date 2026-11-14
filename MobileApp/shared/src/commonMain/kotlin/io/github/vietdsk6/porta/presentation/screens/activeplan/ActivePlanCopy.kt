@@ -65,10 +65,10 @@ internal fun ActivePlanCardUiState.localizedUpdated(): String {
 }
 
 @Composable
-internal fun ActivePlanCardUiState.localizedRisk(): String = if (durationKind != null) {
-    stringResource(Res.string.active_copy_risk)
-} else {
-    riskNote
+internal fun ActivePlanCardUiState.localizedRisk(): String = when {
+    isRouteProjection -> stringResource(Res.string.active_route_projection_risk)
+    durationKind != null -> stringResource(Res.string.active_copy_risk)
+    else -> riskNote
 }
 
 @Composable

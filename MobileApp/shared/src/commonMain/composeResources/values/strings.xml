@@ -128,6 +128,21 @@
     <string name="route_empty_title">No route fits these limits yet</string>
 
     <string name="route_empty_help">Try a longer horizon, a higher budget, or more effort. Porta only uses milestones tied to assessed checks.</string>
+    <string name="route_catalog_unavailable">The opportunity catalog is unavailable</string>
+    <string name="route_catalog_unavailable_help">Open Pack inspector to restore or import a catalog before planning. Porta will not use fictional opportunities with your profile.</string>
+    <string name="route_focus_title">For %1$s</string>
+    <string name="route_focus_pass">This route would pass the encoded checks for this opportunity. Verify the live source before applying.</string>
+    <string name="route_focus_checks_improve">This route improves checks for this opportunity; other requirements still need attention.</string>
+    <string name="route_focus_no_path">No route changes this opportunity within these limits</string>
+    <string name="route_focus_no_path_help">Review its published requirements, then try more time, cost or effort. Some conditions cannot be resolved by a planned milestone.</string>
+    <string name="detail_view_route">Explore routes for this opportunity</string>
+    <string name="detail_view_route_note">See whether any path fits the published checks, deadline, and your limits.</string>
+    <string name="detail_check_snapshot">%1$d published checks passed · %2$d need action</string>
+    <string name="detail_check_no_assessed">No check can be assessed from this profile yet.</string>
+    <string name="detail_check_remaining">%1$d need source review · %2$d need information</string>
+    <string name="detail_assessed_path_passed">The assessable checks on this path pass.</string>
+    <string name="detail_guidance_assessed_path_review">The assessable checks on one published path pass. Confirm remaining programme conditions and the live deadline with the provider.</string>
+    <string name="active_route_projection_risk">This projection assumes earlier route milestones reach their targets by the planned dates. Confirm actual results, manual checks and live deadlines; replan if anything changes.</string>
 
     <string name="route_save">Save route</string>
 

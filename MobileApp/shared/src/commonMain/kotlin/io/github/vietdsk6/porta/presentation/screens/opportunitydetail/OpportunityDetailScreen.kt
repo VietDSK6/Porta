@@ -56,6 +56,7 @@ fun OpportunityDetailScreen(
     onPreviewAction: (String) -> Unit,
     onEditProfile: (FactKey, String) -> Unit,
     modifier: Modifier = Modifier,
+    onViewRoute: (String) -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
@@ -64,6 +65,7 @@ fun OpportunityDetailScreen(
         onUiEvent = viewModel::onUiEvent,
         onNavigateBack = onNavigateBack,
         onPreviewAction = onPreviewAction,
+        onViewRoute = onViewRoute,
         onEditProfile = onEditProfile,
         onOpenSource = { url ->
             if (url.startsWith("https://")) {
@@ -83,6 +85,7 @@ fun OpportunityDetailScreen(
     onEditProfile: (FactKey, String) -> Unit = { _, _ -> },
     onOpenSource: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onViewRoute: (String) -> Unit = {},
 ) {
     ScreenWithToolbar(
         modifier = modifier.testTag("opportunity-receipt-screen"),
@@ -113,6 +116,7 @@ fun OpportunityDetailScreen(
                     uiState = uiState,
                     onUiEvent = onUiEvent,
                     onPreviewAction = onPreviewAction,
+                    onViewRoute = onViewRoute,
                     onEditProfile = onEditProfile,
                     onOpenSource = onOpenSource,
                 )
@@ -122,6 +126,7 @@ fun OpportunityDetailScreen(
                         uiState = uiState,
                         onUiEvent = onUiEvent,
                         onPreviewAction = onPreviewAction,
+                        onViewRoute = onViewRoute,
                         onEditProfile = onEditProfile,
                         onOpenSource = onOpenSource,
                         modifier = Modifier.fillMaxSize().widthIn(max = 760.dp),
@@ -137,6 +142,7 @@ private fun CompactOpportunityDetailContent(
     uiState: OpportunityDetailUiState,
     onUiEvent: (OpportunityDetailUiEvent) -> Unit,
     onPreviewAction: (String) -> Unit,
+    onViewRoute: (String) -> Unit,
     onEditProfile: (FactKey, String) -> Unit,
     onOpenSource: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -146,7 +152,7 @@ private fun CompactOpportunityDetailContent(
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         item { OpportunityHeader(uiState) }
-        item { CurrentConclusion(uiState) }
+        item { CurrentConclusion(uiState, onViewRoute) }
         item { ChecksSection(uiState) }
         item {
             if (uiState.nextStepCode != null || uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
@@ -175,6 +181,7 @@ private fun WideOpportunityDetailContent(
     uiState: OpportunityDetailUiState,
     onUiEvent: (OpportunityDetailUiEvent) -> Unit,
     onPreviewAction: (String) -> Unit,
+    onViewRoute: (String) -> Unit,
     onEditProfile: (FactKey, String) -> Unit,
     onOpenSource: (String) -> Unit,
 ) {
@@ -197,7 +204,7 @@ private fun WideOpportunityDetailContent(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 item { OpportunityHeader(uiState) }
-                item { CurrentConclusion(uiState) }
+                item { CurrentConclusion(uiState, onViewRoute) }
                 item { ChecksSection(uiState) }
                 item {
                     if (uiState.nextStepCode != null || uiState.nextStepGuidance.isNotBlank() || uiState.relatedActionId != null) {
@@ -233,24 +240,37 @@ private fun WideOpportunityDetailContent(
 
 @Composable
 private fun ChecksSection(uiState: OpportunityDetailUiState) {
+    val pathRuleIds = uiState.publishedPath?.ruleIds
+    val currentPathRules = when {
+        pathRuleIds != null -> uiState.rules.filter { it.id in pathRuleIds }
+        uiState.rootResult == RuleResult.PASS -> uiState.rules.filter { it.result == RuleResult.PASS }
+        else -> uiState.rules
+    }
+    val alternativeRules = when {
+        pathRuleIds != null -> uiState.rules.filterNot { it.id in pathRuleIds }
+        uiState.rootResult == RuleResult.PASS -> uiState.rules.filter { it.result != RuleResult.PASS }
+        else -> emptyList()
+    }
+    var showAlternatives by rememberSaveable(uiState.id) { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth().testTag("opportunity-checks"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(Res.string.detail_your_checks), modifier = Modifier.semantics { heading() }, style = AppTheme.typography.h6)
-        if (uiState.rootResult == RuleResult.PASS) {
-            CheckGroup(stringResource(Res.string.detail_checks_met), uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
-            CheckGroup(
-                stringResource(Res.string.detail_alternative_routes),
-                uiState.rules.filter { it.result != RuleResult.PASS },
-                AppTheme.colors.text.secondary,
-                isAlternative = true,
-            )
-        } else {
-            CheckGroup(stringResource(Res.string.detail_needs_action), uiState.rules.filter { it.result == RuleResult.FAIL }, AppTheme.colors.status.warning)
-            CheckGroup(stringResource(Res.string.detail_needs_information), uiState.rules.filter { it.result == RuleResult.UNKNOWN }, AppTheme.colors.primary)
-            CheckGroup(stringResource(Res.string.detail_needs_review), uiState.rules.filter { it.result == RuleResult.REVIEW }, AppTheme.colors.primary)
-            CheckGroup(stringResource(Res.string.detail_checks_met), uiState.rules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
+        CheckGroup(stringResource(Res.string.detail_needs_action), currentPathRules.filter { it.result == RuleResult.FAIL }, AppTheme.colors.status.warning)
+        CheckGroup(stringResource(Res.string.detail_needs_information), currentPathRules.filter { it.result == RuleResult.UNKNOWN }, AppTheme.colors.primary)
+        CheckGroup(stringResource(Res.string.detail_needs_review), currentPathRules.filter { it.result == RuleResult.REVIEW }, AppTheme.colors.primary)
+        CheckGroup(stringResource(Res.string.detail_checks_met), currentPathRules.filter { it.result == RuleResult.PASS }, AppTheme.colors.status.success)
+        if (alternativeRules.isNotEmpty()) {
+            TextButton(
+                modifier = Modifier.testTag("opportunity-alternative-paths"),
+                onClick = { showAlternatives = !showAlternatives },
+            ) {
+                Text(stringResource(Res.string.detail_alternative_routes))
+            }
+            if (showAlternatives) {
+                alternativeRules.forEach { rule -> RequirementCheckRow(rule, AppTheme.colors.text.secondary, isAlternative = true) }
+            }
         }
     }
 }
@@ -454,23 +474,61 @@ private fun OpportunityHeader(uiState: OpportunityDetailUiState) {
 }
 
 @Composable
-private fun CurrentConclusion(uiState: OpportunityDetailUiState) {
-    Surface(
-        color = AppTheme.colors.alternative,
-        shape = RoundedCornerShape(14.dp),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+private fun CurrentConclusion(uiState: OpportunityDetailUiState, onViewRoute: (String) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(
+            color = AppTheme.colors.alternative,
+            shape = RoundedCornerShape(14.dp),
         ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    uiState.copyCode?.headlineText()?.uppercase() ?: uiState.stateLabel,
+                    color = uiState.stateColor(),
+                    fontWeight = FontWeight.Bold,
+                    style = AppTheme.typography.bodySmall,
+                )
+                Text(uiState.copyCode?.reasonText() ?: uiState.conclusionSummary, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
+                Text(uiState.copyCode?.timingText() ?: uiState.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
+                uiState.publishedPath?.let { path ->
+                    Text(
+                        if (path.passed + path.failed == 0) {
+                            stringResource(Res.string.detail_check_no_assessed)
+                        } else {
+                            stringResource(Res.string.detail_check_snapshot, path.passed, path.failed)
+                        },
+                        modifier = Modifier.testTag("opportunity-check-snapshot"),
+                        color = if (path.failed == 0 && path.unknown == 0) AppTheme.colors.status.success else AppTheme.colors.primary,
+                        fontWeight = FontWeight.SemiBold,
+                        style = AppTheme.typography.bodyMedium,
+                    )
+                    if (path.hasOnlyManualRemaining) {
+                        Text(stringResource(Res.string.detail_assessed_path_passed), style = AppTheme.typography.bodySmall)
+                    }
+                    if (path.review > 0 || path.unknown > 0) {
+                        Text(
+                            stringResource(Res.string.detail_check_remaining, path.review, path.unknown),
+                            color = AppTheme.colors.text.secondary,
+                            style = AppTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+        }
+        if (uiState.id.isNotBlank()) {
+            Button(
+                modifier = Modifier.fillMaxWidth().testTag("opportunity-view-route"),
+                onClick = { onViewRoute(uiState.id) },
+            ) {
+                Text(stringResource(Res.string.detail_view_route))
+            }
             Text(
-                uiState.copyCode?.headlineText()?.uppercase() ?: uiState.stateLabel,
-                color = uiState.stateColor(),
-                fontWeight = FontWeight.Bold,
+                stringResource(Res.string.detail_view_route_note),
+                color = AppTheme.colors.text.secondary,
                 style = AppTheme.typography.bodySmall,
             )
-            Text(uiState.copyCode?.reasonText() ?: uiState.conclusionSummary, color = AppTheme.colors.text.primary, style = AppTheme.typography.bodyMedium)
-            Text(uiState.copyCode?.timingText() ?: uiState.timingLabel, color = AppTheme.colors.text.secondary, style = AppTheme.typography.bodySmall)
         }
     }
 }

@@ -6,11 +6,16 @@ import io.github.vietdsk6.porta.data.repository.OpportunityPackRepository
 import io.github.vietdsk6.porta.data.repository.PlanRepository
 import io.github.vietdsk6.porta.data.repository.ProfileRepository
 import io.github.vietdsk6.porta.data.scenario.SampleScenarioProvider
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.Deadline
+import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.Opportunity
 import io.github.vietdsk6.porta.domain.model.PlanItem
 import io.github.vietdsk6.porta.domain.model.PlanStatus
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
+import io.github.vietdsk6.porta.domain.model.RuleReceipt
+import io.github.vietdsk6.porta.domain.model.RuleResult
+import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.asScenarioOverrides
 import io.github.vietdsk6.porta.domain.model.isFeasibleForPlanning
 import io.github.vietdsk6.porta.domain.model.resolvedHardGapOpportunityIds
@@ -62,7 +67,17 @@ class ActivePlanViewModel(
             isWorking = operation.isWorking,
             isSampleCatalog = activePack == null ||
                 sampleScenarioProvider.isLegacySyntheticPack(activePack.metadata.id),
-            plan = selectedPlan?.toUiState(profile, opportunities, today),
+            plan = selectedPlan?.let { current ->
+                current.toUiState(
+                    profile = profile,
+                    opportunities = opportunities,
+                    today = today,
+                    priorRouteSteps = routePlans.filter { step ->
+                        step.routeId == current.routeId &&
+                            (step.sequence ?: Int.MAX_VALUE) < (current.sequence ?: 0)
+                    },
+                )
+            },
             routeSteps = routePlans.map { plan ->
                 ActiveRouteStepUiState(
                     planId = plan.id,
@@ -117,6 +132,7 @@ class ActivePlanViewModel(
         profile: ProfileSnapshot,
         opportunities: List<Opportunity>,
         today: LocalDate,
+        priorRouteSteps: List<PlanItem>,
     ): ActivePlanCardUiState {
         val action = opportunities
             .flatMap { it.actionTemplates }
@@ -130,6 +146,7 @@ class ActivePlanViewModel(
             today = today,
             scenarioEvaluator = scenarioEvaluator,
             minimumDurationDays = planningDurationDays,
+            priorRouteSteps = priorRouteSteps,
         )
         return ActivePlanCardUiState(
             id = id,
@@ -148,9 +165,15 @@ class ActivePlanViewModel(
             evidenceLabel = action?.completionEvidenceTypes?.joinToString()?.replaceFirstChar(Char::uppercaseChar)
                 ?: "Evidence definition needs review",
             candidateCheckChanges = candidateCheckChanges,
-            riskNote = "This milestone can address the published checks Porta can evaluate. Confirm remaining " +
-                "manual checks and live deadlines on official sources before acting.",
+            riskNote = if (routeId == null) {
+                "This milestone can address the published checks Porta can evaluate. Confirm remaining " +
+                    "manual checks and live deadlines on official sources before acting."
+            } else {
+                "This projection assumes earlier route steps reach their planned targets by the shown dates. " +
+                    "Confirm actual results, manual checks and live deadlines; replan if anything changes."
+            },
             updatedLabel = "Updated ${updatedAtEpochMillis.asLocalizedDate()}",
+            isRouteProjection = routeId != null,
             steps = listOf(
                 PlanStepUiState("Plan saved", PlanStepState.DONE, PlanStepCopy.SAVED),
                 when (status) {
@@ -207,24 +230,76 @@ internal fun projectPlanImpacts(
     today: LocalDate,
     scenarioEvaluator: ScenarioEvaluator,
     minimumDurationDays: Int?,
+    priorRouteSteps: List<PlanItem> = emptyList(),
 ): List<PlanOpportunityImpactUiState> {
     val byId = opportunities.associateBy(Opportunity::id)
-    return scenarioEvaluator.evaluate(
+    val plannedEndDate = plan.targetDateEpochDays
+        ?.takeIf { plan.routeId != null && it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }
+        ?.let { LocalDate.fromEpochDays(it.toInt()) }
+    val evaluationDate = plannedEndDate?.takeIf { it > today } ?: today
+    val priorOverrides = priorRouteSteps
+        .filter { step ->
+            val sequence = step.sequence
+            step.routeId == plan.routeId && sequence != null && sequence < (plan.sequence ?: 0)
+        }
+        .sortedBy { it.sequence }
+        .fold(ScenarioOverrides()) { accumulated, step -> accumulated.mergedWith(step.target.asScenarioOverrides()) }
+    val before = scenarioEvaluator.evaluate(
         profile = profile,
-        overrides = plan.target.asScenarioOverrides(),
+        overrides = priorOverrides,
         opportunities = opportunities,
-        today = today,
-    ).resolvedHardGapOpportunityIds(plan.target)
+        today = evaluationDate,
+    ).simulated
+    val after = scenarioEvaluator.evaluate(
+        profile = profile,
+        overrides = priorOverrides.mergedWith(plan.target.asScenarioOverrides()),
+        opportunities = opportunities,
+        today = evaluationDate,
+    ).copy(baseline = before)
+    val remainingDurationDays = if (plannedEndDate != null && plannedEndDate > today) 0 else minimumDurationDays
+    val newlyPassingChecks = after.resolvedHardGapOpportunityIds(plan.target)
+    val target = plan.target
+    val deadlineMisses = before.mapNotNull { (opportunityId, beforeReceipt) ->
+        val opportunity = byId[opportunityId] ?: return@mapNotNull null
+        val afterReceipt = after.simulated[opportunityId] ?: return@mapNotNull null
+        val deadline = opportunity.deadline as? Deadline.Known
+        opportunityId.takeIf {
+            !opportunity.archived &&
+                (target !is ActionTarget.OpportunityRuleTarget || target.opportunityId == opportunityId) &&
+                deadline != null && deadline.date < evaluationDate &&
+                afterReceipt.state == EligibilityState.CLOSED &&
+                beforeReceipt.rules.hasNewPassingTarget(afterReceipt.rules, target)
+        }
+    }
+    return (newlyPassingChecks + deadlineMisses).distinct().sorted()
         .mapNotNull { opportunityId ->
             byId[opportunityId]?.let { opportunity ->
                 PlanOpportunityImpactUiState(
                     opportunityId = opportunityId,
                     title = opportunity.title,
-                    timing = opportunity.planTiming(today, minimumDurationDays),
+                    timing = opportunity.planTiming(evaluationDate, remainingDurationDays),
                 )
             }
         }
 }
+
+private fun List<RuleReceipt>.hasNewPassingTarget(afterRules: List<RuleReceipt>, target: ActionTarget): Boolean {
+    val afterById = afterRules.associateBy(RuleReceipt::ruleId)
+    return any { before ->
+        before.factKey == target.factKey &&
+            (target !is ActionTarget.OpportunityRuleTarget || before.ruleId == target.ruleId) &&
+            (
+                before.result == RuleResult.FAIL ||
+                    (target is ActionTarget.OpportunityRuleTarget && before.result == RuleResult.UNKNOWN)
+                ) &&
+            afterById[before.ruleId]?.result == RuleResult.PASS
+    }
+}
+
+private fun ScenarioOverrides.mergedWith(other: ScenarioOverrides): ScenarioOverrides = ScenarioOverrides(
+    profileFacts = profileFacts + other.profileFacts,
+    ruleAssertions = ruleAssertions + other.ruleAssertions,
+)
 
 private fun Opportunity.planTiming(today: LocalDate, minimumDurationDays: Int?): PlanTimingStatus {
     val publishedDeadline = deadline as? Deadline.Known
