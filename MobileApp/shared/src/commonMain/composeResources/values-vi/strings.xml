@@ -124,7 +124,7 @@
 
     <string name="route_empty_title">Chưa có lộ trình phù hợp với giới hạn này</string>
 
-    <string name="route_empty_help">Thử tăng thời gian, ngân sách hoặc mức công sức. Porta chỉ dùng các cột mốc gắn với điều kiện đã đánh giá.</string>
+    <string name="route_empty_help">Thử tăng thời gian, ngân sách hoặc mức công sức. Nếu cần xác nhận cho một chương trình cụ thể, hãy mở Cơ hội đó để xem lộ trình riêng.</string>
     <string name="route_catalog_unavailable">Không truy cập được danh mục cơ hội</string>
     <string name="route_catalog_unavailable_help">Mở mục kiểm tra gói dữ liệu để khôi phục hoặc nhập danh mục trước khi lập lộ trình. Porta sẽ không dùng cơ hội hư cấu với hồ sơ của bạn.</string>
     <string name="route_focus_title">Dành cho %1$s</string>

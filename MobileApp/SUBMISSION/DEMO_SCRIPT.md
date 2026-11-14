@@ -25,7 +25,7 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 ## 0:45–1:25 — From a Door to a route
 
-**Shot:** Open one sourced Door. Show its applicable published checks and the separate source-review remainder; expand alternative paths only if the record has them. Tap **Explore routes for this opportunity**, then show the focused compact timeline on Android and the wide metro map on Desktop. Switch Route candidates, open **Why these numbers?**, and show improved checks and deadline losses. Save one route, use **View active plan** to show its ordered steps, then return to Route and tap **First move**. Keep the zero-open-doors notice visible for Linh's current route.
+**Shot:** Open one sourced Door. Show its applicable published checks and the separate source-review remainder; expand alternative paths only if the record has them. Tap **Explore routes for this opportunity** to show a programme-specific plan, then open the general Route to compare transferable milestones such as degree completion or an English-score improvement. Show the compact timeline on Android and the wide metro map on Desktop. Switch Route candidates, open **Why these numbers?**, and show improved checks and deadline losses. Save one route, use **View active plan** to show its ordered steps, then return to Route and tap **First move**. Keep the zero-open-doors notice visible for Linh's current route.
 
 **Narration:** “The shared planner sequences up to four milestones, evaluates checks at each step's end date, and filters by the chosen time, cost and effort limits. Stations show planned check transitions, not admission predictions. Deadline uncertainty stays visible.”
 

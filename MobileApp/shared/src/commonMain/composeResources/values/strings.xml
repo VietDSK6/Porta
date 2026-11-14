@@ -127,7 +127,7 @@
 
     <string name="route_empty_title">No route fits these limits yet</string>
 
-    <string name="route_empty_help">Try a longer horizon, a higher budget, or more effort. Porta only uses milestones tied to assessed checks.</string>
+    <string name="route_empty_help">Try a longer horizon, a higher budget, or more effort. For a programme-specific confirmation, open that Door and explore its focused route.</string>
     <string name="route_catalog_unavailable">The opportunity catalog is unavailable</string>
     <string name="route_catalog_unavailable_help">Open Pack inspector to restore or import a catalog before planning. Porta will not use fictional opportunities with your profile.</string>
     <string name="route_focus_title">For %1$s</string>

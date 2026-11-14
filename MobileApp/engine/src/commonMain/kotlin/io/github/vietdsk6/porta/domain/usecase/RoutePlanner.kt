@@ -1,5 +1,6 @@
 package io.github.vietdsk6.porta.domain.usecase
 
+import io.github.vietdsk6.porta.domain.model.ActionTarget
 import io.github.vietdsk6.porta.domain.model.ActionTemplate
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.EligibilityReceipt
@@ -39,7 +40,10 @@ class RoutePlanner(
         val baselineOpen = baseline.openIds()
         val candidates = CandidateCatalog().select(opportunities, baseline)
             .filter { template ->
-                template.minimumDurationDays >= 0 &&
+                // A general route should describe transferable milestones. Programme-scoped
+                // confirmations are still available when planning from that programme's Door.
+                (focusedOpportunityId != null || template.target is ActionTarget.ProfileFactTarget) &&
+                    template.minimumDurationDays >= 0 &&
                     template.minimumDurationDays <= constraints.horizonDays &&
                     template.effort.rank <= constraints.maxEffort.rank &&
                     template.costBand.rank <= constraints.maxCostPerStep.rank &&

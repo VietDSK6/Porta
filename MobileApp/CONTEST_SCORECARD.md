@@ -25,6 +25,11 @@ The 14 November working tree repairs the Route/Active plan continuity findings: 
 
 The optional live Gemini path has mock transport coverage but no documented real-key exercise; the personal key is stored in ordinary local DataStore preferences. Treat live drafting as unverified and review key-at-rest protection before encouraging personal-key use.
 
+The 14 November follow-up removes programme-scoped availability confirmations from the general Route search. They
+remain available when planning from the relevant Door; general Route candidates now need a profile-wide milestone.
+The bundled Linh test covers both paths and still reports zero fully passing sourced doors. This is a product-story
+improvement, not evidence that the catalogue can infer the remaining programme-specific conditions.
+
 ## Mandatory gates
 
 | Gate | Status | Current evidence / next action |
