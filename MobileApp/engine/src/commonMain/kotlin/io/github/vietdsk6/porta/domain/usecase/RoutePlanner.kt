@@ -13,6 +13,7 @@ import io.github.vietdsk6.porta.domain.model.RouteExplanation
 import io.github.vietdsk6.porta.domain.model.RouteMetrics
 import io.github.vietdsk6.porta.domain.model.RouteStep
 import io.github.vietdsk6.porta.domain.model.RuleReceipt
+import io.github.vietdsk6.porta.domain.model.RuleRef
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.ScenarioOverrides
 import kotlinx.datetime.LocalDate
@@ -62,6 +63,7 @@ class RoutePlanner(
             firstDoorDay = null,
             openedIds = emptySet(),
             improvedIds = emptySet(),
+            improvedChecks = emptySet(),
             lostIds = emptySet(),
         )
         val searchOrder = compareByDescending<SearchNode> {
@@ -74,6 +76,7 @@ class RoutePlanner(
                 if (constraints.prioritizeSaved) it.openedIds.count(savedOpportunityIds::contains) else 0
             }
             .thenByDescending { it.openedIds.size }
+            .thenByDescending { it.improvedChecks.size }
             .thenByDescending { it.improvedIds.size }
             .thenBy { it.firstDoorDay ?: Int.MAX_VALUE }
             .thenBy { it.elapsedDays(today) }
@@ -123,6 +126,7 @@ class RoutePlanner(
                 RouteOutcome(
                     openedIds = node.openedIds,
                     improvedIds = node.improvedIds,
+                    improvedChecks = node.improvedChecks,
                     lostIds = node.lostIds,
                     firstDoorDay = node.firstDoorDay,
                     totalDays = node.elapsedDays(today),
@@ -177,13 +181,13 @@ class RoutePlanner(
                 after.getValue(opportunityId).state == EligibilityState.OPEN &&
                 opportunityId !in baselineOpen
         }.sorted()
-        val improved = after.keys.filter { opportunityId ->
+        val passingChecks = after.keys.associateWith { opportunityId ->
             val before = beforeAtEnd.getValue(opportunityId)
             val current = after.getValue(opportunityId)
-            current.state != EligibilityState.CLOSED &&
-                current.state != EligibilityState.NOT_ACTIONABLE &&
-                opportunityId !in opened &&
-                current.rules.hasPassingChangeFrom(before.rules)
+            if (current.state in UNREACHABLE_STATES) emptySet() else current.rules.newlyPassingRuleIdsFrom(before.rules)
+        }
+        val improved = passingChecks.keys.filter { opportunityId ->
+            opportunityId !in opened && passingChecks.getValue(opportunityId).isNotEmpty()
         }.sorted()
         val lost = after.keys.filter { opportunityId ->
             node.receipts.getValue(opportunityId).state !in UNREACHABLE_STATES &&
@@ -199,6 +203,9 @@ class RoutePlanner(
                 after.getValue(opportunityId).state in UNREACHABLE_STATES
         } + node.lostIds
         val allImproved = (node.improvedIds + improved) - allOpened - allLost
+        val allImprovedChecks = node.improvedChecks + passingChecks.flatMap { (opportunityId, ruleIds) ->
+            ruleIds.map { ruleId -> RuleRef(opportunityId, ruleId) }
+        }
         val firstDoorDay = node.firstDoorDay ?: opened.firstOrNull()?.let {
             (endDate.toEpochDays() - today.toEpochDays()).toInt()
         }
@@ -221,6 +228,7 @@ class RoutePlanner(
             firstDoorDay = firstDoorDay,
             openedIds = allOpened,
             improvedIds = allImproved,
+            improvedChecks = allImprovedChecks.toSet(),
             lostIds = allLost,
         )
     }
@@ -241,6 +249,7 @@ class RoutePlanner(
         // Set inclusion preserves which saved doors open, not just how many.
         val noWorse = a.openedIds.containsAll(b.openedIds) &&
             a.improvedIds.containsAll(b.improvedIds) &&
+            a.improvedChecks.containsAll(b.improvedChecks) &&
             b.lostIds.containsAll(a.lostIds) &&
             (a.firstDoorDay ?: Int.MAX_VALUE) <= (b.firstDoorDay ?: Int.MAX_VALUE) &&
             a.elapsedDays(today) <= b.elapsedDays(today) &&
@@ -248,6 +257,7 @@ class RoutePlanner(
             a.peakEffort.rank <= b.peakEffort.rank
         val strictlyBetter = a.openedIds != b.openedIds ||
             a.improvedIds != b.improvedIds ||
+            a.improvedChecks != b.improvedChecks ||
             a.lostIds != b.lostIds ||
             a.firstDoorDay != b.firstDoorDay ||
             a.elapsedDays(today) != b.elapsedDays(today) ||
@@ -267,6 +277,7 @@ class RoutePlanner(
         val firstDoorDay: Int?,
         val openedIds: Set<String>,
         val improvedIds: Set<String>,
+        val improvedChecks: Set<RuleRef>,
         val lostIds: Set<String>,
     ) {
         fun elapsedDays(today: LocalDate): Int = (cursorDate.toEpochDays() - today.toEpochDays()).toInt()
@@ -278,6 +289,7 @@ class RoutePlanner(
             usedTemplateIds = usedTemplateIds,
             openedIds = openedIds,
             improvedIds = improvedIds,
+            improvedChecks = improvedChecks,
             lostIds = lostIds,
         )
     }
@@ -287,12 +299,14 @@ class RoutePlanner(
         val usedTemplateIds: Set<String>,
         val openedIds: Set<String>,
         val improvedIds: Set<String>,
+        val improvedChecks: Set<RuleRef>,
         val lostIds: Set<String>,
     )
 
     private data class RouteOutcome(
         val openedIds: Set<String>,
         val improvedIds: Set<String>,
+        val improvedChecks: Set<RuleRef>,
         val lostIds: Set<String>,
         val firstDoorDay: Int?,
         val totalDays: Int,
@@ -319,9 +333,9 @@ private fun Map<String, EligibilityReceipt>.openIds(): Set<String> = values
     .filter { receipt -> receipt.state == EligibilityState.OPEN }
     .mapTo(mutableSetOf(), EligibilityReceipt::opportunityId)
 
-private fun List<RuleReceipt>.hasPassingChangeFrom(before: List<RuleReceipt>): Boolean {
+private fun List<RuleReceipt>.newlyPassingRuleIdsFrom(before: List<RuleReceipt>): Set<String> {
     val beforeById = before.associateBy(RuleReceipt::ruleId)
-    return any { receipt ->
+    return filterTo(mutableListOf()) { receipt ->
         receipt.result == RuleResult.PASS && beforeById[receipt.ruleId]?.result != RuleResult.PASS
-    }
+    }.mapTo(mutableSetOf(), RuleReceipt::ruleId)
 }

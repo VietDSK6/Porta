@@ -15,7 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RoutePlannerBundledPackTest {
-    private val today = LocalDate(2026, 11, 11)
+    private val today = LocalDate(2026, 11, 14)
     private val planner = RoutePlanner(EligibilityEvaluator(), ScenarioEvaluator(EligibilityEvaluator()))
 
     @Test
@@ -28,7 +28,7 @@ class RoutePlannerBundledPackTest {
             profile = PortaSampleData.judgeDemoProfile,
             opportunities = opportunities,
             savedOpportunityIds = PortaSampleData.judgeDemoSavedOpportunityIds,
-            constraints = RouteConstraints(180, CostBand.UNKNOWN, EffortLevel.VERY_HIGH),
+            constraints = RouteConstraints(240, CostBand.UNKNOWN, EffortLevel.VERY_HIGH),
             today = today,
         )
 
@@ -39,6 +39,8 @@ class RoutePlannerBundledPackTest {
         assertTrue(routes.all { route -> route.steps.all { step -> step.template.target is ActionTarget.ProfileFactTarget } })
         assertTrue(routes.any { route -> route.steps.any { step -> step.template.target.factKey == FactKey.DEGREE_COMPLETED } })
         assertTrue(routes.any { route -> route.steps.any { step -> step.template.target.factKey == FactKey.IELTS_SCORE } })
+        assertTrue(routes.first().steps.size >= 2)
+        assertTrue(routes.first().steps.map { step -> step.template.target.factKey }.containsAll(listOf(FactKey.DEGREE_COMPLETED, FactKey.IELTS_SCORE)))
         assertTrue(routes.first().steps.any { step -> "kotlin-student-coding-competition-2026" in step.doorsLost })
     }
 

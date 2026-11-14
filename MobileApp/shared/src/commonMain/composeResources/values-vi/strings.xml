@@ -246,6 +246,7 @@
     <string name="route_would_open">Có thể mở</string>
 
     <string name="route_checks_improved">Điều kiện cải thiện</string>
+    <string name="route_check_change">%1$s · điều kiện %2$s</string>
 
     <string name="route_may_close">Có thể đóng trước khi bước này kết thúc</string>
 

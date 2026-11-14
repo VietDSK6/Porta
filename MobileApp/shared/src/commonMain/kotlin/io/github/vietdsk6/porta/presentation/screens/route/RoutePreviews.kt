@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.presentation.locale.LocalAppLocale
 
 @Preview(name = "Route compact", widthDp = 390, heightDp = 840)
@@ -33,21 +34,35 @@ private fun RouteZeroOpenPreview() {
                             RouteStepUiState(
                                 id = "degree",
                                 title = "Complete the required first degree",
-                                startDateLabel = "2026-11-11",
-                                endDateLabel = "2027-05-10",
+                                startDateLabel = "2026-11-14",
+                                endDateLabel = "2027-05-13",
                                 durationDays = 180,
                                 doorsOpened = emptyList(),
                                 doorsImproved = listOf("Erasmus Mundus Joint Masters", "DAAD EPOS", "Schwarzman Scholars"),
                                 doorsLost = listOf("Kotlin Student Coding Competition"),
                                 effort = EffortLevel.HIGH,
                                 cost = CostBand.MEDIUM,
+                                targetFactKey = FactKey.DEGREE_COMPLETED,
+                            ),
+                            RouteStepUiState(
+                                id = "ielts",
+                                title = "Raise IELTS to 7.0 band",
+                                startDateLabel = "2027-05-13",
+                                endDateLabel = "2027-06-27",
+                                durationDays = 45,
+                                doorsOpened = emptyList(),
+                                doorsImproved = listOf("Schwarzman Scholars"),
+                                doorsLost = emptyList(),
+                                effort = EffortLevel.MEDIUM,
+                                cost = CostBand.LOW,
+                                targetFactKey = FactKey.IELTS_SCORE,
                             ),
                         ),
                         openedTotal = 0,
                         openedSaved = 0,
                         daysToFirstDoor = null,
-                        totalDays = 180,
-                        costRankSum = CostBand.MEDIUM.rank,
+                        totalDays = 225,
+                        costRankSum = CostBand.MEDIUM.rank + CostBand.LOW.rank,
                         reason = RouteReason(RouteReasonKind.IMPROVES, 3),
                     ),
                 ),

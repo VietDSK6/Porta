@@ -2,6 +2,7 @@ package io.github.vietdsk6.porta.presentation.screens.route
 
 import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
+import io.github.vietdsk6.porta.domain.model.FactKey
 
 data class RouteUiState(
     val isLoading: Boolean = true,
@@ -12,7 +13,7 @@ data class RouteUiState(
     val catalogUnavailable: Boolean = false,
     val focusedOpportunityId: String? = null,
     val focusedOpportunityTitle: String? = null,
-    val horizonDays: Int = 180,
+    val horizonDays: Int = 240,
     val maxCostPerStep: CostBand = CostBand.UNKNOWN,
     val isRecalculating: Boolean = false,
     val maxEffort: EffortLevel = EffortLevel.VERY_HIGH,
@@ -64,6 +65,7 @@ data class RouteStepUiState(
     val doorsLost: List<String>,
     val effort: EffortLevel,
     val cost: CostBand,
+    val targetFactKey: FactKey? = null,
 )
 
 sealed interface RouteUiEvent {

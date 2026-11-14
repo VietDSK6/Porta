@@ -113,6 +113,36 @@ class RoutePlannerTest {
     }
 
     @Test
+    fun `two different passing checks in one door remain a meaningful two-step route`() {
+        val door = opportunity(
+            id = "two-checks",
+            deadlineDay = 40,
+            rule = RuleNode.All(
+                id = "two-checks-root",
+                children = listOf(
+                    rule("english", FactKey.IELTS_SCORE, FactValue.NumberValue(7.0, "band"), ielts.id),
+                    rule("project", FactKey.COMMUNITY_PROJECT, FactValue.BooleanValue(true), community.id),
+                    RuleNode.ManualCheck("provider-review", "The provider must review the application."),
+                ),
+            ),
+            actions = listOf(ielts, community),
+        )
+
+        val routes = planner.plan(
+            profile = profile,
+            opportunities = listOf(door),
+            savedOpportunityIds = emptySet(),
+            constraints = RouteConstraints(30, CostBand.FREE, EffortLevel.HIGH),
+            today = today,
+        )
+
+        assertEquals(listOf("a-ielts", "b-community"), routes.first().steps.map { it.template.id })
+        assertEquals(0, routes.first().metrics.openedTotal)
+        assertEquals(listOf("two-checks"), routes.first().steps[0].doorsImproved)
+        assertEquals(listOf("two-checks"), routes.first().steps[1].doorsImproved)
+    }
+
+    @Test
     fun `routes obey estimated cost per step horizon effort and step caps`() {
         val costlyIelts = ielts.copy(costBand = CostBand.LOW)
         val costlyCommunity = community.copy(costBand = CostBand.LOW, effort = EffortLevel.HIGH)

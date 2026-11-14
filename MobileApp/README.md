@@ -52,9 +52,9 @@ diff and import approval. AI never supplies an eligibility conclusion.
 
 1. In the two-step onboarding, try the clearly fictional IELTS 6.5 → 7.0 threshold lesson, then tap **Explore Linh's
    sourced route**. The lesson demonstrates four changed checks in a synthetic five-opportunity sample; it is separate
-   from Linh's editable fictional CS profile and the sourced 15-door catalog. Linh's current 180-day route improves
-   checks but opens **zero** doors under the encoded rules and deadlines. You can also browse without saving a profile
-   or enter your own local facts.
+   from Linh's editable fictional CS profile and the sourced 15-door catalog. Linh's 240-day planning horizon can
+   sequence degree and IELTS milestones, improving distinct published checks. It still opens **zero** doors under the
+   encoded rules and deadlines. You can also browse without saving a profile or enter your own local facts.
 2. Open **Doors** to see the current source-linked conclusions. Open one Door to inspect its applicable published
    checks, then use **Explore routes for this opportunity** to see whether a planned milestone could improve it.
 3. Open **Route** to compare ordered milestone paths. Compact layouts show a timeline; wide Desktop layouts show a

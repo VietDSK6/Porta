@@ -29,6 +29,9 @@ The 14 November follow-up removes programme-scoped availability confirmations fr
 remain available when planning from the relevant Door; general Route candidates now need a profile-wide milestone.
 The bundled Linh test covers both paths and still reports zero fully passing sourced doors. This is a product-story
 improvement, not evidence that the catalogue can infer the remaining programme-specific conditions.
+The Route's 240-day default now makes the degree and IELTS sequence feasible. The planner retains distinct passing
+rule changes within one programme when comparing paths, so a second real check is not discarded just because that
+programme was already counted as improved. The 180-day Action Frontier demo setting is independent.
 
 ## Mandatory gates
 
@@ -184,6 +187,9 @@ Required evidence:
   and median/p95 reporting. The P5 code-commit `dc4e701` Route p95 is **2.563 ms** on macOS aarch64/JDK 21; all four
   measured p95 values are below the PRD's 100-ms target on that host. See `KMP_EVIDENCE.md` for the fixture and limits.
 - [ ] Repeat the characterization from the public submission commit if later Kotlin changes alter the workload or engine.
+- [x] The 14 November working-tree characterization after the check-level Route comparison reports Route p95
+  **3.896 ms** for the same 100-opportunity fixture on macOS aarch64/JDK 21. This is local evidence; repeat from the
+  final public submission commit for the frozen result.
 - [x] `KMP_EVIDENCE.md` documents a reproducible contest-period measurement at `dc4e701`: 21,991 NCLOC across 144
   explicitly allowlisted shared Porta production files plus 673 NCLOC across 13 platform and CLI files; tests and Kotlin data are
   reported separately, while generated/vendor/unchanged starter code, package-only renames and mixed-provenance

@@ -1,6 +1,6 @@
 # Porta contest screencast — 3:30 target
 
-Record this only after the Android APK and packaged JVM Desktop app have been checked from the frozen commit. Use Linh's fictional profile and the sourced 15-door bundled catalog. Her current 180-day route improves checks but opens **zero** doors under the encoded rules and deadlines. Keep the pointer visible on Desktop and enlarge small receipts in the edit. Hide notifications, personal files and API keys. The video covers Android, Desktop and the JVM CLI; no Web build or footage is planned.
+Record this only after the Android APK and packaged JVM Desktop app have been checked from the frozen commit. Use Linh's fictional profile and the sourced 15-door bundled catalog. Her 240-day Route horizon can sequence two transferable milestones while still opening **zero** doors under the encoded rules and deadlines. Keep the pointer visible on Desktop and enlarge small receipts in the edit. Hide notifications, personal files and API keys. The video covers Android, Desktop and the JVM CLI; no Web build or footage is planned.
 
 ## Recording setup
 

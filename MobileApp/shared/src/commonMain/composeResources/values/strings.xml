@@ -257,6 +257,7 @@
     <string name="route_would_open">Would open</string>
 
     <string name="route_checks_improved">Checks improved</string>
+    <string name="route_check_change">%1$s · %2$s check</string>
 
     <string name="route_may_close">May close before this step ends</string>
 

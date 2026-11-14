@@ -45,7 +45,7 @@ class RouteViewModel(
 ) : ViewModel() {
     private val constraints = MutableStateFlow(
         RouteConstraints(
-            horizonDays = 180,
+            horizonDays = 240,
             maxCostPerStep = CostBand.UNKNOWN,
             maxEffort = EffortLevel.VERY_HIGH,
         ),
@@ -205,6 +205,7 @@ class RouteViewModel(
                 doorsLost = step.doorsLost.map { labels[it] ?: it },
                 effort = step.template.effort,
                 cost = step.template.costBand,
+                targetFactKey = step.template.target.factKey,
             )
         },
         openedTotal = metrics.openedTotal,

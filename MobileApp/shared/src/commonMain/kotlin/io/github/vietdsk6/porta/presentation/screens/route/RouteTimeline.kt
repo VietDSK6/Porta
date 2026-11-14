@@ -32,11 +32,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vietdsk6.porta.designsystem.theme.AppTheme
 import io.github.vietdsk6.porta.generated.resources.Res
+import io.github.vietdsk6.porta.generated.resources.route_check_change
 import io.github.vietdsk6.porta.generated.resources.route_checks_improved
 import io.github.vietdsk6.porta.generated.resources.route_may_close
 import io.github.vietdsk6.porta.generated.resources.route_step_dates
 import io.github.vietdsk6.porta.generated.resources.route_step_effort_cost
 import io.github.vietdsk6.porta.generated.resources.route_would_open
+import io.github.vietdsk6.porta.presentation.locale.toText
 import io.github.vietdsk6.porta.presentation.theme.PortaColors
 import org.jetbrains.compose.resources.stringResource
 import kotlin.coroutines.coroutineContext
@@ -126,7 +128,13 @@ internal fun StepDoors(step: RouteStepUiState) {
     val onlyImproved = step.doorsImproved.filterNot(step.doorsOpened::contains)
     if (onlyImproved.isNotEmpty()) {
         Text(stringResource(Res.string.route_checks_improved), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.text.secondary)
-        onlyImproved.forEach { door -> Text("• $door", style = MaterialTheme.typography.bodySmall) }
+        onlyImproved.forEach { door ->
+            Text(
+                text = step.targetFactKey?.let { key -> "• " + stringResource(Res.string.route_check_change, door, key.toText()) }
+                    ?: "• $door",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
     if (step.doorsLost.isNotEmpty()) {
         Text(stringResource(Res.string.route_may_close), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.status.error)
