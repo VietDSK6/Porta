@@ -55,6 +55,43 @@ network connection for its core flows. Opening an official source intentionally 
 7. Complete the plan and explicitly confirm an actual profile update; completion alone never changes eligibility.
 8. On Desktop, inspect the wide comparison workspace and opportunity-pack diagnostics.
 
+## Screenshots
+
+Captures of the running apps (not mockups), taken on 18 November 2026 from commit `9de011b`. They use the clearly
+labelled **fictional** demo profile "Linh" and the bundled 15-record sourced pack.
+
+### Android
+
+Debug build on a Pixel 7 emulator (Android 16).
+
+| Onboarding: synthetic IELTS threshold | Route: doors reaching official review | Doors: source-linked conclusions |
+|---|---|---|
+| <img src="MobileApp/docs/media/android/A1_onboarding_threshold.png" width="260" alt="Onboarding step two: a synthetic IELTS 6.5 to 7.0 toggle passes four fictional example checks"> | <img src="MobileApp/docs/media/android/A2_route.png" width="260" alt="Route for the fictional Linh profile: two doors could reach official review across two milestones and 225 days"> | <img src="MobileApp/docs/media/android/A3_doors.png" width="260" alt="Doors list for the demo profile: 15 sourced opportunities with search, filters and needs-information cards"> |
+
+| Door detail: published checks | Next moves: one explainable step | What-if: simulation, profile unchanged |
+|---|---|---|
+| <img src="MobileApp/docs/media/android/A4_door_detail.png" width="260" alt="Erasmus Mundus detail: deadline TBA, degree completion check needs action, explore routes button"> | <img src="MobileApp/docs/media/android/A5_next_moves.png" width="260" alt="Next moves suggests completing the first degree, with time, effort, cost and deadline confirmations"> | <img src="MobileApp/docs/media/android/A6_what_if.png" width="260" alt="What-if preview labelled as a simulation that leaves the saved profile unchanged, with per-door outcomes"> |
+
+| Dark theme | Vietnamese UI |
+|---|---|
+| <img src="MobileApp/docs/media/android/A7_route_dark.png" width="260" alt="Route screen in dark theme"> | <img src="MobileApp/docs/media/android/A8_route_vi.png" width="260" alt="Route screen with the in-app language set to Vietnamese; milestone titles stay in the pack's source wording"> |
+
+### JVM Desktop
+
+Captured from the packaged macOS app (`createDistributable`, 1200×800 window, system dark theme) with the same
+fictional profile, using an isolated local data directory.
+
+| Route: metro map of the same two milestones | Next moves: Compare Lab, two independent scenarios |
+|---|---|
+| <img src="MobileApp/docs/media/desktop/D1_route_metro.png" width="420" alt="Desktop Route with navigation rail and a metro map: two stations, each listing doors ready for official review"> | <img src="MobileApp/docs/media/desktop/D2_compare_lab.png" width="420" alt="Desktop Next moves with Compare Lab: degree and IELTS milestones selected, compared against the unchanged saved profile"> |
+
+| Pack inspector: read-only, approval-gated catalog | Opportunity Studio: AI draft grounded by a verbatim quote |
+|---|---|
+| <img src="MobileApp/docs/media/desktop/D3_pack_inspector.png" width="420" alt="Pack inspector showing the active curated pack: version 5, schema 2, 15 records, source review dates"> | <img src="MobileApp/docs/media/desktop/D4_studio.png" width="420" alt="Opportunity Studio offline demo: a drafted age rule marked grounded because its quote matches the source text, with Accept, Edit and Reject"> |
+
+"Ready for official review" means every encoded check on the applicable path would pass. The provider's manual
+checks and deadlines still need confirmation, and Porta never marks them as passed. No door opens in this demo.
+
 ## Repository layout
 
 ```text
