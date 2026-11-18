@@ -1,8 +1,8 @@
 # Porta — Kotlin Student Coding Competition scorecard
 
-> Last updated: 14 November 2026
+> Last updated: 18 November 2026
 > Deadline: 7 December 2026, 23:59 CET
-> Live rules rechecked: 14 November 2026
+> Live rules rechecked: 14 November 2026 (not rechecked during the 18 November audit)
 > Official sources: [contest rules](https://kotlinconf.com/contest-rules/) ·
 > [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html)
 > Internal estimates in this file are not official judging results.
@@ -14,6 +14,33 @@
 - `TODO` — required evidence does not exist yet.
 - `USER CONFIRM` — personal/legal fact that an agent must not infer.
 - `RISK` — unresolved issue can affect eligibility or judge reproduction.
+
+## 18 November milestone review
+
+Overall: **BLOCKED** until the public repository shows the submission build. The product and local evidence are
+strong.
+
+- **Public repository is stale.** A read-only `git ls-remote porta` on 18 November shows public `main` and `HEAD` at
+  `e41172a` (10 November). The 14 November product work (`4ec6513`, `77e7add`, `44c7a22`, brand icons `5f4f0ba`)
+  exists only on the pushed `codex/porta-final-improvements` branch. Local `fba2f1a` (agent-guide rewrite, no Kotlin
+  change) is not pushed yet. A judge opening the repository link today would see the 10 November app.
+- **Scoped gates passed at local `fba2f1a`.** The run covered `spotlessCheck`, `:engine:jvmTest` (49),
+  `:shared:jvmTest` (297), `:shared:testAndroidHostTest` (84), `:cli:test` (3) and `:androidApp:assembleDebug`, with
+  zero failures, errors or skips. Most tasks were Gradle-cached because no Kotlin changed since 14 November. The
+  Desktop app, a physical Android device and iOS were not exercised in this audit.
+- **Essay** body is exactly 300 words (`wc -w SUBMISSION/ESSAY.md`). The entrant fact review is still pending.
+- **Convention signals:**
+  - Porta `commonMain` contains zero `!!` and the engine has KDoc coverage.
+  - The largest non-data files run 500–640 lines: `OpportunityDetailScreen`, `ScenarioPreviewScreen`,
+    `ActualProfileUpdateViewModel`, `StudentProfileViewModel`, `OpportunityPackValidator` and
+    `OpportunityStudioViewModel`.
+  - The last full manual audit (2 November) predates the Route, Studio and P5 changes, so it needs repeating on the
+    frozen commit.
+- **Novelty risk remains the first-use story.** The sourced Linh catalog shows improved checks but zero fully
+  passing doors. The final competitor check and dated novelty statement are still open.
+- **Agent estimate (not an official score):** Novelty 28–33/40, KMP 31–35/40, Conventions 16–18/20, total about
+  75–86/100. This is a planning signal only. The category headings below stay `TBD` per this file's rule against
+  self-awarding.
 
 ## 14 November milestone review
 
@@ -43,7 +70,7 @@ programme was already counted as improved. The 180-day Action Frontier demo sett
 | Substantial application, not template/Hello World/library | PASS | Porta-owned engine, Room repositories, Compose flows, pack validation/import and 15-record catalog are implemented; keep separating these changes from Koko template code in README evidence. |
 | Original work or sufficient rights | IN PROGRESS | Koko is MIT-licensed and officially intended as a contest starting point; the README preserves attribution and `KMP_EVIDENCE.md` excludes unchanged scaffold from Porta claims. `OPPORTUNITY_PACK_SOURCES.md` records independent interpretations and official URLs; still audit icons, media and generated assets before publication. |
 | Cross-platform Kotlin project | PASS | Product logic, persistence and most UI are shared Kotlin; Android debug builds and the JVM Desktop package builds. An earlier packaged Desktop build launched past startup. Android + JVM Desktop are the declared contest targets; Web build work is deferred. |
-| GitHub repository submitted | PASS | Public repository: `https://github.com/VietDSK6/Porta`. Commit `5a17882` was cloned and read without a credential helper, then passed the documented automated paths. |
+| GitHub repository submitted | RISK | Public repository: `https://github.com/VietDSK6/Porta`. Commit `5a17882` was cloned and read without a credential helper, then passed the documented automated paths. On 18 November public `main` was still `e41172a` (10 November), behind the product branch. Update the public default branch to the frozen submission commit and repeat the fresh-clone check. |
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
 | Comprehensive README | PASS | The public root README covers product story, demo path, architecture, declared targets, limitations, quality gates, trust boundaries, exact baseline/first-product commits, and a table separating inherited Koko infrastructure from Porta work. |
 | Launch instructions for every declared target | PASS | Android and JVM Desktop have exact commands. A credential-free public clone builds the APK and DMG; the rebuilt Desktop package was observed launching past startup. Android device interaction remains a disclosed manual QA item, not an instruction gap. |
@@ -209,6 +236,9 @@ Required evidence:
   82 Android-host core and 3 CLI tests with zero failures. Android APK and macOS Desktop DMG assembled. A separate
   Roborazzi recording passed 71 preview cases; the compact Route, Door detail and saved-route feedback snapshots
   were visually reviewed. Re-run from the public submission commit before final media.
+- [x] The 18 November local `fba2f1a` scoped gates passed `spotlessCheck` and `:androidApp:assembleDebug`, plus
+  49 engine JVM, 297 shared JVM, 84 Android-host and 3 CLI tests with zero failures (mostly cached; no Kotlin change
+  since 14 November). The Desktop package and Roborazzi were not re-run.
 
 Do not assign a numeric estimate from starter-kit scaffolding.
 
@@ -250,9 +280,10 @@ A green formatter alone must never be recorded as `20/20`.
 
 ## Next three contest actions
 
-1. Confirm the CV-backed essay's current enrollment and employment facts, preserve the exact 300-word count after any
-   edits, and confirm the personal eligibility/solo-entry gates.
-2. Have a second person re-read all 15 official sources, refresh every TBA deadline, and capture rights-safe Android
-   and Desktop media from the frozen build.
-3. Complete Android-device plus keyboard/screen-reader QA, record the video URL, approve the final essay wording, and
-   submit the verified public repository before the deadline.
+1. Update the public default branch to the frozen submission commit. Verify it from a fresh public clone, then
+   repeat the KMP evidence and performance characterization from that commit.
+2. Strengthen the first-use story without fabricating results, and complete the dated competitor check and novelty
+   statement. Have a second person re-read all 15 official sources and refresh every TBA deadline.
+3. Freeze the build, repeat the Kotlin convention audit, and complete Android-device plus keyboard/screen-reader QA.
+   Then capture rights-safe Android/Desktop media and the screencast. Before submitting, confirm the essay facts and
+   the personal eligibility/solo-entry gates.
