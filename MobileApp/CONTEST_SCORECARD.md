@@ -91,7 +91,7 @@ programme was already counted as improved. The 180-day Action Frontier demo sett
 | Comprehensive README | PASS | The public root README covers product story, demo path, architecture, declared targets, limitations, quality gates, trust boundaries, exact baseline/first-product commits, and a table separating inherited Koko infrastructure from Porta work. |
 | Launch instructions for every declared target | PASS | Android and JVM Desktop have exact commands. A credential-free public clone builds the APK and DMG; the rebuilt Desktop package was observed launching past startup. Android device interaction remains a disclosed manual QA item, not an instruction gap. |
 | 300-word essay | IN PROGRESS | `SUBMISSION/ESSAY.md` has an exactly 300-word body grounded in the entrant's August 2026 CV and the current project. Entrant must verify that enrollment and employment remain accurate before submission. |
-| Submission form before deadline | TODO | Save the final form link and submission receipt outside the repository. |
+| Submission form before deadline | PASS | Entrant reported submitting the official form on 18 November 2026, about 17:30 CET, well before the 7 December 23:59 CET deadline. One entry per person: do not submit again. The receipt is kept privately. |
 | Truthful and rights-safe submission/media | IN PROGRESS | Source every factual claim and opportunity rule; obtain permission for any identifiable third party in media. |
 
 ## Target declaration decision
@@ -292,7 +292,7 @@ A green formatter alone must never be recorded as `20/20`.
 | Essay | DRAFT READY; ENTRANT REVIEW | Body is exactly 300 words with CV-backed education, work and Myosotis details; entrant confirms current facts and final wording. |
 | Screencast | PUBLISHED | https://youtu.be/3iCOvr360ZY (3:08, unlisted, verified playable on 18 November). Side-by-side Android emulator and packaged macOS recordings at `8659ad4`, English captions, synthetic narration (Kokoro, Apache-2.0) disclosed on the closing card and in the README. Re-record only if the UI changes before submission. |
 | Screenshots/GIFs | DONE | 8 Android and 4 Desktop captures of the running apps in the root README (`MobileApp/docs/media/`); asset register in `SUBMISSION/MEDIA_CHECKLIST.md`. |
-| Submission form | TODO | Final URLs tested without private access. |
+| Submission form | SUBMITTED | 18 November 2026. The repository, README screenshots and the demo video link were verified publicly accessible the same evening. |
 
 ## Review cadence
 

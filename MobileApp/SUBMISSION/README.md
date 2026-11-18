@@ -26,7 +26,7 @@ entrant's request; Web is not a declared submission target.
 | Screencast | PUBLISHED | https://youtu.be/3iCOvr360ZY (3:08, unlisted). Real Android emulator and packaged macOS recordings at `8659ad4`, English captions, synthetic narration (Kokoro, Apache-2.0); script in `VIDEO_NARRATION.md`. |
 | Final media | CAPTURE REQUIRED | Capture real Android and Desktop output using `MEDIA_CHECKLIST.md`; do not substitute design mockups. |
 | Source audit | IN PROGRESS | A second reader must check all 15 records and all TBA/current-cycle dates. |
-| Submission form | TODO | Submit before 7 December 2026, 23:59 CET and save the receipt outside the repository. |
+| Submission form | SUBMITTED | Entrant reported submitting the official form on 18 November 2026, about 17:30 CET (23:30 ICT), with the repository link, the 300-word essay and the screencast link. The receipt is kept privately, outside the repository. |
 
 ## Freeze procedure
 
@@ -51,6 +51,6 @@ Release/tag:
 Android verification device/API:
 Desktop verification OS/version:
 Screencast URL: https://youtu.be/3iCOvr360ZY
-Submission timestamp (CET):
-Receipt location:
+Submission timestamp (CET): 2026-11-18, about 17:30 (entrant-reported)
+Receipt location: kept privately by the entrant, outside the repository
 ```
