@@ -203,6 +203,7 @@ class RouteViewModel(
                 doorsOpened = step.doorsOpened.map { labels[it] ?: it },
                 doorsImproved = step.doorsImproved.map { labels[it] ?: it },
                 doorsLost = step.doorsLost.map { labels[it] ?: it },
+                doorsReadyForReview = step.doorsReadyForReview.map { labels[it] ?: it },
                 effort = step.template.effort,
                 cost = step.template.costBand,
                 targetFactKey = step.template.target.factKey,
@@ -210,17 +211,21 @@ class RouteViewModel(
         },
         openedTotal = metrics.openedTotal,
         openedSaved = metrics.openedSaved,
+        readyForReviewTotal = metrics.readyForReviewTotal,
+        readyForReviewSaved = metrics.readyForReviewSaved,
         daysToFirstDoor = metrics.daysToFirstDoor,
         totalDays = metrics.totalDays,
         costRankSum = metrics.costRankSum,
         reason = when (val reason = explanation) {
             is RouteExplanation.OpensSavedDoors -> RouteReason(RouteReasonKind.OPENS_SAVED, reason.count)
             is RouteExplanation.OpensDoors -> RouteReason(RouteReasonKind.OPENS, reason.count)
+            is RouteExplanation.ReadiesDoorsForReview -> RouteReason(RouteReasonKind.READY_FOR_REVIEW, reason.count)
             is RouteExplanation.ImprovesDoors -> RouteReason(RouteReasonKind.IMPROVES, reason.count)
         },
         focusedDoorOutcome = when {
             focusedOpportunityId == null -> null
             steps.any { focusedOpportunityId in it.doorsOpened } -> FocusedDoorOutcome.ASSESSED_CHECKS_PASS
+            steps.any { focusedOpportunityId in it.doorsReadyForReview } -> FocusedDoorOutcome.READY_FOR_REVIEW
             steps.any { focusedOpportunityId in it.doorsImproved } -> FocusedDoorOutcome.CHECKS_IMPROVE
             else -> null
         },

@@ -165,12 +165,16 @@ private class RouteCommand :
         routes.forEachIndexed { index, route ->
             echo(
                 "Route ${index + 1}: ${route.metrics.openedTotal} doors would open; " +
+                    "${route.metrics.readyForReviewTotal} would reach official review; " +
                     "${route.metrics.totalDays} days; cost rank ${route.metrics.costRankSum}; " +
                     "peak effort ${route.metrics.peakEffort.name.lowercase()}",
             )
             route.steps.forEachIndexed { stepIndex, step ->
                 echo("  ${stepIndex + 1}. ${step.template.title} · ${step.startDate} → ${step.endDate}")
                 if (step.doorsOpened.isNotEmpty()) echo("     Would open: ${step.doorsOpened.joinToString()}")
+                if (step.doorsReadyForReview.isNotEmpty()) {
+                    echo("     Ready for official review: ${step.doorsReadyForReview.joinToString()}")
+                }
                 if (step.doorsImproved.isNotEmpty()) echo("     Checks improved: ${step.doorsImproved.joinToString()}")
                 if (step.doorsLost.isNotEmpty()) echo("     Windows lost: ${step.doorsLost.joinToString()}")
             }
@@ -209,6 +213,8 @@ private fun List<PlannedRoute>.toJson(): JsonArray = buildJsonArray {
                 putJsonObject("metrics") {
                     put("openedTotal", route.metrics.openedTotal)
                     put("openedSaved", route.metrics.openedSaved)
+                    put("readyForReviewTotal", route.metrics.readyForReviewTotal)
+                    put("readyForReviewSaved", route.metrics.readyForReviewSaved)
                     route.metrics.daysToFirstDoor?.let { put("daysToFirstDoor", it) }
                     put("totalDays", route.metrics.totalDays)
                     put("costRankSum", route.metrics.costRankSum)
@@ -223,6 +229,9 @@ private fun List<PlannedRoute>.toJson(): JsonArray = buildJsonArray {
                                 put("startDate", step.startDate.toString())
                                 put("endDate", step.endDate.toString())
                                 putJsonArray("doorsOpened") { step.doorsOpened.forEach { add(JsonPrimitive(it)) } }
+                                putJsonArray("doorsReadyForReview") {
+                                    step.doorsReadyForReview.forEach { add(JsonPrimitive(it)) }
+                                }
                                 putJsonArray("doorsImproved") { step.doorsImproved.forEach { add(JsonPrimitive(it)) } }
                                 putJsonArray("doorsLost") { step.doorsLost.forEach { add(JsonPrimitive(it)) } }
                             },

@@ -11,7 +11,13 @@ data class RouteConstraints(
     val prioritizeSaved: Boolean = true,
 )
 
-/** The checks that change by the end of one milestone; no result predicts selection by a provider. */
+/**
+ * The checks that change by the end of one milestone; no result predicts selection by a provider.
+ *
+ * [doorsOpened], [doorsReadyForReview] and [doorsImproved] are disjoint. A door is ready for review when every
+ * encoded check passes and only manual checks or an unconfirmed deadline remain
+ * (see [EligibilityReceipt.readyForOfficialReview]).
+ */
 data class RouteStep(
     val template: ActionTemplate,
     val startDate: LocalDate,
@@ -19,9 +25,13 @@ data class RouteStep(
     val doorsOpened: List<String>,
     val doorsImproved: List<String>,
     val doorsLost: List<String>,
+    val doorsReadyForReview: List<String> = emptyList(),
 )
 
-/** Doors count when they first open before their deadline; later expiry remains visible in [RouteStep.doorsLost]. */
+/**
+ * Doors count when they first open, or first become ready for official review, before their deadline. Later
+ * expiry remains visible in [RouteStep.doorsLost].
+ */
 data class RouteMetrics(
     val openedTotal: Int,
     val openedSaved: Int,
@@ -29,6 +39,8 @@ data class RouteMetrics(
     val totalDays: Int,
     val costRankSum: Int,
     val peakEffort: EffortLevel,
+    val readyForReviewTotal: Int = 0,
+    val readyForReviewSaved: Int = 0,
 )
 
 /** Localizable reason for the route's place in the comparison. */
@@ -36,6 +48,8 @@ sealed interface RouteExplanation {
     data class OpensSavedDoors(val count: Int) : RouteExplanation
 
     data class OpensDoors(val count: Int) : RouteExplanation
+
+    data class ReadiesDoorsForReview(val count: Int) : RouteExplanation
 
     data class ImprovesDoors(val count: Int) : RouteExplanation
 }

@@ -150,6 +150,14 @@ Current evidence:
   previous goal choice was removed because it did not influence results. Route leads with improved checks when zero
   doors fully pass, and keeps that zero-door disclosure visible. English remains the default, with persisted
   English/Vietnamese UI selection. The revised English/Vietnamese onboarding and zero-open Route screenshots were visually reviewed.
+- [x] 18 November (uncommitted working tree at the time of writing): every sourced door keeps at least one manual
+  check, so OPEN is unreachable for any profile under honest encoding. The engine now reports
+  `readyForOfficialReview`: the door's applicable check path has no failed or unknown encoded check, and only manual
+  checks or an unconfirmed deadline remain. The path prefers encoded checks over manual alternatives, so a failing
+  IELTS score is not hidden behind an "other English route". Route tracks these doors separately from opened and
+  improved doors. Linh's first route now leads with **2 doors ready for official review** (Erasmus Mundus,
+  Schwarzman) and still opens zero. Engine, bundled-pack and Route UI tests cover it, and the Route
+  preview was visually reviewed.
 - [x] Pack identity is immutable across every stored version: a publisher change for an existing pack ID is rejected
   before persistence, including when the original version is inactive.
 - [x] Demo and real-pack receipts separate deterministic results, unknowns, manual checks and soft criteria.

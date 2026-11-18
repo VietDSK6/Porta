@@ -34,10 +34,16 @@ internal fun routeDuration(days: Int): String = pluralStringResource(Res.plurals
 
 @Composable
 internal fun routeSummary(route: RouteOptionUiState): String {
-    val outcome = if (route.openedTotal > 0) {
-        pluralStringResource(Res.plurals.route_summary_open, route.openedTotal, route.openedTotal)
-    } else {
-        pluralStringResource(Res.plurals.route_summary_improved, route.improvedDoorCount, route.improvedDoorCount)
+    val outcome = when {
+        route.openedTotal > 0 -> pluralStringResource(Res.plurals.route_summary_open, route.openedTotal, route.openedTotal)
+
+        route.readyForReviewTotal > 0 -> pluralStringResource(
+            Res.plurals.route_summary_ready,
+            route.readyForReviewTotal,
+            route.readyForReviewTotal,
+        )
+
+        else -> pluralStringResource(Res.plurals.route_summary_improved, route.improvedDoorCount, route.improvedDoorCount)
     }
     val saved = if (route.openedSaved > 0) {
         pluralStringResource(Res.plurals.route_summary_saved, route.openedSaved, route.openedSaved)
@@ -58,6 +64,7 @@ internal fun routeSummary(route: RouteOptionUiState): String {
 internal fun routeReason(reason: RouteReason): String = when (reason.kind) {
     RouteReasonKind.OPENS_SAVED -> pluralStringResource(Res.plurals.route_reason_saved, reason.count, reason.count)
     RouteReasonKind.OPENS -> pluralStringResource(Res.plurals.route_reason_open, reason.count, reason.count)
+    RouteReasonKind.READY_FOR_REVIEW -> pluralStringResource(Res.plurals.route_reason_ready, reason.count, reason.count)
     RouteReasonKind.IMPROVES -> pluralStringResource(Res.plurals.route_reason_improve, reason.count, reason.count)
 }
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -129,6 +130,35 @@ class RouteUiTest {
 
         onNodeWithText("For Chosen door").assertExists()
         onNodeWithText("No route changes this opportunity within these limits").assertExists()
+    }
+
+    @Test
+    fun `review-ready doors lead the hero without claiming an open door`() = runComposeUiTest {
+        val ready = routeOption("ready", 0, "Door A").let { option ->
+            option.copy(
+                steps = option.steps.map { it.copy(doorsImproved = emptyList(), doorsReadyForReview = listOf("Door A")) },
+                readyForReviewTotal = 1,
+                reason = RouteReason(RouteReasonKind.READY_FOR_REVIEW, 1),
+            )
+        }
+        setContent {
+            AppTheme {
+                RouteScreen(
+                    uiState = RouteUiState(isLoading = false, routes = listOf(ready)),
+                    onUiEvent = {},
+                    onOpenNextMoves = {},
+                    onOpenActivePlan = {},
+                )
+            }
+        }
+
+        assertEquals(0, ready.improvedDoorCount)
+        onNodeWithText("1 door could reach official review.").assertExists()
+        onNodeWithTag("route-ready-note").assertExists()
+        onNodeWithText("Ready to verify").assertExists()
+        onNodeWithText("No door passes every assessed check yet.").assertDoesNotExist()
+        onNodeWithTag("route-list").performScrollToNode(hasText("Ready for official review"))
+        onNodeWithText("Ready for official review").assertExists()
     }
 
     @Test

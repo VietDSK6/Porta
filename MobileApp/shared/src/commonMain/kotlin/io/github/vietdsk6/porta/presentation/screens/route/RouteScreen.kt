@@ -55,6 +55,7 @@ import io.github.vietdsk6.porta.generated.resources.route_focus_checks_improve
 import io.github.vietdsk6.porta.generated.resources.route_focus_no_path
 import io.github.vietdsk6.porta.generated.resources.route_focus_no_path_help
 import io.github.vietdsk6.porta.generated.resources.route_focus_pass
+import io.github.vietdsk6.porta.generated.resources.route_focus_ready
 import io.github.vietdsk6.porta.generated.resources.route_focus_title
 import io.github.vietdsk6.porta.generated.resources.route_hero_eyebrow
 import io.github.vietdsk6.porta.generated.resources.route_hero_title
@@ -68,6 +69,9 @@ import io.github.vietdsk6.porta.generated.resources.route_no_open_doors
 import io.github.vietdsk6.porta.generated.resources.route_notice_saved_detail
 import io.github.vietdsk6.porta.generated.resources.route_open_doors
 import io.github.vietdsk6.porta.generated.resources.route_profile_to_save
+import io.github.vietdsk6.porta.generated.resources.route_ready_doors
+import io.github.vietdsk6.porta.generated.resources.route_ready_metric
+import io.github.vietdsk6.porta.generated.resources.route_ready_note
 import io.github.vietdsk6.porta.generated.resources.route_save
 import io.github.vietdsk6.porta.generated.resources.route_save_replaces_plan
 import io.github.vietdsk6.porta.generated.resources.route_saved
@@ -208,7 +212,9 @@ fun RouteScreen(
 private fun RouteHero(uiState: RouteUiState) {
     val route = uiState.selectedRoute
     val improvedCount = route?.improvedDoorCount ?: 0
-    val progressWithoutOpen = route != null && route.openedTotal == 0 && improvedCount > 0
+    val readyCount = route?.readyForReviewTotal ?: 0
+    val readyWithoutOpen = route != null && route.openedTotal == 0 && readyCount > 0
+    val progressWithoutOpen = route != null && route.openedTotal == 0 && !readyWithoutOpen && improvedCount > 0
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(Res.string.route_hero_eyebrow), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.primary)
         uiState.focusedOpportunityTitle?.let { title ->
@@ -218,6 +224,12 @@ private fun RouteHero(uiState: RouteUiState) {
             FocusedDoorOutcome.ASSESSED_CHECKS_PASS -> Text(
                 stringResource(Res.string.route_focus_pass),
                 color = AppTheme.colors.status.success,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            FocusedDoorOutcome.READY_FOR_REVIEW -> Text(
+                stringResource(Res.string.route_focus_ready),
+                color = AppTheme.colors.primary,
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -238,6 +250,8 @@ private fun RouteHero(uiState: RouteUiState) {
             when {
                 route == null -> stringResource(Res.string.route_hero_title)
 
+                readyWithoutOpen -> pluralStringResource(Res.plurals.route_ready_doors, readyCount, readyCount)
+
                 progressWithoutOpen -> pluralStringResource(
                     Res.plurals.route_improved_opportunities,
                     improvedCount,
@@ -252,6 +266,14 @@ private fun RouteHero(uiState: RouteUiState) {
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.testTag("route-headline"),
         )
+        if (readyWithoutOpen) {
+            Text(
+                stringResource(Res.string.route_ready_note),
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppTheme.colors.text.secondary,
+                modifier = Modifier.testTag("route-ready-note"),
+            )
+        }
         if (progressWithoutOpen) {
             Text(
                 stringResource(Res.string.route_no_open_doors),
@@ -261,8 +283,18 @@ private fun RouteHero(uiState: RouteUiState) {
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             RouteMetric(
-                value = if (progressWithoutOpen) improvedCount.toString() else route?.openedTotal?.toString() ?: "—",
-                label = stringResource(if (progressWithoutOpen) Res.string.route_improved_metric else Res.string.route_doors_passing),
+                value = when {
+                    readyWithoutOpen -> readyCount.toString()
+                    progressWithoutOpen -> improvedCount.toString()
+                    else -> route?.openedTotal?.toString() ?: "—"
+                },
+                label = stringResource(
+                    when {
+                        readyWithoutOpen -> Res.string.route_ready_metric
+                        progressWithoutOpen -> Res.string.route_improved_metric
+                        else -> Res.string.route_doors_passing
+                    },
+                ),
                 modifier = Modifier.weight(1f),
             )
             RouteMetric(route?.steps?.size?.toString() ?: "—", stringResource(Res.string.route_milestones), Modifier.weight(1f))

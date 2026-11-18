@@ -14,6 +14,7 @@ import io.github.vietdsk6.porta.domain.model.PlannedRoute
 import io.github.vietdsk6.porta.domain.model.ProfileFact
 import io.github.vietdsk6.porta.domain.model.ProfileSnapshot
 import io.github.vietdsk6.porta.domain.model.RouteConstraints
+import io.github.vietdsk6.porta.domain.model.RouteExplanation
 import io.github.vietdsk6.porta.domain.model.RouteStep
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import kotlinx.datetime.LocalDate
@@ -139,7 +140,41 @@ class RoutePlannerTest {
         assertEquals(listOf("a-ielts", "b-community"), routes.first().steps.map { it.template.id })
         assertEquals(0, routes.first().metrics.openedTotal)
         assertEquals(listOf("two-checks"), routes.first().steps[0].doorsImproved)
-        assertEquals(listOf("two-checks"), routes.first().steps[1].doorsImproved)
+        // The second check leaves only the provider's manual review: ready for review, never opened.
+        assertEquals(emptyList(), routes.first().steps[1].doorsImproved)
+        assertEquals(listOf("two-checks"), routes.first().steps[1].doorsReadyForReview)
+        assertEquals(1, routes.first().metrics.readyForReviewTotal)
+        assertEquals(RouteExplanation.ReadiesDoorsForReview(1), routes.first().explanation)
+    }
+
+    @Test
+    fun `a door ready for review at baseline is not counted again`() {
+        val door = opportunity(
+            id = "already-ready",
+            deadlineDay = 40,
+            rule = RuleNode.All(
+                id = "already-ready-root",
+                children = listOf(
+                    rule("project", FactKey.COMMUNITY_PROJECT, FactValue.BooleanValue(true), community.id),
+                    RuleNode.ManualCheck("provider-review", "The provider must review the application."),
+                ),
+            ),
+            actions = listOf(community),
+        )
+        val readyProfile = profile.copy(
+            facts = profile.facts + (FactKey.COMMUNITY_PROJECT to profileFact(FactKey.COMMUNITY_PROJECT, FactValue.BooleanValue(true))),
+        )
+
+        val routes = planner.plan(
+            profile = readyProfile,
+            opportunities = listOf(door, erasmus),
+            savedOpportunityIds = emptySet(),
+            constraints = RouteConstraints(30, CostBand.FREE, EffortLevel.HIGH),
+            today = today,
+        )
+
+        assertTrue(routes.none { route -> "already-ready" in route.steps.flatMap(RouteStep::doorsReadyForReview) })
+        assertTrue(routes.all { route -> route.metrics.readyForReviewTotal == 0 })
     }
 
     @Test

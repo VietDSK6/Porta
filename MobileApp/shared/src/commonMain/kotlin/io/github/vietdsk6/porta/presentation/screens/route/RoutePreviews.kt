@@ -74,6 +74,65 @@ private fun RouteZeroOpenPreview() {
     }
 }
 
+@Preview(name = "Route ready for official review", widthDp = 390, heightDp = 840)
+@Composable
+private fun RouteReadyForReviewPreview() {
+    AppTheme {
+        RouteScreen(
+            uiState = RouteUiState(
+                isLoading = false,
+                isFictionalProfile = true,
+                routes = listOf(
+                    RouteOptionUiState(
+                        id = "degree-ielts",
+                        steps = listOf(
+                            RouteStepUiState(
+                                id = "degree",
+                                title = "Complete the required first degree",
+                                startDateLabel = "2026-11-18",
+                                endDateLabel = "2027-05-17",
+                                durationDays = 180,
+                                doorsOpened = emptyList(),
+                                doorsImproved = listOf("DAAD EPOS", "Schwarzman Scholars"),
+                                doorsLost = listOf("Kotlin Student Coding Competition"),
+                                effort = EffortLevel.HIGH,
+                                cost = CostBand.MEDIUM,
+                                targetFactKey = FactKey.DEGREE_COMPLETED,
+                                doorsReadyForReview = listOf("Erasmus Mundus Joint Masters"),
+                            ),
+                            RouteStepUiState(
+                                id = "ielts",
+                                title = "Raise IELTS to 7.0 band",
+                                startDateLabel = "2027-05-17",
+                                endDateLabel = "2027-07-01",
+                                durationDays = 45,
+                                doorsOpened = emptyList(),
+                                doorsImproved = emptyList(),
+                                doorsLost = emptyList(),
+                                effort = EffortLevel.MEDIUM,
+                                cost = CostBand.LOW,
+                                targetFactKey = FactKey.IELTS_SCORE,
+                                doorsReadyForReview = listOf("Schwarzman Scholars"),
+                            ),
+                        ),
+                        openedTotal = 0,
+                        openedSaved = 0,
+                        readyForReviewTotal = 2,
+                        readyForReviewSaved = 2,
+                        daysToFirstDoor = null,
+                        totalDays = 225,
+                        costRankSum = CostBand.MEDIUM.rank + CostBand.LOW.rank,
+                        reason = RouteReason(RouteReasonKind.READY_FOR_REVIEW, 2),
+                    ),
+                ),
+            ),
+            onUiEvent = {},
+            onOpenNextMoves = {},
+            onOpenActivePlan = {},
+        )
+    }
+}
+
 @Preview(name = "Route controls compact", widthDp = 320, heightDp = 840)
 @Composable
 private fun RouteControlsCompactPreview() {

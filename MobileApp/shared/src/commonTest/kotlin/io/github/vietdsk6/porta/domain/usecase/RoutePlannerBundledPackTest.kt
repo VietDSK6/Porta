@@ -9,6 +9,7 @@ import io.github.vietdsk6.porta.domain.model.CostBand
 import io.github.vietdsk6.porta.domain.model.EffortLevel
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RouteConstraints
+import io.github.vietdsk6.porta.domain.model.RouteExplanation
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,6 +43,15 @@ class RoutePlannerBundledPackTest {
         assertTrue(routes.first().steps.size >= 2)
         assertTrue(routes.first().steps.map { step -> step.template.target.factKey }.containsAll(listOf(FactKey.DEGREE_COMPLETED, FactKey.IELTS_SCORE)))
         assertTrue(routes.first().steps.any { step -> "kotlin-student-coding-competition-2026" in step.doorsLost })
+
+        // Every sourced door keeps at least one manual check, so the honest headline is official review, not "open".
+        val readied = routes.first().steps.flatMap { step -> step.doorsReadyForReview }
+        assertTrue(
+            readied.containsAll(listOf("erasmus-mundus-joint-masters", "schwarzman-scholars-2028-2029")),
+            "Degree and IELTS should leave only manual checks for Erasmus Mundus and Schwarzman, got $readied",
+        )
+        assertEquals(readied.size, routes.first().metrics.readyForReviewTotal)
+        assertEquals(RouteExplanation.ReadiesDoorsForReview(readied.size), routes.first().explanation)
     }
 
     @Test
@@ -61,7 +71,10 @@ class RoutePlannerBundledPackTest {
         assertTrue(routes.isNotEmpty())
         assertTrue(
             routes.all { route ->
-                route.steps.any { step -> "cern-openlab-summer-student-2027" in step.doorsImproved }
+                route.steps.any { step ->
+                    "cern-openlab-summer-student-2027" in step.doorsImproved ||
+                        "cern-openlab-summer-student-2027" in step.doorsReadyForReview
+                }
             },
         )
         assertTrue(

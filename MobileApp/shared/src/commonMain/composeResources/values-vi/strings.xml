@@ -21,7 +21,7 @@
     <string name="onboarding_route_intro">Thử ví dụ IELTS hư cấu, rồi xem lộ trình của Linh qua các chương trình có nguồn.</string>
     <string name="onboarding_demo_badge">HỒ SƠ HƯ CẤU · DANH MỤC CÓ NGUỒN</string>
     <string name="onboarding_linh_route">Lộ trình của Linh</string>
-    <string name="onboarding_route_explanation">Lộ trình có nguồn của Linh cải thiện vài điều kiện, nhưng vẫn cần xét thủ công. Chưa chương trình nào vượt qua mọi điều kiện được đánh giá.</string>
+    <string name="onboarding_route_explanation">Lộ trình có nguồn của Linh đưa một số chương trình đến bước xét duyệt chính thức: mọi điều kiện đã mã hóa đều đạt, chỉ còn phần xét thủ công của nhà cung cấp. Porta không bao giờ tự đánh dấu phần đó là đạt.</string>
     <string name="onboarding_lesson_badge">VÍ DỤ IELTS HƯ CẤU</string>
     <string name="onboarding_lesson_before">TRƯỚC</string>
     <string name="onboarding_lesson_after">NẾU THỬ</string>
@@ -51,6 +51,19 @@
         <item quantity="other">%1$d cơ hội có thể vượt qua các điều kiện đã đánh giá.</item>
     </plurals>
     <string name="route_doors_passing">Cơ hội vượt điều kiện</string>
+    <plurals name="route_ready_doors">
+        <item quantity="other">%1$d cơ hội có thể đến bước xét duyệt chính thức.</item>
+    </plurals>
+    <string name="route_ready_note">Mọi điều kiện đã mã hóa đều sẽ đạt. Chỉ còn phần xét thủ công và hạn chót cần nhà cung cấp xác nhận; Porta không bao giờ tự đánh dấu chúng là đạt.</string>
+    <string name="route_ready_metric">Chờ xác minh</string>
+    <plurals name="route_summary_ready">
+        <item quantity="other">%1$d cơ hội sẽ đến bước xét duyệt chính thức</item>
+    </plurals>
+    <plurals name="route_reason_ready">
+        <item quantity="other">Đưa %1$d cơ hội đến bước xét duyệt chính thức.</item>
+    </plurals>
+    <string name="route_ready_for_review">Sẵn sàng để xét duyệt chính thức</string>
+    <string name="route_focus_ready">Lộ trình này sẽ đạt mọi điều kiện đã mã hóa cho cơ hội này. Chỉ còn phần xét thủ công của nhà cung cấp.</string>
     <string name="route_milestones">Cột mốc</string>
     <string name="route_days">Ngày</string>
     <string name="route_why_numbers">Vì sao có các số này?</string>

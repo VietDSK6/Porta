@@ -39,6 +39,7 @@ class RoutePlanner(
         if (focusedOpportunityId != null && focusedOpportunityId !in opportunityById) return emptyList()
         val baseline = evaluate(profile, opportunities, today)
         val baselineOpen = baseline.openIds()
+        val baselineReady = baseline.readyForReviewIds()
         val candidates = CandidateCatalog().select(opportunities, baseline)
             .filter { template ->
                 // A general route should describe transferable milestones. Programme-scoped
@@ -62,6 +63,7 @@ class RoutePlanner(
             peakEffort = EffortLevel.VERY_LOW,
             firstDoorDay = null,
             openedIds = emptySet(),
+            readyIds = emptySet(),
             improvedIds = emptySet(),
             improvedChecks = emptySet(),
             lostIds = emptySet(),
@@ -76,6 +78,13 @@ class RoutePlanner(
                 if (constraints.prioritizeSaved) it.openedIds.count(savedOpportunityIds::contains) else 0
             }
             .thenByDescending { it.openedIds.size }
+            .thenByDescending {
+                if (focusedOpportunityId != null && focusedOpportunityId in it.readyIds) 1 else 0
+            }
+            .thenByDescending {
+                if (constraints.prioritizeSaved) it.readyIds.count(savedOpportunityIds::contains) else 0
+            }
+            .thenByDescending { it.readyIds.size }
             .thenByDescending { it.improvedChecks.size }
             .thenByDescending { it.improvedIds.size }
             .thenBy { it.firstDoorDay ?: Int.MAX_VALUE }
@@ -96,6 +105,7 @@ class RoutePlanner(
                         opportunities = opportunities,
                         opportunityById = opportunityById,
                         baselineOpen = baselineOpen,
+                        baselineReady = baselineReady,
                         constraints = constraints,
                         today = today,
                     )
@@ -111,9 +121,11 @@ class RoutePlanner(
 
         val meaningful = completed.filter { node ->
             if (focusedOpportunityId == null) {
-                node.openedIds.isNotEmpty() || node.improvedIds.isNotEmpty()
+                node.openedIds.isNotEmpty() || node.readyIds.isNotEmpty() || node.improvedIds.isNotEmpty()
             } else {
-                focusedOpportunityId in node.openedIds || focusedOpportunityId in node.improvedIds
+                focusedOpportunityId in node.openedIds ||
+                    focusedOpportunityId in node.readyIds ||
+                    focusedOpportunityId in node.improvedIds
             }
         }
         val frontier = meaningful.filter { candidate ->
@@ -125,6 +137,7 @@ class RoutePlanner(
             .distinctBy { node ->
                 RouteOutcome(
                     openedIds = node.openedIds,
+                    readyIds = node.readyIds,
                     improvedIds = node.improvedIds,
                     improvedChecks = node.improvedChecks,
                     lostIds = node.lostIds,
@@ -137,6 +150,7 @@ class RoutePlanner(
             .take(MAX_ROUTES)
             .map { node ->
                 val openedSaved = node.openedIds.count(savedOpportunityIds::contains)
+                val readySaved = node.readyIds.count(savedOpportunityIds::contains)
                 PlannedRoute(
                     id = node.routeId(),
                     steps = node.steps,
@@ -147,10 +161,13 @@ class RoutePlanner(
                         totalDays = node.elapsedDays(today),
                         costRankSum = node.costRankSum,
                         peakEffort = node.peakEffort,
+                        readyForReviewTotal = node.readyIds.size,
+                        readyForReviewSaved = readySaved,
                     ),
                     explanation = when {
                         openedSaved > 0 -> RouteExplanation.OpensSavedDoors(openedSaved)
                         node.openedIds.isNotEmpty() -> RouteExplanation.OpensDoors(node.openedIds.size)
+                        node.readyIds.isNotEmpty() -> RouteExplanation.ReadiesDoorsForReview(node.readyIds.size)
                         else -> RouteExplanation.ImprovesDoors(node.improvedIds.size)
                     },
                 )
@@ -164,6 +181,7 @@ class RoutePlanner(
         opportunities: List<Opportunity>,
         opportunityById: Map<String, Opportunity>,
         baselineOpen: Set<String>,
+        baselineReady: Set<String>,
         constraints: RouteConstraints,
         today: LocalDate,
     ): SearchNode? {
@@ -181,19 +199,26 @@ class RoutePlanner(
                 after.getValue(opportunityId).state == EligibilityState.OPEN &&
                 opportunityId !in baselineOpen
         }.sorted()
+        val readied = after.keys.filter { opportunityId ->
+            opportunityId !in opened &&
+                !node.receipts.getValue(opportunityId).readyForOfficialReview &&
+                after.getValue(opportunityId).readyForOfficialReview &&
+                opportunityId !in baselineReady &&
+                opportunityId !in node.readyIds
+        }.sorted()
         val passingChecks = after.keys.associateWith { opportunityId ->
             val before = beforeAtEnd.getValue(opportunityId)
             val current = after.getValue(opportunityId)
             if (current.state in UNREACHABLE_STATES) emptySet() else current.rules.newlyPassingRuleIdsFrom(before.rules)
         }
         val improved = passingChecks.keys.filter { opportunityId ->
-            opportunityId !in opened && passingChecks.getValue(opportunityId).isNotEmpty()
+            opportunityId !in opened && opportunityId !in readied && passingChecks.getValue(opportunityId).isNotEmpty()
         }.sorted()
         val lost = after.keys.filter { opportunityId ->
             node.receipts.getValue(opportunityId).state !in UNREACHABLE_STATES &&
                 after.getValue(opportunityId).state in UNREACHABLE_STATES
         }.sorted()
-        if (opened.isEmpty() && improved.isEmpty()) return null
+        if (opened.isEmpty() && readied.isEmpty() && improved.isEmpty()) return null
 
         // An opportunity opened at an earlier station remains a real, timely application window.
         // A later expiry is recorded separately in doorsLost instead of erasing that milestone.
@@ -202,7 +227,9 @@ class RoutePlanner(
             node.receipts.getValue(opportunityId).state !in UNREACHABLE_STATES &&
                 after.getValue(opportunityId).state in UNREACHABLE_STATES
         } + node.lostIds
-        val allImproved = (node.improvedIds + improved) - allOpened - allLost
+        // A door that reached official review stays counted, like an opened door, unless it later opens.
+        val allReady = (node.readyIds + readied) - allOpened
+        val allImproved = (node.improvedIds + improved) - allOpened - allReady - allLost
         val allImprovedChecks = node.improvedChecks + passingChecks.flatMap { (opportunityId, ruleIds) ->
             ruleIds.map { ruleId -> RuleRef(opportunityId, ruleId) }
         }
@@ -216,6 +243,7 @@ class RoutePlanner(
             doorsOpened = opened,
             doorsImproved = improved,
             doorsLost = lost,
+            doorsReadyForReview = readied,
         )
         return SearchNode(
             overrides = nextOverrides,
@@ -227,6 +255,7 @@ class RoutePlanner(
             peakEffort = if (template.effort.rank > node.peakEffort.rank) template.effort else node.peakEffort,
             firstDoorDay = firstDoorDay,
             openedIds = allOpened,
+            readyIds = allReady,
             improvedIds = allImproved,
             improvedChecks = allImprovedChecks.toSet(),
             lostIds = allLost,
@@ -248,6 +277,7 @@ class RoutePlanner(
     ): Boolean {
         // Set inclusion preserves which saved doors open, not just how many.
         val noWorse = a.openedIds.containsAll(b.openedIds) &&
+            a.readyIds.containsAll(b.readyIds) &&
             a.improvedIds.containsAll(b.improvedIds) &&
             a.improvedChecks.containsAll(b.improvedChecks) &&
             b.lostIds.containsAll(a.lostIds) &&
@@ -256,6 +286,7 @@ class RoutePlanner(
             a.costRankSum <= b.costRankSum &&
             a.peakEffort.rank <= b.peakEffort.rank
         val strictlyBetter = a.openedIds != b.openedIds ||
+            a.readyIds != b.readyIds ||
             a.improvedIds != b.improvedIds ||
             a.improvedChecks != b.improvedChecks ||
             a.lostIds != b.lostIds ||
@@ -276,6 +307,7 @@ class RoutePlanner(
         val peakEffort: EffortLevel,
         val firstDoorDay: Int?,
         val openedIds: Set<String>,
+        val readyIds: Set<String>,
         val improvedIds: Set<String>,
         val improvedChecks: Set<RuleRef>,
         val lostIds: Set<String>,
@@ -288,6 +320,7 @@ class RoutePlanner(
             date = cursorDate,
             usedTemplateIds = usedTemplateIds,
             openedIds = openedIds,
+            readyIds = readyIds,
             improvedIds = improvedIds,
             improvedChecks = improvedChecks,
             lostIds = lostIds,
@@ -298,6 +331,7 @@ class RoutePlanner(
         val date: LocalDate,
         val usedTemplateIds: Set<String>,
         val openedIds: Set<String>,
+        val readyIds: Set<String>,
         val improvedIds: Set<String>,
         val improvedChecks: Set<RuleRef>,
         val lostIds: Set<String>,
@@ -305,6 +339,7 @@ class RoutePlanner(
 
     private data class RouteOutcome(
         val openedIds: Set<String>,
+        val readyIds: Set<String>,
         val improvedIds: Set<String>,
         val improvedChecks: Set<RuleRef>,
         val lostIds: Set<String>,
@@ -331,6 +366,10 @@ private fun ScenarioOverrides.mergedWith(other: ScenarioOverrides): ScenarioOver
 
 private fun Map<String, EligibilityReceipt>.openIds(): Set<String> = values
     .filter { receipt -> receipt.state == EligibilityState.OPEN }
+    .mapTo(mutableSetOf(), EligibilityReceipt::opportunityId)
+
+private fun Map<String, EligibilityReceipt>.readyForReviewIds(): Set<String> = values
+    .filter(EligibilityReceipt::readyForOfficialReview)
     .mapTo(mutableSetOf(), EligibilityReceipt::opportunityId)
 
 private fun List<RuleReceipt>.newlyPassingRuleIdsFrom(before: List<RuleReceipt>): Set<String> {

@@ -57,6 +57,15 @@ class EligibilityEvaluator {
             else -> EligibilityState.NOT_ACTIONABLE
         }
 
+        // Uses the same applicable path as the receipt view, which prefers encoded checks over a manual
+        // alternative, so a failing IELTS score is never hidden behind an "other English route" review.
+        val applicablePath = publishedCheckPath(opportunity.eligibilityRule, evaluation.receipts)
+        val readyForOfficialReview = state != EligibilityState.OPEN &&
+            state != EligibilityState.CLOSED &&
+            applicablePath.passed > 0 &&
+            applicablePath.failed == 0 &&
+            applicablePath.unknown == 0
+
         return EligibilityReceipt(
             opportunityId = opportunity.id,
             state = state,
@@ -65,6 +74,7 @@ class EligibilityEvaluator {
             deadline = opportunity.deadline,
             lastCheckedOn = opportunity.lastCheckedOn,
             cycleStatus = cycleStatus,
+            readyForOfficialReview = readyForOfficialReview,
         )
     }
 

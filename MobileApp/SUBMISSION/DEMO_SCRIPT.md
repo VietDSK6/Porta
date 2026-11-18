@@ -1,10 +1,10 @@
 # Porta contest screencast — 3:30 target
 
-Record this only after the Android APK and packaged JVM Desktop app have been checked from the frozen commit. Use Linh's fictional profile and the sourced 15-door bundled catalog. Her 240-day Route horizon can sequence two transferable milestones while still opening **zero** doors under the encoded rules and deadlines. Keep the pointer visible on Desktop and enlarge small receipts in the edit. Hide notifications, personal files and API keys. The video covers Android, Desktop and the JVM CLI; no Web build or footage is planned.
+Record this only after the Android APK and packaged JVM Desktop app have been checked from the frozen commit. Use Linh's fictional profile and the sourced 15-door bundled catalog. Her 240-day Route horizon sequences two transferable milestones that bring **2 doors to official review** (every encoded check passes; only the provider's manual checks remain) while still opening **zero** doors under the encoded rules and deadlines. Keep the pointer visible on Desktop and enlarge small receipts in the edit. Hide notifications, personal files and API keys. The video covers Android, Desktop and the JVM CLI; no Web build or footage is planned.
 
 ## Recording setup
 
-1. Start from a fresh demo profile or reset local data. In the two-step onboarding, try the fictional IELTS 6.5 → 7.0 threshold, then tap **Explore Linh's sourced route**. Confirm the fictional-demo badge, sourced pack and zero-open-doors message. Record the app build SHA and local date.
+1. Start from a fresh demo profile or reset local data. In the two-step onboarding, try the fictional IELTS 6.5 → 7.0 threshold, then tap **Explore Linh's sourced route**. Confirm the fictional-demo badge, sourced pack and the ready-for-official-review headline. Record the app build SHA and local date.
 2. Preselect a Route candidate and a source-linked door. Prepare a saved milestone that can be marked complete, plus a disposable actual-result entry; rehearse this flow so no personal file picker appears in the recording.
 3. For the optional Studio segment, leave the personal AI key empty so the bundled offline fixture is used. Select the **Google Summer of Code** demo excerpt, draft its age-threshold suggestion, edit the quote to words absent from the excerpt to show rejection, then restore the matching quote before accepting. Prepare a separate valid draft pack for the inspector preview; show approval only if validation actually passes.
 4. Capture the CLI export and validate commands against the same frozen commit. Do not imply a live provider call, a completed application, or a positive eligibility decision.
@@ -25,7 +25,7 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 ## 0:45–1:25 — From a Door to a route
 
-**Shot:** Open one sourced Door. Show its applicable published checks and the separate source-review remainder; expand alternative paths only if the record has them. Tap **Explore routes for this opportunity** to show a programme-specific plan, then open the general Route to compare transferable milestones such as degree completion or an English-score improvement. Show the compact timeline on Android and the wide metro map on Desktop. Switch Route candidates, open **Why these numbers?**, and show improved checks and deadline losses. Save one route, use **View active plan** to show its ordered steps, then return to Route and tap **First move**. Keep the zero-open-doors notice visible for Linh's current route.
+**Shot:** Open one sourced Door. Show its applicable published checks and the separate source-review remainder; expand alternative paths only if the record has them. Tap **Explore routes for this opportunity** to show a programme-specific plan, then open the general Route to compare transferable milestones such as degree completion or an English-score improvement. Show the compact timeline on Android and the wide metro map on Desktop. Switch Route candidates, open **Why these numbers?**, and show improved checks and deadline losses. Save one route, use **View active plan** to show its ordered steps, then return to Route and tap **First move**. Keep the ready-for-official-review note visible: it states that manual checks and deadlines remain and that Porta never marks them as passed.
 
 **Narration:** “The shared planner sequences up to four milestones, evaluates checks at each step's end date, and filters by the chosen time, cost and effort limits. Stations show planned check transitions, not admission predictions. Deadline uncertainty stays visible.”
 
@@ -63,7 +63,7 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 - Keep the finished video between 3 and 5 minutes. The planned sequence is 3:30.
 - Use the frozen build, never mockups or old screenshots; caption every small receipt. If a planned shot fails on the frozen build, remove or correct its narration.
-- Preserve the zero-open-doors truth for Linh's current sourced pack. The illustrative synthetic preview must stay visibly labelled if shown.
+- Preserve the truth for Linh's current sourced pack: doors reach official review, none opens. The illustrative synthetic preview must stay visibly labelled if shown.
 - Do not show personal data, keys, private paths or unrelated notifications.
 - Every factual claim must match the frozen code, source register, README and test evidence.
 - Captions and licensed media must be readable and rights-safe; provider marks must not imply endorsement.

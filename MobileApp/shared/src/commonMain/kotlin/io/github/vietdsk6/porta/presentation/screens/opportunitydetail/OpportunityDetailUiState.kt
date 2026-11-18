@@ -4,6 +4,7 @@ import io.github.vietdsk6.porta.domain.model.EligibilityState
 import io.github.vietdsk6.porta.domain.model.FactKey
 import io.github.vietdsk6.porta.domain.model.RuleResult
 import io.github.vietdsk6.porta.domain.model.SourceFreshness
+import io.github.vietdsk6.porta.domain.usecase.PublishedCheckPath
 import io.github.vietdsk6.porta.presentation.components.EligibilityCopyCode
 import kotlinx.datetime.LocalDate
 

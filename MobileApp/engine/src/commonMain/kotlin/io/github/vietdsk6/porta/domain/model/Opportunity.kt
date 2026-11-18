@@ -115,6 +115,12 @@ data class RuleReceipt(
     val actionTemplateId: String? = null,
 )
 
+/**
+ * @property readyForOfficialReview `true` when the door is neither open nor closed and its applicable check path
+ * (encoded checks preferred over manual alternatives) has at least one pass and no failed or unknown encoded
+ * check. Only manual checks or an unconfirmed deadline remain. Manual checks stay REVIEW; this is never
+ * [EligibilityState.OPEN].
+ */
 data class EligibilityReceipt(
     val opportunityId: String,
     val state: EligibilityState,
@@ -123,4 +129,5 @@ data class EligibilityReceipt(
     val deadline: Deadline,
     val lastCheckedOn: LocalDate,
     val cycleStatus: OpportunityCycleStatus = OpportunityCycleStatus.ACTIVE,
+    val readyForOfficialReview: Boolean = false,
 )

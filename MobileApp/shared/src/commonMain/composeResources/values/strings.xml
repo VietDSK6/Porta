@@ -21,7 +21,7 @@
     <string name="onboarding_route_intro">Try a synthetic IELTS example, then explore Linh’s route through sourced programmes.</string>
     <string name="onboarding_demo_badge">FICTIONAL PROFILE · SOURCED CATALOG</string>
     <string name="onboarding_linh_route">Linh’s route</string>
-    <string name="onboarding_route_explanation">Linh’s sourced route improves checks, but manual requirements remain. No programme passes every assessed check yet.</string>
+    <string name="onboarding_route_explanation">Linh’s sourced route brings programmes to official review: every encoded check passes and only the provider’s manual checks remain. Porta never marks those as passed.</string>
     <string name="onboarding_lesson_badge">SYNTHETIC IELTS EXAMPLE</string>
     <string name="onboarding_lesson_before">BEFORE</string>
     <string name="onboarding_lesson_after">WHAT IF</string>
@@ -52,6 +52,22 @@
         <item quantity="other">%1$d doors could pass their assessed checks.</item>
     </plurals>
     <string name="route_doors_passing">Doors passing</string>
+    <plurals name="route_ready_doors">
+        <item quantity="one">%1$d door could reach official review.</item>
+        <item quantity="other">%1$d doors could reach official review.</item>
+    </plurals>
+    <string name="route_ready_note">Every encoded check would pass. Only the provider’s manual checks and deadlines remain, and Porta never marks those as passed.</string>
+    <string name="route_ready_metric">Ready to verify</string>
+    <plurals name="route_summary_ready">
+        <item quantity="one">%1$d door would reach official review</item>
+        <item quantity="other">%1$d doors would reach official review</item>
+    </plurals>
+    <plurals name="route_reason_ready">
+        <item quantity="one">Brings %1$d door to official review.</item>
+        <item quantity="other">Brings %1$d doors to official review.</item>
+    </plurals>
+    <string name="route_ready_for_review">Ready for official review</string>
+    <string name="route_focus_ready">This route would pass every encoded check for this opportunity. Only the provider’s manual checks remain.</string>
     <string name="route_milestones">Milestones</string>
     <string name="route_days">Days</string>
     <string name="route_why_numbers">Why these numbers?</string>

@@ -23,6 +23,8 @@ import io.github.vietdsk6.porta.domain.model.fingerprint
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class EligibilityEvaluatorTest {
     private val evaluator = EligibilityEvaluator()
@@ -140,6 +142,86 @@ class EligibilityEvaluatorTest {
 
         assertEquals(RuleResult.REVIEW, receipt.rootResult)
         assertEquals(EligibilityState.NEEDS_INFO, receipt.state)
+        assertFalse(receipt.readyForOfficialReview, "Nothing encoded has passed, so the door is not ready for review.")
+    }
+
+    @Test
+    fun `passing encoded checks with only manual checks left are ready for official review`() {
+        val rule = RuleNode.All(
+            id = "all",
+            children = listOf(
+                ieltsAtLeastSeven(),
+                RuleNode.ManualCheck("essay", "Essay must be reviewed by the provider."),
+            ),
+        )
+
+        val ready = evaluator.evaluate(profile(FactKey.IELTS_SCORE to band(7.0)), opportunity(rule), today)
+        val tba = evaluator.evaluate(profile(FactKey.IELTS_SCORE to band(7.0)), opportunity(rule, Deadline.Tba), today)
+
+        assertTrue(ready.readyForOfficialReview)
+        assertEquals(EligibilityState.NEEDS_INFO, ready.state, "Ready for review must never become OPEN.")
+        assertEquals(RuleResult.REVIEW, ready.rules.single { it.ruleId == "essay" }.result)
+        assertTrue(tba.readyForOfficialReview, "An unconfirmed deadline is something the provider must confirm.")
+    }
+
+    @Test
+    fun `failed or unknown encoded checks keep a door out of official review`() {
+        val rule = RuleNode.All(
+            id = "all",
+            children = listOf(
+                ieltsAtLeastSeven(),
+                atomic("enrolled", FactKey.ENROLLED, Operator.EQUALS, FactValue.BooleanValue(true)),
+                RuleNode.ManualCheck("essay", "Essay must be reviewed by the provider."),
+            ),
+        )
+
+        val failing = evaluator.evaluate(
+            profile(FactKey.IELTS_SCORE to band(6.5), FactKey.ENROLLED to FactValue.BooleanValue(true)),
+            opportunity(rule),
+            today,
+        )
+        val unknown = evaluator.evaluate(profile(FactKey.IELTS_SCORE to band(7.0)), opportunity(rule), today)
+
+        assertFalse(failing.readyForOfficialReview)
+        assertFalse(unknown.readyForOfficialReview)
+    }
+
+    @Test
+    fun `a manual alternative never hides a failing encoded check from review readiness`() {
+        val rule = RuleNode.All(
+            id = "all",
+            children = listOf(
+                atomic("enrolled", FactKey.ENROLLED, Operator.EQUALS, FactValue.BooleanValue(true)),
+                RuleNode.Any(
+                    id = "english",
+                    children = listOf(ieltsAtLeastSeven(), RuleNode.ManualCheck("other-english", "Other English evidence.")),
+                ),
+            ),
+        )
+        val enrolled = FactKey.ENROLLED to FactValue.BooleanValue(true)
+
+        val belowThreshold = evaluator.evaluate(profile(enrolled, FactKey.IELTS_SCORE to band(6.5)), opportunity(rule), today)
+        val atThreshold = evaluator.evaluate(profile(enrolled, FactKey.IELTS_SCORE to band(7.0)), opportunity(rule), today)
+
+        assertEquals(RuleResult.REVIEW, belowThreshold.rootResult, "The manual alternative keeps the root under review.")
+        assertFalse(belowThreshold.readyForOfficialReview)
+        assertEquals(EligibilityState.OPEN, atThreshold.state, "A passing encoded branch satisfies the alternative.")
+    }
+
+    @Test
+    fun `open and closed doors are never reported as ready for official review`() {
+        val rule = ieltsAtLeastSeven()
+        val open = evaluator.evaluate(profile(FactKey.IELTS_SCORE to band(7.0)), opportunity(rule), today)
+        val archived = evaluator.evaluate(
+            profile(FactKey.IELTS_SCORE to band(7.0)),
+            opportunity(RuleNode.All("all", listOf(rule, RuleNode.ManualCheck("essay", "Manual.")))).copy(archived = true),
+            today,
+        )
+
+        assertEquals(EligibilityState.OPEN, open.state)
+        assertFalse(open.readyForOfficialReview)
+        assertEquals(EligibilityState.CLOSED, archived.state)
+        assertFalse(archived.readyForOfficialReview)
     }
 
     @Test
@@ -399,6 +481,15 @@ class EligibilityEvaluatorTest {
                 actionability = Actionability.CONTROLLABLE,
             )
         },
+    )
+
+    private fun band(score: Double): FactValue = FactValue.NumberValue(score, "band")
+
+    private fun ieltsAtLeastSeven(): RuleNode.Atomic = atomic(
+        id = "ielts",
+        key = FactKey.IELTS_SCORE,
+        operator = Operator.GREATER_THAN_OR_EQUAL,
+        expected = band(7.0),
     )
 
     private fun atomic(

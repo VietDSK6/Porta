@@ -35,22 +35,25 @@ data class RouteOptionUiState(
     val costRankSum: Int,
     val reason: RouteReason,
     val focusedDoorOutcome: FocusedDoorOutcome? = null,
+    val readyForReviewTotal: Int = 0,
+    val readyForReviewSaved: Int = 0,
 ) {
     val improvedDoorCount: Int
         get() {
             val improved = steps.flatMap(RouteStepUiState::doorsImproved).toSet()
             val opened = steps.flatMap(RouteStepUiState::doorsOpened).toSet()
+            val ready = steps.flatMap(RouteStepUiState::doorsReadyForReview).toSet()
             val lost = steps.flatMap(RouteStepUiState::doorsLost).toSet()
-            return (improved - opened - lost).size
+            return (improved - opened - ready - lost).size
         }
     val lostDoorCount: Int get() = steps.flatMap(RouteStepUiState::doorsLost).distinct().size
 }
 
 enum class RouteNotice { SAVED, SAVE_FAILED }
 
-enum class FocusedDoorOutcome { ASSESSED_CHECKS_PASS, CHECKS_IMPROVE }
+enum class FocusedDoorOutcome { ASSESSED_CHECKS_PASS, READY_FOR_REVIEW, CHECKS_IMPROVE }
 
-enum class RouteReasonKind { OPENS_SAVED, OPENS, IMPROVES }
+enum class RouteReasonKind { OPENS_SAVED, OPENS, READY_FOR_REVIEW, IMPROVES }
 
 data class RouteReason(val kind: RouteReasonKind, val count: Int)
 
@@ -66,6 +69,7 @@ data class RouteStepUiState(
     val effort: EffortLevel,
     val cost: CostBand,
     val targetFactKey: FactKey? = null,
+    val doorsReadyForReview: List<String> = emptyList(),
 )
 
 sealed interface RouteUiEvent {

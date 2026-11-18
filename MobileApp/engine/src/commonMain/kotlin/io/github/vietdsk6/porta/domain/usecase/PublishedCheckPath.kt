@@ -1,4 +1,4 @@
-package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
+package io.github.vietdsk6.porta.domain.usecase
 
 import io.github.vietdsk6.porta.domain.model.RuleNode
 import io.github.vietdsk6.porta.domain.model.RuleReceipt
@@ -23,7 +23,7 @@ data class PublishedCheckPath(
     )
 }
 
-internal fun publishedCheckPath(rule: RuleNode, receipts: List<RuleReceipt>): PublishedCheckPath {
+fun publishedCheckPath(rule: RuleNode, receipts: List<RuleReceipt>): PublishedCheckPath {
     val byId = receipts.associateBy(RuleReceipt::ruleId)
     fun visit(node: RuleNode): PublishedCheckPath = when (node) {
         is RuleNode.All -> node.children.fold(PublishedCheckPath()) { path, child -> path + visit(child) }

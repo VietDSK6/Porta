@@ -35,6 +35,7 @@ import io.github.vietdsk6.porta.generated.resources.Res
 import io.github.vietdsk6.porta.generated.resources.route_check_change
 import io.github.vietdsk6.porta.generated.resources.route_checks_improved
 import io.github.vietdsk6.porta.generated.resources.route_may_close
+import io.github.vietdsk6.porta.generated.resources.route_ready_for_review
 import io.github.vietdsk6.porta.generated.resources.route_step_dates
 import io.github.vietdsk6.porta.generated.resources.route_step_effort_cost
 import io.github.vietdsk6.porta.generated.resources.route_would_open
@@ -125,7 +126,11 @@ internal fun StepDoors(step: RouteStepUiState) {
         Text(stringResource(Res.string.route_would_open), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.status.success)
         step.doorsOpened.forEach { door -> Text("• $door", style = MaterialTheme.typography.bodySmall) }
     }
-    val onlyImproved = step.doorsImproved.filterNot(step.doorsOpened::contains)
+    if (step.doorsReadyForReview.isNotEmpty()) {
+        Text(stringResource(Res.string.route_ready_for_review), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.primary)
+        step.doorsReadyForReview.forEach { door -> Text("• $door", style = MaterialTheme.typography.bodySmall) }
+    }
+    val onlyImproved = step.doorsImproved.filterNot { door -> door in step.doorsOpened || door in step.doorsReadyForReview }
     if (onlyImproved.isNotEmpty()) {
         Text(stringResource(Res.string.route_checks_improved), style = MaterialTheme.typography.labelMedium, color = AppTheme.colors.text.secondary)
         onlyImproved.forEach { door ->

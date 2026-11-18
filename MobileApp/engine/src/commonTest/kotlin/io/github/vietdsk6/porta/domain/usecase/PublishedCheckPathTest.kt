@@ -1,4 +1,4 @@
-package io.github.vietdsk6.porta.presentation.screens.opportunitydetail
+package io.github.vietdsk6.porta.domain.usecase
 
 import io.github.vietdsk6.porta.domain.model.Actionability
 import io.github.vietdsk6.porta.domain.model.FactKey
