@@ -9,6 +9,10 @@ controllable milestones ranked under explicit time, effort, cost, and saved-oppo
 Porta does not predict admission, funding, or selection. It keeps missing information, manual checks, soft
 selection factors, and deterministic eligibility rules visibly separate.
 
+**▶ Demo video (3 min):** [youtu.be/3iCOvr360ZY](https://youtu.be/3iCOvr360ZY). It shows Android and JVM Desktop side by side, recorded
+from the running apps with the fictional demo profile "Linh". The narration is a synthetic voice (Kokoro,
+Apache-2.0); the script is in [`MobileApp/SUBMISSION/VIDEO_NARRATION.md`](MobileApp/SUBMISSION/VIDEO_NARRATION.md).
+
 ## Contest targets
 
 The submission declares two runnable targets:

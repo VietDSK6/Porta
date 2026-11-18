@@ -288,10 +288,10 @@ A green formatter alone must never be recorded as `20/20`.
 |---|---|---|
 | Product name and visual identity | READY LOCALLY | Porta uses the Editorial Atlas palette, Newsreader/Manrope typography and trust-first core journey; final light/dark Android and Desktop captures plus rights audit remain. |
 | Curated opportunity pack | IN PROGRESS | First official-source pass is complete for 15 records with dated source notes, manual/soft boundaries, a source register, visible freshness policy, lifecycle handling and user-approved update diffs; complete an independent second reading before submission. |
-| README | READY LOCALLY | Product, target, architecture, feature tour, limitations, sources, license and commands are documented; add final screenshots and the public fresh-clone record. |
+| README | PUBLIC | Product, target, architecture, feature tour, limitations, sources, license and commands are documented, with real screenshots and the demo video link. The public fresh clone passed on 18 November. |
 | Essay | DRAFT READY; ENTRANT REVIEW | Body is exactly 300 words with CV-backed education, work and Myosotis details; entrant confirms current facts and final wording. |
-| Screencast | SCRIPT READY; CAPTURE PENDING | `SUBMISSION/DEMO_SCRIPT.md` defines a Route-first 3:30 path with Linh's honest zero-open-door result; record it from the frozen Android/Desktop build. |
-| Screenshots/GIFs | TODO | Current UI only; rights-safe and readable. |
+| Screencast | PUBLISHED | https://youtu.be/3iCOvr360ZY (3:08, unlisted, verified playable on 18 November). Side-by-side Android emulator and packaged macOS recordings at `8659ad4`, English captions, synthetic narration (Kokoro, Apache-2.0) disclosed on the closing card and in the README. Re-record only if the UI changes before submission. |
+| Screenshots/GIFs | DONE | 8 Android and 4 Desktop captures of the running apps in the root README (`MobileApp/docs/media/`); asset register in `SUBMISSION/MEDIA_CHECKLIST.md`. |
 | Submission form | TODO | Final URLs tested without private access. |
 
 ## Review cadence

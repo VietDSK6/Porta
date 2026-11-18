@@ -19,7 +19,7 @@ Record this only after the Android APK and packaged JVM Desktop app have been ch
 
 **Shot:** Tap **See one change**, then toggle the fictional IELTS score from 6.5 to 7.0. Show the four synthetic checks changing, tap **Explore Linh's sourced route**, and show its separate fictional-profile badge and Route hero.
 
-**Narration:** “One plausible change alters four checks in this fictional lesson. Linh's separate sourced route stays honest: her local profile improves checks, but no programme passes every assessed check yet. This does not predict an award.”
+**Narration:** “One plausible change alters four checks in this fictional lesson. Linh's separate sourced route stays honest: two milestones bring two real programmes to official review, where only the provider's manual checks remain. Nothing opens, and nothing here predicts an award.”
 
 **Capture check:** Measure the time from launch to Route. Keep the clip only if the interaction takes at most 30 seconds without editing.
 

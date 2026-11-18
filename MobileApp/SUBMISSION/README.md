@@ -23,7 +23,7 @@ entrant's request; Web is not a declared submission target.
 | Current P5 code | LOCAL COMMIT; GATES PASS | `dc4e701`; scoped tests, Android APK, Desktop DMG, Roborazzi previews, and 100-opportunity timing are recorded locally. Public-clone verification remains pending. |
 | Web build | DEFERRED | The entrant requested that Web build work wait while Android, Desktop, and other app work proceeds. |
 | Essay | DRAFT READY; ENTRANT REVIEW | `ESSAY.md` is 300 words with CV-backed education, work and Myosotis details. Confirm current facts and wording before submission. |
-| Screencast | 3:30 SCRIPT READY | Record and review a 3–5 minute video using the Route-first `DEMO_SCRIPT.md`. |
+| Screencast | PUBLISHED | https://youtu.be/3iCOvr360ZY (3:08, unlisted). Real Android emulator and packaged macOS recordings at `8659ad4`, English captions, synthetic narration (Kokoro, Apache-2.0); script in `VIDEO_NARRATION.md`. |
 | Final media | CAPTURE REQUIRED | Capture real Android and Desktop output using `MEDIA_CHECKLIST.md`; do not substitute design mockups. |
 | Source audit | IN PROGRESS | A second reader must check all 15 records and all TBA/current-cycle dates. |
 | Submission form | TODO | Submit before 7 December 2026, 23:59 CET and save the receipt outside the repository. |
@@ -50,7 +50,7 @@ Verified public commit SHA: [frozen commit pending]
 Release/tag:
 Android verification device/API:
 Desktop verification OS/version:
-Screencast URL:
+Screencast URL: https://youtu.be/3iCOvr360ZY
 Submission timestamp (CET):
 Receipt location:
 ```
