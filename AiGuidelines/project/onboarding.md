@@ -2,70 +2,50 @@
 
 > Implementation lives in
 > `MobileApp/shared/src/commonMain/kotlin/io/github/vietdsk6/porta/presentation/screens/onboarding/`.
+> Copy lives in the `onboarding_*` keys of both `composeResources/values/strings.xml` and `values-vi/strings.xml`.
 
-## Recommended pattern
+## Pattern
 
-Demo-first short emotional, 4 screens — because Porta's value is easiest to understand by changing one clearly
-labeled sample fact and immediately seeing source-backed doors change; a long questionnaire before this proof would
-feel like homework and demand trust too early.
+Demo-first, two steps. Porta's value is easiest to understand by changing one clearly labelled synthetic fact and
+immediately seeing checks change. A questionnaire before that proof would feel like homework and ask for trust too
+early.
 
-## Screen 1 — Goal capture
+An earlier four-screen version opened with a goal choice (Scholarships, Internships, …). It was removed because the
+choice did not influence any result. Its `onboarding_goal_*` strings and `KEY_OPPORTUNITY_GOAL` preference are
+unused leftovers.
 
-- **Purpose / psychology**: Capture intent with one low-friction choice and tailor which opportunity type is
-  emphasized after onboarding. This choice never affects eligibility.
-- **Headline**: What are you trying to open next?
-- **Supporting Text**: Pick a direction. Porta will show how one realistic milestone can change your options.
-- **Interaction**: **GOAL CAPTURE** — single choice: `Scholarships`, `Internships`, `Academic programs`,
-  `Student contests`, or `Show me all`.
-- **Illustration Description**: Dark Portal Atlas map, calm and precise; five small route branches lead toward
-  distinct arched door outlines in violet, teal, amber, and ivory.
-- **CTA**: Show me how
+## Step 1 — The question
 
-## Screen 2 — Trust before data
+- **Purpose / psychology**: Name the problem before showing the product. A list of opportunities is not a plan.
+- **Eyebrow / headline**: `01 · THE QUESTION` · "A list of doors is not a plan."
+- **Supporting text**: See how one achievable step changes the checks behind several possibilities.
+- **Trust line**: Start with a fictional example. No account or personal data needed.
+- **CTA**: `See one change` (primary). `Skip` jumps straight to the unsaved sample.
 
-- **Purpose / psychology**: Establish the product's honesty boundary before demonstrating it.
-- **Headline**: Eligibility, without the mystery.
-- **Supporting Text**: Porta checks encoded published rules, shows what is missing, and links the source. It never
-  predicts whether you will be selected.
-- **Interaction**: Tap the sample receipt to reveal `Your value`, `Required value`, `Source`, and `Checked date`.
-- **Illustration Description**: A warm-ivory rule receipt floats over an ink atlas; one evidence thread connects a
-  clause to a small official-source stamp. Mood is trustworthy, not legalistic.
-- **CTA**: Try a real example
+## Step 2 — Try the threshold
 
-## Screen 3 — Sample magic moment
-
-- **Purpose / psychology**: Deliver value before requesting any profile information and demonstrate causality rather
-  than a feature tour.
-- **Headline**: See what one step opens.
-- **Supporting Text**: This is a sample student, not your profile. Move IELTS from 6.5 to 7.0 and watch only the doors
-  whose encoded hard rules actually change.
-- **Interaction**: **FIRST TASTE OF VALUE** — drag or tap the `IELTS 6.5 → 7.0` control. Four sample doors use the
-  Portal Aperture transition; each exposes a short source-backed reason. A text summary reads `4 doors changed · 11
-  unchanged · 2 still need verification`.
-- **Illustration Description**: Interactive dark atlas with one glowing route from the IELTS fact node to four
-  portals. Changed portals open with signal teal and violet; unchanged and Verify doors remain spatially stable.
-- **CTA**: Show why they changed
-
-## Screen 4 — Real-map handoff
-
-- **Purpose / psychology**: Convert the demo's agency into a small commitment while preserving a no-data sample path.
-- **Headline**: Now map your real next move.
-- **Supporting Text**: Add only the facts used by Porta's rule pack. Your academic profile stays on this device, and
-  unknown answers can stay unknown.
-- **Interaction**: Review the selected goal and sample result. Choose the primary CTA for Minimal Profile Setup or
-  the secondary sample path.
-- **Illustration Description**: The sample constellation folds into a blank personal atlas with six unfilled fact
-  nodes. The mood is calm and invitational; no lock, countdown, or scarcity cue appears.
-- **CTA**: `Build my map` (primary) · `Keep exploring the sample` (secondary)
+- **Purpose / psychology**: Deliver the first taste of value through causality, not a feature tour, while keeping the
+  synthetic lesson visibly separate from sourced data.
+- **Eyebrow / headline**: `02 · TRY THE THRESHOLD` · "One score changes the map."
+- **Interaction**: **FIRST TASTE OF VALUE**. Toggle `Try IELTS 7.0` / `Back to IELTS 6.5` on a badge-labelled
+  `SYNTHETIC IELTS EXAMPLE`. The BEFORE / WHAT IF counts come from the real evaluator: the highlighted sample checks
+  that can change, then the example IELTS checks that would pass.
+- **Disclosures**: Fictional opportunities. Check changes say nothing about acceptance. Confirm live deadlines, fees
+  and manual criteria with each provider.
+- **Linh card**: `FICTIONAL PROFILE · SOURCED CATALOG`. It states honestly that Linh's sourced route improves checks
+  but that no programme passes every assessed check yet.
+- **CTAs**:
+  - `Explore Linh's sourced route` (primary) installs the fictional demo profile into normal local storage. If a
+    profile already exists, it is left untouched and an error is shown.
+  - `Use my own profile` opens Profile Setup.
+  - `Explore without saving a profile` opens the unsaved sample.
 
 ## Permission and paywall handoff
 
-- **Permission priming**: None in onboarding. Porta P0 does not need camera, gallery, notifications, or location to
-  deliver its core value. If a future feature adds a permission, show a benefit explanation immediately before the
-  system request.
-- **Handoff to paywall**: Not applicable. The contest version is free and routes `Build my map` to Minimal Profile
-  Setup, never to a paywall or account screen.
-- **Account requirement**: None. There is no sign-in gate before or after the demo.
+- **Permission priming**: None. Porta needs no camera, gallery, notification, or location permission for its core
+  value.
+- **Paywall**: None. The contest build has no billing or paywall code.
+- **Account requirement**: None. There is no sign-in gate before or after onboarding.
 
 ## Product pains resolved
 
@@ -73,11 +53,11 @@ feel like homework and demand trust too early.
 2. Students do not know which smallest controllable step has the highest cross-opportunity leverage.
 3. Ambiguous or stale conditions create false confidence when tools hide sources and verification dates.
 
-## Measurement and acceptance
+## Acceptance
 
-- Track locally testable events: onboarding started, goal selected, sample control used, source reason opened,
-  onboarding completed, sample mode chosen, and profile setup started. Analytics integration is deferred.
-- The sample result is deterministic and explicitly labeled; it completes without network access in under 30
-  seconds for the judge path.
-- Screen-reader and reduced-motion users receive the same numeric delta and explanation without relying on portal
-  motion.
+- The synthetic lesson is deterministic, explicitly labelled, and completes offline in under 30 seconds on the judge
+  path.
+- The synthetic lesson and Linh's sourced catalog never share a count or a claim.
+- English is the default on first launch. Vietnamese copy must stay in sync.
+- Screen-reader and reduced-motion users receive the same counts and disclosures without relying on motion.
+- No analytics SDK is present; any future event tracking needs a separate privacy decision.

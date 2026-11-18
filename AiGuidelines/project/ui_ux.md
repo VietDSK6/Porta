@@ -2,8 +2,8 @@
 
 ## User Flow
 
-- Primary path: `Goal capture → clearly labeled sample profile → interactive IELTS milestone → doors change →
-  source-backed explanation → minimal real profile → Action Frontier → scenario preview → active plan`.
+- Primary path: `Editorial question → synthetic IELTS threshold lesson → Linh's sourced route (fictional profile) or
+  minimal real profile → Doors → source-backed explanation → Route / Action Frontier → scenario preview → active plan`.
 - Alternative paths: users can stay in Sample mode, enter unknown profile values, inspect a Verify receipt, relax a
   constraint when no action is feasible, or discard every scenario without changing the real profile.
 - Emotional journey notes: begin with curiosity, create a quick moment of agency when the sample portals open, slow
@@ -14,9 +14,10 @@
 
 1. **Demo-first Onboarding**
     - Purpose: Prove the product before requesting personal academic data.
-    - Key Elements: Goal chips, Sample profile badge, large IELTS control, four arched door cards, source receipt
-      teaser, short progress marker.
-    - Main Actions: Choose a goal, run the sample change, inspect one reason, build a real map.
+    - Key Elements: Two-step progress marker, editorial question, `SYNTHETIC IELTS EXAMPLE` badge with a
+      before/what-if toggle, fictional-profile/sourced-catalog badge for Linh, acceptance and source disclaimers.
+    - Main Actions: Toggle the synthetic threshold, explore Linh's sourced route, start a real profile, or explore the
+      unsaved sample.
     - Delight Factor: **Constellation Reveal** draws route lines from the changed profile fact to affected doors;
       opening doors use a restrained 380 ms **Portal Aperture** with a simultaneous text-state change.
 2. **Doors Overview**

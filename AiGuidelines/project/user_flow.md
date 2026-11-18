@@ -6,12 +6,12 @@
     - Purpose: Restore local state and send the user to the correct first screen without account or network gates.
     - Key Elements: Native splash handoff, local onboarding flag, bundled-pack validation, recoverable error state.
     - Expected Actions: Continue automatically; retry local initialization; open diagnostics after a pack failure.
-2. **Demo-first Onboarding**
-    - Purpose: Capture the user's opportunity goal and prove Porta's core mechanic before asking for profile data.
-    - Key Elements: Goal choices, sample-student label, IELTS `6.5 → 7.0` control, four changing sample doors,
-      source-receipt preview, four-step progress indicator.
-    - Expected Actions: Choose Scholarships, Internships, Programs, Student contests, or Show me all; run the sample
-      scenario; inspect one reason; continue to build a real map or keep exploring the sample.
+2. **Demo-first Onboarding** (two steps; see `onboarding.md`)
+    - Purpose: Prove Porta's core mechanic before asking for profile data, without mixing synthetic and sourced data.
+    - Key Elements: Editorial question step, synthetic IELTS `6.5 → 7.0` toggle with evaluator-derived before/after
+      counts, fictional-profile/sourced-catalog badge for Linh, acceptance and source disclaimers, two-step progress.
+    - Expected Actions: Toggle the synthetic threshold, then explore Linh's sourced route, start their own profile, or
+      explore the unsaved sample. `Skip` goes straight to the sample.
 3. **Minimal Profile Setup**
     - Purpose: Collect only facts needed by the P0 rule pack and generate the first real eligibility map.
     - Key Elements: Study level/field, GPA with scale, nationality/residency, English test and score, experience,

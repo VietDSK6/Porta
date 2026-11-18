@@ -61,7 +61,8 @@ network connection for its core flows. Opening an official source intentionally 
 MobileApp/       Porta Android/Desktop app, shared Kotlin, tests, and contest documentation
 Documentation/   Inherited starter-kit documentation submodule
 Web/             Inherited starter-kit web/backend scaffolding; not part of the Porta contest target claim
-.agents/         Reusable Porta contest and repository-review skills
+MobileApp/.agents/  Reusable Porta contest-readiness and Kotlin-convention review skills
+.agents/         Inherited starter-kit getting-started skill
 skills/          Inherited and adapted development workflow skills
 ```
 

@@ -54,16 +54,24 @@
 
 ## Screens and infrastructure that ship with the kit
 
-- [x] **Onboarding** — four demo-first Porta steps, IELTS what-if, receipt, explicit sample/real-profile exit
-- [x] **Paywall disabled** — `PREMIUM_FEATURES_ENABLED=false`; onboarding cannot route to paywall
-- [ ] **Navigation** — Android tabs are Doors / Frontier / Profile; Desktop uses adaptive rail/master-detail
-- [ ] **Starter cleanup** — remove obsolete image-generation, gallery, credits, subscriptions, and account routes
+- [x] **Onboarding** — two steps: editorial question, then an explicitly synthetic IELTS threshold lesson; exits to
+  Linh's sourced route, the user's own profile, or an unsaved sample. The earlier goal-choice step was removed
+  because it did not influence results.
+- [x] **No paywall** — billing, subscription, credit, ads, auth and Firebase code is removed from the build, so no
+  route can reach a paywall or account screen.
+- [x] **Navigation** — compact tabs are Doors / Route / Frontier / Profile; wide windows use the adaptive rail with
+  master-detail workspaces (`AdaptiveAppScaffold`).
+- [x] **Starter cleanup** — image-generation, gallery, credits, subscriptions and account routes are gone; `Routes.kt`
+  contains only Porta destinations.
 
 ## Stored preferences
 
 - [x] Onboarding completed
-- [x] Selected opportunity goal
+- [x] ~~Selected opportunity goal~~ — retired with the goal-choice step. `KEY_OPPORTUNITY_GOAL` and the
+  `onboarding_goal_*` strings remain defined but unused.
 - [x] Planning horizon, maximum effort, maximum cost, and saved-door priority
+- [x] App language (English default, Vietnamese optional)
+- [x] Optional user-supplied AI drafting key for Opportunity Studio
 
 ## Acceptance tests
 
@@ -78,7 +86,8 @@
 
 ## Validation
 
-- [ ] Every P0 screen has a pure composable test and `@Preview`
+- [x] Every P0 screen has a pure composable test and `@Preview` (each tracked screen folder has a preview and is
+  referenced by at least one test, checked 18 November 2026)
 - [~] Rendered previews inspected through `verify-ui` — onboarding, ProfileSetup, Frontier mobile/desktop,
   ActivePlan, StudentProfile, and PackInspector inspected
 - [x] `run-quality-gates` passes: Spotless, shared JVM/Android host tests, Android debug build
@@ -88,6 +97,9 @@
 
 ## Later additions
 
-- P1 form-based Opportunity Studio
-- Side-by-side comparison of up to three scenarios
-- Deadline reminders and local evidence-file references
+- [x] P1 form-based Opportunity Studio (Desktop), with optional grounded AI rule drafts
+- [x] Side-by-side comparison of up to three scenarios (Desktop Compare Lab)
+- [x] Local evidence-file references for actual-result confirmation
+- [x] Multi-step Route planner with ordered active-plan steps
+- [ ] Deadline reminders
+- [ ] CSV profile import/export, QR metadata handoff, separate application-readiness checklist

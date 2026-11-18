@@ -60,8 +60,8 @@ without predicting admission, scholarship selection, or personal worth.
 
 - Porta is completely free during the contest: no paywall, advertisements, subscriptions, credits, or paid feature
   gates.
-- `PREMIUM_FEATURES_ENABLED` remains `false`; billing and paywall surfaces are absent from onboarding and primary
-  navigation.
+- Billing, subscription, credit, ads and paywall code is removed from the contest build, so no such surface exists in
+  onboarding or navigation.
 - All bundled opportunity rules, receipts, Action Frontier results, and local planning tools are available equally
   to every user.
 - A post-contest sustainability model is intentionally deferred to `TODO(monetization)` after trust, source
