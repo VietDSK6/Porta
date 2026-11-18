@@ -17,10 +17,26 @@
 
 ## 18 November milestone review
 
-Overall: **BLOCKED** until the public repository shows the submission build. The product and local evidence are
-strong.
+Overall: **PASS WITH DISCLOSED RISKS** after the late-day update below. Earlier on 18 November the public repository
+showed only the 10 November build, which blocked submission; that is resolved. Media, manual QA, the competitor
+check and the entrant-confirmed gates remain open.
 
-- **Public repository is stale.** A read-only `git ls-remote porta` on 18 November shows public `main` and `HEAD` at
+- **Public repository updated and verified (late 18 November).** Public `main` was fast-forwarded from `e41172a` to
+  `9de011b` (review-ready Route milestone). `git ls-remote porta` confirms `HEAD`, `main` and
+  `codex/porta-final-improvements` all point to `9de011b`. A clone of `https://github.com/VietDSK6/Porta.git` with
+  no credential helper (`main` at `9de011b`, `local.properties` holding only `sdk.dir`) then passed every documented
+  step:
+  - `./scripts/check_env.sh --phase getting-started`;
+  - `spotlessCheck`, plus 57 engine JVM, 295 shared JVM, 81 Android-host and 3 CLI tests with zero failures;
+  - CLI `export-bundled` then `validate` ("Valid: Porta curated opportunity pack v5 (15 doors)");
+  - `:androidApp:assembleDebug` (APK) and `:desktopApp:packageDistributionForCurrentOS`
+    (`io.github.vietdsk6.porta-1.0.0.dmg`).
+
+  The clone shared this machine's Gradle cache: shared JVM and Android-host tests executed, while engine and CLI
+  test results were restored from cache for identical inputs. The DMG was not opened and the APK was not installed
+  on a device in this check.
+
+- **Public repository was stale (earlier the same day, now resolved).** A read-only `git ls-remote porta` on 18 November shows public `main` and `HEAD` at
   `e41172a` (10 November). The 14 November product work (`4ec6513`, `77e7add`, `44c7a22`, brand icons `5f4f0ba`)
   exists only on the pushed `codex/porta-final-improvements` branch. Local `fba2f1a` (agent-guide rewrite, no Kotlin
   change) is not pushed yet. A judge opening the repository link today would see the 10 November app.
@@ -70,7 +86,7 @@ programme was already counted as improved. The 180-day Action Frontier demo sett
 | Substantial application, not template/Hello World/library | PASS | Porta-owned engine, Room repositories, Compose flows, pack validation/import and 15-record catalog are implemented; keep separating these changes from Koko template code in README evidence. |
 | Original work or sufficient rights | IN PROGRESS | Koko is MIT-licensed and officially intended as a contest starting point; the README preserves attribution and `KMP_EVIDENCE.md` excludes unchanged scaffold from Porta claims. `OPPORTUNITY_PACK_SOURCES.md` records independent interpretations and official URLs; still audit icons, media and generated assets before publication. |
 | Cross-platform Kotlin project | PASS | Product logic, persistence and most UI are shared Kotlin; Android debug builds and the JVM Desktop package builds. An earlier packaged Desktop build launched past startup. Android + JVM Desktop are the declared contest targets; Web build work is deferred. |
-| GitHub repository submitted | RISK | Public repository: `https://github.com/VietDSK6/Porta`. Commit `5a17882` was cloned and read without a credential helper, then passed the documented automated paths. On 18 November public `main` was still `e41172a` (10 November), behind the product branch. Update the public default branch to the frozen submission commit and repeat the fresh-clone check. |
+| GitHub repository submitted | PASS | Public repository: `https://github.com/VietDSK6/Porta`. On 18 November public `main` was fast-forwarded to `9de011b`; a credential-free clone of that commit passed check_env, spotless, all scoped tests, the CLI smoke, the APK build and the macOS DMG package. Repeat after any later push of the frozen submission commit. |
 | Accepted repository license | PASS | Root repository currently contains MIT License. Preserve required notices and verify the submitted repository exposes it. |
 | Comprehensive README | PASS | The public root README covers product story, demo path, architecture, declared targets, limitations, quality gates, trust boundaries, exact baseline/first-product commits, and a table separating inherited Koko infrastructure from Porta work. |
 | Launch instructions for every declared target | PASS | Android and JVM Desktop have exact commands. A credential-free public clone builds the APK and DMG; the rebuilt Desktop package was observed launching past startup. Android device interaction remains a disclosed manual QA item, not an instruction gap. |
@@ -150,7 +166,7 @@ Current evidence:
   previous goal choice was removed because it did not influence results. Route leads with improved checks when zero
   doors fully pass, and keeps that zero-door disclosure visible. English remains the default, with persisted
   English/Vietnamese UI selection. The revised English/Vietnamese onboarding and zero-open Route screenshots were visually reviewed.
-- [x] 18 November (uncommitted working tree at the time of writing): every sourced door keeps at least one manual
+- [x] 18 November (`9de011b`): every sourced door keeps at least one manual
   check, so OPEN is unreachable for any profile under honest encoding. The engine now reports
   `readyForOfficialReview`: the door's applicable check path has no failed or unknown encoded check, and only manual
   checks or an unconfirmed deadline remain. The path prefers encoded checks over manual alternatives, so a failing
@@ -288,8 +304,9 @@ A green formatter alone must never be recorded as `20/20`.
 
 ## Next three contest actions
 
-1. Update the public default branch to the frozen submission commit. Verify it from a fresh public clone, then
-   repeat the KMP evidence and performance characterization from that commit.
+1. ~~Update the public default branch and verify it from a fresh public clone~~ (done 18 November at `9de011b`).
+   Repeat the KMP evidence and performance characterization from the final frozen commit, and repeat the
+   fresh-clone check if more commits are pushed.
 2. Strengthen the first-use story without fabricating results, and complete the dated competitor check and novelty
    statement. Have a second person re-read all 15 official sources and refresh every TBA deadline.
 3. Freeze the build, repeat the Kotlin convention audit, and complete Android-device plus keyboard/screen-reader QA.
